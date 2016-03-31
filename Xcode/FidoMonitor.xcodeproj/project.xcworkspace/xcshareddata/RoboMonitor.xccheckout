@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IDESourceControlProjectFavoriteDictionaryKey</key>
+	<false/>
+	<key>IDESourceControlProjectIdentifier</key>
+	<string>D0CE6033-365C-45E2-BD28-3ABE9EC0186A</string>
+	<key>IDESourceControlProjectName</key>
+	<string>RoboMonitor</string>
+	<key>IDESourceControlProjectOriginsDictionary</key>
+	<dict>
+		<key>0694F484853E5D6E8E5952235549A2EBB0156CDE</key>
+		<string>https://github.com/wda2945/Robo-Monitor-App.git</string>
+		<key>E7ED5FE9160E46BA91901783A32845ADF80AE571</key>
+		<string>https://github.com/wda2945/Shared-Robot-Source.git</string>
+	</dict>
+	<key>IDESourceControlProjectPath</key>
+	<string>RoboMonitor.xcodeproj</string>
+	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
+	<dict>
+		<key>0694F484853E5D6E8E5952235549A2EBB0156CDE</key>
+		<string>../..</string>
+		<key>E7ED5FE9160E46BA91901783A32845ADF80AE571</key>
+		<string>../../../SHARED_CODE</string>
+	</dict>
+	<key>IDESourceControlProjectURL</key>
+	<string>https://github.com/wda2945/Robo-Monitor-App.git</string>
+	<key>IDESourceControlProjectVersion</key>
+	<integer>111</integer>
+	<key>IDESourceControlProjectWCCIdentifier</key>
+	<string>0694F484853E5D6E8E5952235549A2EBB0156CDE</string>
+	<key>IDESourceControlProjectWCConfigurations</key>
+	<array>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.git</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>0694F484853E5D6E8E5952235549A2EBB0156CDE</string>
+			<key>IDESourceControlWCCName</key>
+			<string>iOS_Xcode</string>
+		</dict>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.git</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>E7ED5FE9160E46BA91901783A32845ADF80AE571</string>
+			<key>IDESourceControlWCCName</key>
+			<string>SHARED_CODE</string>
+		</dict>
+	</array>
+</dict>
+</plist>

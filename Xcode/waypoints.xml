@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?><data><waypoint><name type="text">Circle1</name><latitude
+type="real">19.414719</latitude><longitude type="real">-154.891754</longitude><connections><connection><name
+type="text">CircleApproach</name></connection><connection><name
+type="text">Circle2</name></connection><connection><name type="text">Circle4</name></connection></connections></waypoint><waypoint><name
+type="text">Circle2</name><latitude type="real">19.414770</latitude><longitude
+type="real">-154.891722</longitude><connections><connection><name
+type="text">Circle1</name></connection><connection><name type="text">Circle3</name></connection></connections></waypoint><waypoint><name
+type="text">Circle3</name><latitude type="real">19.414767</latitude><longitude
+type="real">-154.891596</longitude><connections><connection><name
+type="text">Home</name></connection><connection><name type="text">CroquetEntry1</name></connection><connection><name
+type="text">Circle2</name></connection></connections></waypoint><waypoint><name
+type="text">Circle4</name><latitude type="real">19.414658</latitude><longitude
+type="real">-154.891746</longitude><connections><connection><name
+type="text">Circle1</name></connection><connection><name type="text">Home</name></connection></connections></waypoint><waypoint><name
+type="text">CircleApproach</name><latitude type="real">19.414673</latitude><longitude
+type="real">-154.891865</longitude><connections><connection><name
+type="text">LairEntry</name></connection><connection><name type="text">Circle1</name></connection></connections></waypoint><waypoint><name
+type="text">CroquetEntry1</name><latitude type="real">19.414792</latitude><longitude
+type="real">-154.891628</longitude><connections><connection><name
+type="text">Circle3</name></connection><connection><name type="text">FollyApproach</name></connection><connection><name
+type="text">Solar1</name></connection><connection><name type="text">Solar2</name></connection></connections></waypoint><waypoint><name
+type="text">CroquetEntry2</name><latitude type="real">19.414847</latitude><longitude
+type="real">-154.891969</longitude><connections><connection><name
+type="text">FollyApproach</name></connection><connection><name
+type="text">Solar1</name></connection><connection><name type="text">Solar2</name></connection><connection><name
+type="text">Fiveway</name></connection></connections></waypoint><waypoint><name
+type="text">Fiveway</name><latitude type="real">19.414851</latitude><longitude
+type="real">-154.892063</longitude><connections><connection><name
+type="text">CroquetEntry2</name></connection><connection><name
+type="text">LairEntry</name></connection></connections></waypoint><waypoint><name
+type="text">FollyApproach</name><latitude type="real">19.414853</latitude><longitude
+type="real">-154.891579</longitude><connections><connection><name
+type="text">CroquetEntry1</name></connection><connection><name
+type="text">CroquetEntry2</name></connection><connection><name
+type="text">Solar1</name></connection><connection><name type="text">Solar2</name></connection><connection><name
+type="text">FollySteps</name></connection></connections></waypoint><waypoint><name
+type="text">FollySteps</name><latitude type="real">19.414832</latitude><longitude
+type="real">-154.891519</longitude><connections><connection><name
+type="text">FollyApproach</name></connection></connections></waypoint><waypoint><name
+type="text">Home</name><latitude type="real">19.414636</latitude><longitude
+type="real">-154.891671</longitude><connections><connection><name
+type="text">Circle3</name></connection><connection><name type="text">Circle4</name></connection></connections></waypoint><waypoint><name
+type="text">LairEntry</name><latitude type="real">19.414719</latitude><longitude
+type="real">-154.891913</longitude><connections><connection><name
+type="text">Fiveway</name></connection><connection><name type="text">CircleApproach</name></connection></connections></waypoint><waypoint><name
+type="text">Solar1</name><latitude type="real">19.415071</latitude><longitude
+type="real">-154.891794</longitude><connections><connection><name
+type="text">CroquetEntry1</name></connection><connection><name
+type="text">CroquetEntry2</name></connection><connection><name
+type="text">Solar2</name></connection><connection><name type="text">FollyApproach</name></connection></connections></waypoint><waypoint><name
+type="text">Solar2</name><latitude type="real">19.415013</latitude><longitude
+type="real">-154.891954</longitude><connections><connection><name
+type="text">CroquetEntry1</name></connection><connection><name
+type="text">CroquetEntry2</name></connection><connection><name
+type="text">Solar1</name></connection><connection><name type="text">FollyApproach</name></connection></connections></waypoint><waypoint><name
+type="text">unnamed</name><latitude type="real">19.414693</latitude><longitude
+type="real">-154.891737</longitude><connections /></waypoint></data>

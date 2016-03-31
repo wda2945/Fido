@@ -1,0 +1,8 @@
+[Unit]
+Description=overmind for bug hexapod
+
+[Service]
+ExecStart=/root/stable/overmind.elf
+
+[Install]
+WantedBy=multi-user.target

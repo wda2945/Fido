@@ -1,0 +1,30 @@
+{
+  "DVTSourceControlWorkspaceBlueprintPrimaryRemoteRepositoryKey" : "0694F484853E5D6E8E5952235549A2EBB0156CDE",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyRepositoryLocationsKey" : {
+
+  },
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyStatesKey" : {
+    "0694F484853E5D6E8E5952235549A2EBB0156CDE" : 0,
+    "E7ED5FE9160E46BA91901783A32845ADF80AE571" : 0
+  },
+  "DVTSourceControlWorkspaceBlueprintIdentifierKey" : "D0CE6033-365C-45E2-BD28-3ABE9EC0186A",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyPathsKey" : {
+    "0694F484853E5D6E8E5952235549A2EBB0156CDE" : "iOS_Xcode",
+    "E7ED5FE9160E46BA91901783A32845ADF80AE571" : "SHARED_CODE"
+  },
+  "DVTSourceControlWorkspaceBlueprintNameKey" : "RoboMonitor",
+  "DVTSourceControlWorkspaceBlueprintVersion" : 204,
+  "DVTSourceControlWorkspaceBlueprintRelativePathToProjectKey" : "RoboMonitor.xcodeproj",
+  "DVTSourceControlWorkspaceBlueprintRemoteRepositoriesKey" : [
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/github.com\/wda2945\/Robo-Monitor-App.git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "0694F484853E5D6E8E5952235549A2EBB0156CDE"
+    },
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/github.com\/wda2945\/Shared-Robot-Source.git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "E7ED5FE9160E46BA91901783A32845ADF80AE571"
+    }
+  ]
+}
