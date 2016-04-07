@@ -22,13 +22,13 @@
 
 #include "uart.h"
 #include "common.h"
-#include "PubSubData.h"
-#include "PubSubParser.h"
+#include "pubsubdata.h"
+#include "pubsubparser.h"
 
 #include "syslog/syslog.h"
 #include "pubsub/notifications.h"
-#include "SoftwareProfile.h"
-#include "brokerQ.h"
+#include "softwareprofile.h"
+#include "brokerq.h"
 #include "broker_debug.h"
 
 
@@ -69,26 +69,40 @@ int SerialBrokerInit()
 {
 	struct termios settings;
 
-	if (uart_setup(PS_TX_PIN, PS_RX_PIN) < 0)
+	if (load_device_tree(PS_UART_OVERLAY) < 0)
 	{
-		LogError("uart pinmux");
+		ERRORPRINT("broker uart overlay: %s failed\n", PS_UART_OVERLAY);
 		return -1;
 	}
+	else DEBUGPRINT("broker uart overlay OK\n", PS_UART_DEVICE);
+
+	if (uart_setup(PS_TX_PIN, PS_RX_PIN) < 0)
+	{
+		ERRORPRINT("uart pinmux");
+		return -1;
+	}
+	else DEBUGPRINT("broker uart pinmux OK\n");
+
+	sleep(1);
 
 	//initialize UART
 	picUartFD = open(PS_UART_DEVICE, O_RDWR | O_NOCTTY);
+	int retryCount = 10;
+
+	while (picUartFD < 0 && retryCount-- > 0) {
+		ERRORPRINT("Open %s: %s\n",PS_UART_DEVICE, strerror(errno));
+		sleep(1);
+		picUartFD = open(PS_UART_DEVICE, O_RDWR | O_NOCTTY);
+	}
 
 	if (picUartFD < 0) {
-		LogError("Open %s: %s",PS_UART_DEVICE, strerror(errno));
 		return -1;
 	}
-	else
-	{
-		DEBUGPRINT("%s opened\n", PS_UART_DEVICE);
-	}
+	else DEBUGPRINT("%s opened\n", PS_UART_DEVICE);
+
 
 	if (tcgetattr(picUartFD, &settings) != 0) {
-		LogError("tcgetattr: %s\n", strerror(errno));
+		ERRORPRINT("tcgetattr: %s\n", strerror(errno));
 		return -1;
 	}
 
@@ -103,7 +117,7 @@ int SerialBrokerInit()
 	cfsetispeed(&settings, PS_UART_BAUDRATE);
 
 	if (tcsetattr(picUartFD, TCSANOW, &settings) != 0) {
-		LogError("tcsetattr: %s\n", strerror(errno));
+		ERRORPRINT("tcsetattr: %s\n", strerror(errno));
 		return -1;
 	}
 
@@ -115,13 +129,13 @@ int SerialBrokerInit()
 	int s = pthread_create(&thread, NULL, RxThread, NULL);
 	if (s != 0)
 	{
-		LogError("Rx Thread: %s\n", strerror(s));
+		ERRORPRINT("Rx Thread: %s\n", strerror(s));
 		return -1;
 	}
 	s = pthread_create(&thread, NULL, TxThread, NULL);
 	if (s != 0)
 	{
-		LogError("Tx Thread: %s\n", strerror(s));
+		ERRORPRINT("Tx Thread: %s\n", strerror(s));
 		return -1;
 	}
 

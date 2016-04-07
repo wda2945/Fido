@@ -1,5 +1,5 @@
 
-
+-- common battery check
 BT.Priority:new({
 	name = 'isBatteryOKish',		-- battery not critical; OK or low
 	nodes = {
@@ -9,6 +9,7 @@ BT.Priority:new({
 		}
 });
 
+--go to sunbathe
 Sunbathe = BT:new({
 	tree = BT.Sequence:new({
 		name = 'Go.To.Solar.Position',
@@ -25,6 +26,7 @@ Sunbathe = BT:new({
 ActivityList[NextActivity] =  'Sunbathe'
 NextActivity = NextActivity + 1
 
+--return to heel
 Heel = BT:new({
 	tree = BT.Sequence:new({
 		name = 'Go.To.Heel.Position',
@@ -41,6 +43,7 @@ Heel = BT:new({
 ActivityList[NextActivity] =  'Heel'
 NextActivity = NextActivity + 1
 
+--return home
 Home = BT:new({
 	tree = BT.Sequence:new({
 		name = 'Go.To.Home.Position',

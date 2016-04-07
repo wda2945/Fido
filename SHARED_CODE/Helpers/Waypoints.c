@@ -21,7 +21,7 @@
 #include <errno.h>
 
 #include "mxml.h"
-#include "Waypoints.h"
+#include "waypoints.h"
 
 Waypoint_struct *waypointListStart = NULL;
 Waypoint_struct *waypointListEnd = NULL;

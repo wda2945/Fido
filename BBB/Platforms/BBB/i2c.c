@@ -18,12 +18,12 @@ int i2c_setup(const char *sclpin, const char *sdapin)
 {
 	if (set_pinmux(sclpin, "i2c") < 0)
 	{
-		printf("set_pinmux(%s) fail", sclpin);
+		printf("set_pinmux(%s) fail\n", sclpin);
 		return -1;
 	}
 	if (set_pinmux(sdapin, "i2c") < 0)
 	{
-		printf("set_pinmux(%s) fail", sdapin);
+		printf("set_pinmux(%s) fail\n", sdapin);
 		return -1;
 	}
 

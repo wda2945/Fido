@@ -18,6 +18,9 @@ optionmacro("Power Sonar Prox", sonarProxEnable, 0, 1, 0)//name used in PowerCon
 optionmacro("Power IR Prox", irProxEnable, 0, 1, 0)      //name used in PowerControl
 optionmacro("Power PIR Prox", pirProxEnable, 0, 1, 0)
 
+//Charging
+optionmacro("Solar Panel", solarEnable, 0, 1, 0)
+                
 //sensor reporting
 optionmacro("Raw Prox", rawProxReport, 0, 1, 0)
 optionmacro("Raw Analog", rawAnalogReport, 0, 1, 0)

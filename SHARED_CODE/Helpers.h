@@ -9,7 +9,7 @@
 #ifndef _HELPERS_H_
 #define _HELPERS_H_
 
-#include "Messages.h"
+#include "messages.h"
 
 #ifdef __cplusplus
 extern "C" {

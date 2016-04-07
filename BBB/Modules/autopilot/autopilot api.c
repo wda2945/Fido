@@ -21,8 +21,8 @@
 #include <pthread.h>
 #include <errno.h>
 
-#include "SoftwareProfile.h"
-#include "PubSubData.h"
+#include "softwareprofile.h"
+#include "pubsubData.h"
 #include "pubsub/pubsub.h"
 #include "pubsub/notifications.h"
 

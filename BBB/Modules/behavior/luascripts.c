@@ -11,17 +11,18 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include <dirent.h>
 #include <string.h>
 #include <math.h>
 #include "lua.h"
 
-#include "PubSubData.h"
+#include "pubsubdata.h"
 #include "pubsub/pubsub.h"
 
 #include "behavior/behavior.h"
-#include "behavior/behaviorDebug.h"
+#include "behavior/behaviordebug.h"
 #include "syslog/syslog.h"
 
 int LoadFromFolder(lua_State *L, char *scriptFolder);	//load chunks
@@ -32,13 +33,26 @@ int LoadChunk(lua_State *L, char *name, char *path);
 int LoadAllScripts(lua_State *L)
 {
 	int reply;
+	char cwd[100];
 
+	chdir("/root");
+
+	if (getcwd(cwd, 100))
+	{
+		DEBUGPRINT("CWD : %s\n", cwd);
+	}
+
+	//Load Behavior Tree Class file
 	reply = LoadFromFile(L, "btclass",  BEHAVIOR_TREE_CLASS, 1);
 	if (reply == 0)
 	{
 		 lua_setglobal(L, "BT");
 	}
-	else return -1;
+	else
+	{
+		ERRORPRINT("Failed to load Behavior Tree Class\n");
+		return -1;
+	}
 
 	reply += LoadFromFolder(L, INIT_SCRIPT_PATH);	//load init/default scripts first
 	reply += LoadFromFolder(L, BT_LEAF_PATH);
@@ -54,12 +68,13 @@ int LoadAllScripts(lua_State *L)
 const char * ChunkReader(lua_State *L, void *data, size_t *size);
 
 //load all lua scripts in a folder
+//0 OK, -1 fail
 int LoadFromFolder(lua_State *L, char *scriptFolder)	//load all scripts in folder
 {
 	DIR *dp;
 	struct dirent *ep;
 
-	DEBUGPRINT("Script Folder: %s\n", scriptFolder);
+	DEBUGPRINT("Loading from Folder: %s\n", scriptFolder);
 
 	dp = opendir (scriptFolder);
 	if (dp != NULL) {
@@ -97,6 +112,7 @@ int LoadFromFolder(lua_State *L, char *scriptFolder)	//load all scripts in folde
 }
 
 //load script from a file
+//0 OK, -1 error
 int LoadFromFile(lua_State *L, char *name, char *path, int nargs)
 {
 	int loadReply = LoadChunk(L, name, path);
@@ -126,6 +142,7 @@ int LoadFromFile(lua_State *L, char *name, char *path, int nargs)
 }
 
 //load a lua chunk from a file
+//0 OK, -1 error
 FILE *chunkFile;
 int LoadChunk(lua_State *L, char *name, char *path)
 {

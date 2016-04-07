@@ -13,21 +13,21 @@
 
 //---------------------Message Enums
 
-#include "Messages/MessageEnums.h"
+#include "messages/messageenums.h"
 
 //---------------------Message Formats
 
-#include "Messages/MessageFormats.h"
+#include "messages/messageformats.h"
 
 //---------------------Message Topics
 
-#include "Messages/Topics.h"
+#include "messages/topics.h"
 
 //---------------------Message codes enum
 
 #define messagemacro(m,q,t,f,l) m,
 typedef enum {
-#include "Messages/MessageList.h"
+#include "messages/messagelist.h"
     PS_MSG_COUNT
 } psMessageType_enum;
 #undef messagemacro
@@ -37,7 +37,7 @@ typedef enum {
 #define formatmacro(e,t,p,s) e,
 
 typedef enum {
-#include "Messages/MsgFormatList.h"
+#include "messages/msgformatlist.h"
     PS_FORMAT_COUNT
 } psMsgFormat_enum;
 #undef formatmacro
@@ -53,7 +53,7 @@ typedef struct {
     //Union option for each payload type
     union {
         uint8_t packet[1];
-#include "Messages/MsgFormatList.h"
+#include "messages/msgformatlist.h"
     };
 } psMessage_t;
 #pragma pack()

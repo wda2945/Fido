@@ -19,8 +19,8 @@
 typedef uint32_t TickType_t;
 #endif
 
-#include "MessageEnums.h"
-#include "NotificationEnums.h"
+#include "messageenums.h"
+#include "notificationenums.h"
 
 //Common header for all messages
 
@@ -261,7 +261,7 @@ typedef struct {
 //PS_SYS_STATS_PAYLOAD
 
 typedef struct {
-    size_t      freeHeap;
+    uint32_t freeHeap;
     uint8_t     cpuPercentage;
 } psSysStatsPayload_t;
 

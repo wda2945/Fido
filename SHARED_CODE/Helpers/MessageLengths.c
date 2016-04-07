@@ -6,7 +6,7 @@
 //  Copyright (c) 2014 Martin Lane-Smith. All rights reserved.
 //
 #include "string.h"
-#include "PubSubData.h"
+#include "pubsubdata.h"
 
 void AdjustMessageLength (psMessage_t *_msg) {
     

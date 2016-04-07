@@ -14,8 +14,8 @@
 #include <stdio.h>
 #include <memory.h>
 
-#include "PubSubData.h"
-#include "brokerQ.h"
+#include "pubsubdata.h"
+#include "brokerq.h"
 #include "syslog/syslog.h"
 #include "broker_debug.h"
 

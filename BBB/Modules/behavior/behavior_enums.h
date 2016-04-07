@@ -8,7 +8,7 @@
 #ifndef BEHAVIOR_ENUMS_H_
 #define BEHAVIOR_ENUMS_H_
 
-#include "PubSubData.h"
+#include "pubsubdata.h"
 
 typedef enum {ACTION_SUCCESS, ACTION_FAIL, ACTION_RUNNING} ActionResult_enum;
 

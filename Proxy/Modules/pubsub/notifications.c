@@ -11,14 +11,14 @@
 #include <string.h>
 #include <pthread.h>
 
-#include "SoftwareProfile.h"
+#include "softwareprofile.h"
 
-#include "sysLog/syslog.h"
+#include "syslog/syslog.h"
 #include "Helpers.h"
 #include "pubsub.h"
-#include "PubSubData.h"
+#include "pubsubdata.h"
 #include "notifications.h"
-#include "brokerQ.h"
+#include "brokerq.h"
 
 
 #ifdef NOTIFICATIONS_DEBUG

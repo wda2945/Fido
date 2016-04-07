@@ -8,8 +8,8 @@
 #ifndef BEHAVIOR_H_
 #define BEHAVIOR_H_
 
-#include "SoftwareProfile.h"
-#include "PubSubData.h"
+#include "softwareprofile.h"
+#include "pubsubdata.h"
 #include "lua.h"
 #include "behavior/behavior_enums.h"
 

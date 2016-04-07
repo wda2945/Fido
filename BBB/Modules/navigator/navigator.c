@@ -28,14 +28,14 @@
 #include "i2c.h"
 #include "uart.h"
 #include "common.h"
-#include "PubSubData.h"
+#include "pubsubdata.h"
 #include "pubsub/pubsub.h"
-#include "pubsub/brokerQ.h"
+#include "pubsub/brokerq.h"
 #include "pubsub/notifications.h"
 
 #include "syslog/syslog.h"
-#include "SoftwareProfile.h"
-#include "Helpers.h"
+#include "softwareprofile.h"
+#include "helpers.h"
 #include "navigator/navigator.h"
 #include "navigator/kalman.h"
 

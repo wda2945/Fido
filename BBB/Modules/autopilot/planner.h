@@ -11,7 +11,7 @@
 #ifndef PLANNER_H_
 #define PLANNER_H_
 
-#include "PubSubData.h"
+#include "pubsubdata.h"
 #include "behavior/behavior_enums.h"
 
 #ifdef __cplusplus

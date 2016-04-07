@@ -14,7 +14,7 @@
 
 typedef enum {
 
-#include "Messages/NotificationEventsList.h"
+#include "messages/notificationeventslist.h"
 
  EVENT_COUNT
 } Event_enum;
@@ -27,7 +27,7 @@ typedef enum {
 
 typedef enum {
 
-#include "Messages/NotificationConditionsList.h"
+#include "messages/notificationconditionslist.h"
 
     CONDITION_COUNT
 } Condition_enum;

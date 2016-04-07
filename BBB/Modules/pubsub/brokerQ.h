@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include "pthread.h"
 
-#include "PubSubData.h"
+#include "pubsubdata.h"
 
 //queue item struct
 //just a message and a next pointer

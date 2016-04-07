@@ -55,92 +55,106 @@ static void XBeeRxTask(void *pvParameters);
 static void XBeeTxTask(void *pvParameters);
 
 //regular Fido data packet (Tx)
+
 typedef struct {
-	struct {
-		uint8_t apiIdentifier;
-		uint8_t frameId;
-		uint8_t destinationMSB;
-		uint8_t destinationLSB;
-		uint8_t options;
-	} packetHeader;
-	psMessage_t message;
-} TxPacket_t;				
+
+    struct {
+        uint8_t apiIdentifier;
+        uint8_t frameId;
+        uint8_t destinationMSB;
+        uint8_t destinationLSB;
+        uint8_t options;
+    } packetHeader;
+    psMessage_t message;
+} TxPacket_t;
 
 //XBee AT command packet
+
 typedef struct {
-	struct {
-		uint8_t apiIdentifier;
-		uint8_t frameId;
-		uint8_t ATcommand[2];
-	} packetHeader;
-	union {
-		struct {
-			uint8_t byteData;
-			uint8_t fill[3];
-		};
-		int 	intData;
-	};
-} ATPacket_t;				
+
+    struct {
+        uint8_t apiIdentifier;
+        uint8_t frameId;
+        uint8_t ATcommand[2];
+    } packetHeader;
+
+    union {
+
+        struct {
+            uint8_t byteData;
+            uint8_t fill[3];
+        };
+        int intData;
+    };
+} ATPacket_t;
 
 //regular Fido data packet (Rx) + status packets
+
 typedef struct {
-	uint8_t apiIdentifier;
-	union {
-		struct {
-			struct {
-				uint8_t sourceMSB;
-				uint8_t sourceLSB;
-				uint8_t rssi;
-				uint8_t options;
-			} packetHeader;
-			psMessage_t message;
-		} fidoMessage;
+    uint8_t apiIdentifier;
 
-		struct {
-			uint8_t frameId;
-			uint8_t status;
-		} txStatus;
+    union {
 
-		struct {
-			uint8_t status;
-		} modemStatus;
-	};
-} RxPacket_t;					//regular Fido data packet (Rx) + status packets
+        struct {
+
+            struct {
+                uint8_t sourceMSB;
+                uint8_t sourceLSB;
+                uint8_t rssi;
+                uint8_t options;
+            } packetHeader;
+            psMessage_t message;
+        } fidoMessage;
+
+        struct {
+            uint8_t frameId;
+            uint8_t status;
+        } txStatus;
+
+        struct {
+            uint8_t status;
+        } modemStatus;
+    };
+} RxPacket_t; //regular Fido data packet (Rx) + status packets
 
 //XBee AT Command Response
+
 typedef struct {
-	uint8_t apiIdentifier;
-	uint8_t frameId;
-	uint8_t ATcommand[2];
-	uint8_t status;
-	union {
-		struct {
-			uint8_t byteData;
-			uint8_t fill[3];
-		};
-		int 	intData;
-	};
-} ATResponse_t;					//XBee AT Command Response
+    uint8_t apiIdentifier;
+    uint8_t frameId;
+    uint8_t ATcommand[2];
+    uint8_t status;
+
+    union {
+
+        struct {
+            uint8_t byteData;
+            uint8_t fill[3];
+        };
+        int intData;
+    };
+} ATResponse_t; //XBee AT Command Response
 
 //XBEE Tx Status
+
 struct {
-	XBeeTxStatus_enum 	status;
-	uint8_t 			frameId;
+    XBeeTxStatus_enum status;
+    uint8_t frameId;
 } latestTxStatus;
 char *txStatusNames[] = TX_STATUS_NAMES;
 
 XBeeModemStatus_enum latestXBeeModemStatus;
 
-TxPacket_t XBeeTxPacket;		//regular Fido data packet (Tx)
-ATPacket_t XBeeATPacket;		//XBee AT command packet
+TxPacket_t XBeeTxPacket; //regular Fido data packet (Tx)
+ATPacket_t XBeeATPacket; //XBee AT command packet
 
-RxPacket_t XBeeRxPacket;		//regular Fido data packet (Rx) + status packets
-ATResponse_t XBeeATResponse;	//XBee AT Command Response
+RxPacket_t XBeeRxPacket; //regular Fido data packet (Rx) + status packets
+ATResponse_t XBeeATResponse; //XBee AT Command Response
 
 //semaphore for ADC ISR sync
-SemaphoreHandle_t XBeeTxMutex             = NULL;   //use of Tx Mutex
-SemaphoreHandle_t XBeeATResponseSemaphore = NULL;   //wait for AT command response
-SemaphoreHandle_t XBeeTxResponseSemaphore = NULL;   //wait for Tx response
+SemaphoreHandle_t XBeeTxMutex = NULL; //use of Tx Mutex
+SemaphoreHandle_t XBeeATResponseSemaphore = NULL; //wait for AT command response
+SemaphoreHandle_t XBeeTxResponseSemaphore = NULL; //wait for Tx response
 
 int XBeeTxChecksum;
 int XBeeRxChecksum;
@@ -148,10 +162,10 @@ uint8_t XBeeTxSequenceNumber = 1;
 uint8_t XBeeRxSequenceNumber;
 
 //counts for throttling logging messages
-int XBeeRoutine     = 0;
-int XBeeInfo        = 0;
-int XBeeWarning     = 0;
-int XBeeError       = 0;
+int XBeeRoutine = 0;
+int XBeeInfo = 0;
+int XBeeWarning = 0;
+int XBeeError = 0;
 
 //comms statistics collection
 //TX
@@ -237,7 +251,7 @@ int XBeeBrokerInit() {
     }
 
     if (xbeeReady) {
-        
+
         //create the semaphore to sync a Tx with a Tx Status
         XBeeTxResponseSemaphore = xSemaphoreCreateBinary();
         if (XBeeTxResponseSemaphore == NULL) {
@@ -305,71 +319,70 @@ int XBeeBrokerInit() {
 
 //called by the broker to see whether a message should be queued for the TX Thread
 
-bool XBeeBrokerProcessMessage(psMessage_t *msg, TickType_t wait)
-{
+bool XBeeBrokerProcessMessage(psMessage_t *msg, TickType_t wait) {
 
-        if (msg->header.source ==  ROBO_APP || msg->header.source == APP_XBEE || msg->header.source == APP_OVM || msg->header.source == XBEE)
-        {
-            //it's one I received, don't send it back
-            XBeeAddressDiscarded++;
-            return false;
+    if (msg->header.source == ROBO_APP || msg->header.source == APP_XBEE || msg->header.source == APP_OVM || msg->header.source == XBEE) {
+        //it's one I received, don't send it back
+        XBeeAddressDiscarded++;
+        return false;
+    }
+
+    if (!xbeeTxQueue) return false;
+
+    if (msg->header.messageType == SYSLOG_MSG) {
+        //count queued log messages and limit
+        switch (msg->logPayload.severity) {
+            case SYSLOG_ROUTINE:
+                if (XBeeRoutine > (int) maxXBeeRoutine) {
+                    XBeeLogMessagesDiscarded++;
+                    return false;
+                }
+                ++XBeeRoutine;
+                break;
+            case SYSLOG_INFO:
+                if (XBeeInfo > (int) maxXBeeInfo) {
+                    XBeeLogMessagesDiscarded++;
+                    return false;
+                }
+                ++XBeeInfo;
+                break;
+            case SYSLOG_WARNING:
+                if (XBeeWarning > (int) maxXBeeWarning) {
+                    XBeeLogMessagesDiscarded++;
+                    return false;
+                }
+                ++XBeeWarning;
+                break;
+            case SYSLOG_ERROR:
+                if (XBeeError > (int) maxXBeeError) {
+                    XBeeLogMessagesDiscarded++;
+                    return false;
+                }
+                ++XBeeError;
+            default:
+                break;
         }
-
-        if (!xbeeTxQueue) return false;
-
-        if (msg->header.messageType == SYSLOG_MSG) {
-            //count queued log messages and limit
-            switch (msg->logPayload.severity) {
-                case SYSLOG_ROUTINE:
-                    if (XBeeRoutine > (int)maxXBeeRoutine) {
-                        XBeeLogMessagesDiscarded++;
-                        return false;
-                    }
-                    ++XBeeRoutine;
-                    break;
-                case SYSLOG_INFO:
-                    if (XBeeInfo > (int)maxXBeeInfo) {
-                        XBeeLogMessagesDiscarded++;
-                        return false;
-                    }
-                    ++XBeeInfo;
-                    break;
-                case SYSLOG_WARNING:
-                    if (XBeeWarning > (int)maxXBeeWarning) {
-                        XBeeLogMessagesDiscarded++;
-                        return false;
-                    }
-                    ++XBeeWarning;
-                    break;
-                case SYSLOG_ERROR:
-                    if (XBeeError > (int)maxXBeeError) {
-                        XBeeLogMessagesDiscarded++;
-                        return false;
-                    }
-                    ++XBeeError;
-                default:
-                    break;
-            }
-        }
-        //check q space
-        int waiting = uxQueueMessagesWaiting(xbeeTxQueue);
-        if (waiting >= xbeeQueueLimits[psQOS[msg->header.messageType]]) {
+    }
+    //check q space
+    int waiting = uxQueueMessagesWaiting(xbeeTxQueue);
+    if (waiting >= xbeeQueueLimits[psQOS[msg->header.messageType]]) {
+        SetCondition(MCP_XBEE_COMMS_CONGESTION);
+        XBeeCongestionDiscarded++;
+        DebugPrint("XBee discarded %s", psLongMsgNames[msg->header.messageType]);
+        return false;
+    } else {
+        //            DebugPrint("%s linkQ: %x", linkDestinations, linkQueues);            
+        if (xQueueSendToBack(xbeeTxQueue, msg, wait) != pdTRUE) {
             SetCondition(MCP_XBEE_COMMS_CONGESTION);
             XBeeCongestionDiscarded++;
-            DebugPrint("XBee discarded %s", psLongMsgNames[msg->header.messageType]);
+            DebugPrint("XBee lost %s", psLongMsgNames[msg->header.messageType]);
             return false;
-        } else {
-//            DebugPrint("%s linkQ: %x", linkDestinations, linkQueues);            
-            if (xQueueSendToBack(xbeeTxQueue, msg, wait) != pdTRUE) {
-                SetCondition(MCP_XBEE_COMMS_CONGESTION);
-                XBeeCongestionDiscarded++;
-                DebugPrint("XBee lost %s", psLongMsgNames[msg->header.messageType]);
-                return false;
-            }
         }
+    }
 
     return true;
 }
+
 void XBEE_write(uint8_t dat) {
     UART_DATA udat;
     udat.__data = 0;
@@ -440,7 +453,7 @@ static void XBeeTxTask(void *pvParameters) {
             xSemaphoreTake(XBeeTxMutex, 5000);
 
             SendFidoMessage(&msg);
-            
+
             LogRoutine("XBee TX: %s", psLongMsgNames[msg.header.messageType]);
 
             if (xSemaphoreTake(XBeeTxResponseSemaphore, 2000) == pdTRUE) {
@@ -501,21 +514,21 @@ int ReadEscapedData(uint8_t *pkt, int len) {
         }
 
         XBeeRxChecksum += *next;
-        
+
         next++;
         count--;
     } while (count > 0);
-    
+
     return 0;
 }
 
 int ReadApiPacket() {
     int reply;
     uint8_t checksum;
-    
+
     UART_DATA dat;
     uint8_t lengthBytes[2];
-    
+
     do {
         //read until frame delimiter
         dat = Serial_read(XBEE_UART);
@@ -527,243 +540,225 @@ int ReadApiPacket() {
     if (length > sizeof (XBeeRxPacket)) length = sizeof (XBeeRxPacket);
 
     XBeeRxChecksum = 0; //length not included
-    
+
     reply += ReadEscapedData((uint8_t*) & XBeeRxPacket, length);
     reply += ReadEscapedData((uint8_t*) & checksum, 1);
-    
+
     if (reply < 0 || (XBeeRxChecksum & 0xff) != 0xff) return -1;
     else return 0;
 }
 
 //receives messages and passes to broker
+
 static void XBeeRxTask(void *pvParameters) {
-	psMessage_t *msg;
+    psMessage_t *msg;
 
-	LogRoutine("XBee RX ready");
+    LogRoutine("XBee RX ready");
 
-	for (;;) {
-		if (ReadApiPacket() == 0)
-		{
-			switch(XBeeRxPacket.apiIdentifier)
-			{
-			case MODEM_STATUS:
-				latestXBeeModemStatus = XBeeRxPacket.modemStatus.status;
-				DebugPrint("XBee status : %i", latestXBeeModemStatus);
-				break;
-			case TRANSMIT_STATUS:
-				latestTxStatus.status = XBeeRxPacket.txStatus.status;
-				latestTxStatus.frameId = XBeeRxPacket.txStatus.frameId;
-//				DebugPrint("Tx Status: %i", latestTxStatus.status);
-                xSemaphoreGive(XBeeTxResponseSemaphore);
-   				break;
-			case AT_RESPONSE:
-				DebugPrint("AT Response packet");
-				memcpy(&XBeeATResponse, &XBeeRxPacket, sizeof(XBeeATResponse));
-                xSemaphoreGive(XBeeATResponseSemaphore);
-				break;
-			case RECEIVE_16:
+    for (;;) {
+        if (ReadApiPacket() == 0) {
+            switch (XBeeRxPacket.apiIdentifier) {
+                case MODEM_STATUS:
+                    latestXBeeModemStatus = XBeeRxPacket.modemStatus.status;
+                    DebugPrint("XBee status : %i", latestXBeeModemStatus);
+                    break;
+                case TRANSMIT_STATUS:
+                    latestTxStatus.status = XBeeRxPacket.txStatus.status;
+                    latestTxStatus.frameId = XBeeRxPacket.txStatus.frameId;
+                    //				DebugPrint("Tx Status: %i", latestTxStatus.status);
+                    xSemaphoreGive(XBeeTxResponseSemaphore);
+                    break;
+                case AT_RESPONSE:
+                    DebugPrint("AT Response packet");
+                    memcpy(&XBeeATResponse, &XBeeRxPacket, sizeof (XBeeATResponse));
+                    xSemaphoreGive(XBeeATResponseSemaphore);
+                    break;
+                case RECEIVE_16:
                     msg = &XBeeRxPacket.fidoMessage.message;
 
-//#ifdef XBEE_DEBUG_LOG
                     if (msg->header.messageType != SYSLOG_MSG //don't log log messages!!
                             && msg->header.messageType != TICK_1S) //& don't log ticks
-                        DebugPrint("XBee Rx: %s",
-                            psLongMsgNames[msg->header.messageType]);
-//#endif
-                    
-				if (msg->header.messageType == KEEPALIVE)
-				{
-					xQueueSendToBack(xbeeTxQueue, msg, 0);
-				}
-				else
-				{
-					if ((msg->header.source != XBEE) && (msg->header.source != APP_XBEE) && (msg->header.source != APP_OVM) && (msg->header.source != ROBO_APP))
-					{
-						DebugPrint("XBee Ignored: %s", psLongMsgNames[msg->header.messageType]);
-						XBeeAddressIgnored++;
-					}
-                    else
                     {
-						DebugPrint("XBee RX: %s", psLongMsgNames[msg->header.messageType]);
-						//route the message
-                        psForwardMessage(msg, 0);
-						XBeeMessagesReceived++;
-                        
-                        xbeeOnline = true;
-                        APPonline = true;
-                        xTimerReset(xbeeTimeout, 0);
-					}
-				}
-				break;
-			case RECEIVE_IO_16:
-				//tbd
+                        LogRoutine("XBee RX: %s", psLongMsgNames[msg->header.messageType]);
+                    }
 
-				break;
-			default:
-				//ignore
-				break;
-			}
-		}
-		else
-		{
-			DebugPrint("XBee Rx Error");
-			SetCondition(MCP_XBEE_COMMS_ERRORS);
-		}
-	}
-	return;
+
+                    if (msg->header.messageType == KEEPALIVE) {
+                        xQueueSendToBack(xbeeTxQueue, msg, 0);
+                    } else {
+                        if ((msg->header.source != XBEE) && (msg->header.source != APP_XBEE) && (msg->header.source != APP_OVM) && (msg->header.source != ROBO_APP)) {
+                            DebugPrint("XBee Ignored: %s", psLongMsgNames[msg->header.messageType]);
+                            XBeeAddressIgnored++;
+                        } else {
+                            DebugPrint("XBee RX: %s", psLongMsgNames[msg->header.messageType]);
+                            //route the message
+                            psForwardMessage(msg, 0);
+                            XBeeMessagesReceived++;
+
+                            xbeeOnline = true;
+                            APPonline = true;
+                            xTimerReset(xbeeTimeout, 0);
+                        }
+                    }
+                    break;
+                case RECEIVE_IO_16:
+                    //tbd
+
+                    break;
+                default:
+                    //ignore
+                    break;
+            }
+        } else {
+            DebugPrint("XBee Rx Error");
+            SetCondition(MCP_XBEE_COMMS_ERRORS);
+        }
+    }
+    return;
 }
 
 //Use prior to entering API mode and creating threads
 #define MAX_REPLY 10
-int SendATCommand(char *cmdString, char *replyString)
-{
-	int reply;
-	size_t len = strlen(cmdString);
-	char *next = cmdString;
 
-	while (len-- > 0)
-	{
-		XBEE_write(*next++);
-	}
+int SendATCommand(char *cmdString, char *replyString) {
+    int reply;
+    size_t len = strlen(cmdString);
+    char *next = cmdString;
 
-	next = replyString;
-	len = MAX_REPLY-1;
+    while (len-- > 0) {
+        XBEE_write(*next++);
+    }
 
-	do {
+    next = replyString;
+    len = MAX_REPLY - 1;
+
+    do {
         UART_DATA dat = Serial_read(XBEE_UART);
         *next = dat.data8bit;
-	} while (len-- > 0 && *next++ != '\r');
+    } while (len-- > 0 && *next++ != '\r');
 
-	*next = '\0';
+    *next = '\0';
 
-	if (reply < 0) return -1;
-	else return 0;
+    if (reply < 0) return -1;
+    else return 0;
 }
-int SetXBeeRegister(const char *atCommand, uint8_t value)
-{
-	int reply;
-	char cmdString[MAX_REPLY];
-	char replyString[MAX_REPLY];
 
-	DebugPrint("XBee Set %s = %i", atCommand, value);
+int SetXBeeRegister(const char *atCommand, uint8_t value) {
+    int reply;
+    char cmdString[MAX_REPLY];
+    char replyString[MAX_REPLY];
 
-	sprintf(cmdString, "AT%s%i\r", atCommand, value);
+    DebugPrint("XBee Set %s = %i", atCommand, value);
 
-	reply = SendATCommand(cmdString, replyString);
+    sprintf(cmdString, "AT%s%i\r", atCommand, value);
 
-	if (reply < 0 || strncmp(replyString, "OK", 2) != 0)
-		return -1;
-	else return 0;
+    reply = SendATCommand(cmdString, replyString);
+
+    if (reply < 0 || strncmp(replyString, "OK", 2) != 0)
+        return -1;
+    else return 0;
 }
-int GetXBeeRegister(const char *atCommand)
-{
-	int reply;
-	char cmdString[MAX_REPLY];
-	char replyString[MAX_REPLY];
 
-	DebugPrint("XBee Get %s", atCommand);
+int GetXBeeRegister(const char *atCommand) {
+    int reply;
+    char cmdString[MAX_REPLY];
+    char replyString[MAX_REPLY];
 
-	sprintf(cmdString, "AT%s\r", atCommand);
+    DebugPrint("XBee Get %s", atCommand);
 
-	reply = SendATCommand(cmdString, replyString);
+    sprintf(cmdString, "AT%s\r", atCommand);
 
-	if (reply >= 0)
-	{
-		reply = -1;
-		sscanf(replyString, "%i", &reply);
-		return reply;
-	}
-	else return -1;
+    reply = SendATCommand(cmdString, replyString);
+
+    if (reply >= 0) {
+        reply = -1;
+        sscanf(replyString, "%i", &reply);
+        return reply;
+    } else return -1;
 }
 
 //Get/Set 1 byte registers using API
-int APISetXBeeRegister1(const char *atCommand, uint8_t value)
-{
-	uint8_t response;
 
-	LogRoutine("XBee Set %s = %i", atCommand, value);
+int APISetXBeeRegister1(const char *atCommand, uint8_t value) {
+    uint8_t response;
 
-	xSemaphoreTake(XBeeTxMutex, 1000);
+    LogRoutine("XBee Set %s = %i", atCommand, value);
 
-	XBeeATPacket.packetHeader.apiIdentifier 	= AT_COMMAND;
-	XBeeATPacket.packetHeader.frameId			= 0;
-	XBeeATPacket.packetHeader.ATcommand[0] = atCommand[0];
-	XBeeATPacket.packetHeader.ATcommand[1] = atCommand[1];
+    xSemaphoreTake(XBeeTxMutex, 1000);
 
-	XBeeATPacket.byteData = value;
+    XBeeATPacket.packetHeader.apiIdentifier = AT_COMMAND;
+    XBeeATPacket.packetHeader.frameId = 0;
+    XBeeATPacket.packetHeader.ATcommand[0] = atCommand[0];
+    XBeeATPacket.packetHeader.ATcommand[1] = atCommand[1];
 
-	SendApiPacket((uint8_t*)&XBeeATPacket, sizeof(XBeeATPacket.packetHeader) + 1);
+    XBeeATPacket.byteData = value;
 
-	if (xSemaphoreTake(XBeeATResponseSemaphore, 500) == pdTRUE)
-    {
+    SendApiPacket((uint8_t*) & XBeeATPacket, sizeof (XBeeATPacket.packetHeader) + 1);
+
+    if (xSemaphoreTake(XBeeATResponseSemaphore, 500) == pdTRUE) {
         response = XBeeATResponse.status;
-    }
-    else
-    {
+    } else {
         response = -1;
     }
-	xSemaphoreGive(XBeeTxMutex);
+    xSemaphoreGive(XBeeTxMutex);
 
-	return (response == 0 ? 0 : -1);
+    return (response == 0 ? 0 : -1);
 }
-int APIGetXBeeRegister1(const char *atCommand)
-{
-	int response;
 
-	LogRoutine("XBee Get %s", atCommand);
+int APIGetXBeeRegister1(const char *atCommand) {
+    int response;
 
-	xSemaphoreTake(XBeeTxMutex, 1000);
+    LogRoutine("XBee Get %s", atCommand);
 
-	XBeeATPacket.packetHeader.apiIdentifier 	= AT_COMMAND;
-	XBeeATPacket.packetHeader.frameId			= 0;
-	XBeeATPacket.packetHeader.ATcommand[0] = atCommand[0];
-	XBeeATPacket.packetHeader.ATcommand[1] = atCommand[1];
+    xSemaphoreTake(XBeeTxMutex, 1000);
 
-	SendApiPacket((uint8_t*)&XBeeATPacket, sizeof(XBeeATPacket.packetHeader));
+    XBeeATPacket.packetHeader.apiIdentifier = AT_COMMAND;
+    XBeeATPacket.packetHeader.frameId = 0;
+    XBeeATPacket.packetHeader.ATcommand[0] = atCommand[0];
+    XBeeATPacket.packetHeader.ATcommand[1] = atCommand[1];
 
-	if (xSemaphoreTake(XBeeATResponseSemaphore, 500) == pdTRUE)
-    {
+    SendApiPacket((uint8_t*) & XBeeATPacket, sizeof (XBeeATPacket.packetHeader));
+
+    if (xSemaphoreTake(XBeeATResponseSemaphore, 500) == pdTRUE) {
         if (XBeeATResponse.status == 0) response = XBeeATResponse.byteData;
         else response = -1;
-    }
-    else
-    {
+    } else {
         LogError("GetXBReg timeout");
         response = -1;
     }
     xSemaphoreGive(XBeeTxMutex);
 
-	return response;
+    return response;
 }
 //tx power level
-int SetPowerLevel(int pl)
-{
-	return SetXBeeRegister(POWER_LEVEL, pl);
+
+int SetPowerLevel(int pl) {
+    return SetXBeeRegister(POWER_LEVEL, pl);
 }
-int GetPowerLevel()
-{
-	return GetXBeeRegister(POWER_LEVEL);
+
+int GetPowerLevel() {
+    return GetXBeeRegister(POWER_LEVEL);
 }
 //get into API mode
-int EnterCommandMode()
-{
+
+int EnterCommandMode() {
     char replyString[MAX_REPLY];
-    vTaskDelay(1000);
+    vTaskDelay(2000);
     XBEE_write('+');
     XBEE_write('+');
     XBEE_write('+');
-    vTaskDelay(1000);
+    vTaskDelay(2000);
     //check for OK
     int reply = SendATCommand("", replyString);
-    
+
     DebugPrint("Enter Command Mode: %s", replyString)
-    
+
     if (reply < 0 || strncmp(replyString, "OK", 2) != 0)
-		return -1;
-	else return 0;
+        return -1;
+    else return 0;
 }
-int EnterAPIMode()
-{
+
+int EnterAPIMode() {
     return SetXBeeRegister("AP", 2);
 }
 
@@ -786,7 +781,6 @@ void XBeeSendStats() {
     psForwardMessage(&msg, 0);
 }
 
-void xbeeOfflineTimerCallback(TimerHandle_t xTimer)
-{
-     xbeeOnline = false;
+void xbeeOfflineTimerCallback(TimerHandle_t xTimer) {
+    xbeeOnline = false;
 }

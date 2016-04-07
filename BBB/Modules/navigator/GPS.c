@@ -24,8 +24,8 @@
 
 #include "uart.h"
 #include "common.h"
-#include "SoftwareProfile.h"
-#include "PubSubData.h"
+#include "softwareprofile.h"
+#include "pubsubdata.h"
 #include "pubsub/pubsub.h"
 
 #include "syslog/syslog.h"
@@ -68,18 +68,35 @@ int GPSInit()
 	//open GPS uart
 	struct termios settings;
 
+	if (load_device_tree(GPS_UART_OVERLAY) < 0)
+	{
+		ERRORPRINT("GPS uart overlay: %s failed\n", GPS_UART_OVERLAY);
+		return -1;
+	}
+	else DEBUGPRINT("GPS uart overlay OK\n", PS_UART_DEVICE);
+
 	if (uart_setup(GPS_TX_PIN, GPS_RX_PIN) < 0)
 	{
 		ERRORPRINT("GPS uart_setup failed: %s\n");
 		return -1;
 	}
+	else DEBUGPRINT("broker uart pinmux OK\n");
+
+	sleep(1);
 
 	//initialize UART
 	GPSfd = open(GPS_UART_DEVICE, O_RDWR | O_NOCTTY);
 
+	int retryCount = 10;
+
+	while (GPSfd < 0 && retryCount-- > 0) {
+		ERRORPRINT("Open %s: %s\n",GPS_UART_DEVICE, strerror(errno));
+		sleep(1);
+		GPSfd = open(GPS_UART_DEVICE, O_RDWR | O_NOCTTY);
+	}
+
 	if (GPSfd < 0) {
-		ERRORPRINT("open of %s failed: %s\n",GPS_UART_DEVICE, strerror(errno));
-		return errno;
+		return -1;
 	}
 	else
 	{

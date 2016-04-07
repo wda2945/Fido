@@ -22,8 +22,8 @@
 #include <pthread.h>
 #include <errno.h>
 
-#include "SoftwareProfile.h"
-#include "PubSubData.h"
+#include "softwareprofile.h"
+#include "pubsubdata.h"
 #include "pubsub/pubsub.h"
 #include "pubsub/notifications.h"
 
@@ -34,7 +34,7 @@
 #include "autopilot_common.h"
 #include "planner.h"
 #include "behavior/behavior.h"
-#include "Waypoints.h"
+#include "waypoints.h"
 
 FILE *pilotDebugFile;
 

@@ -12,6 +12,6 @@ int AgentInit();
 
 bool AgentProcessMessage(psMessage_t *msg);
 
-extern bool agentOnline;
+extern int agentOnline;
 
 #endif /* AGENT_AGENT_H_ */

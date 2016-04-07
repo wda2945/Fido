@@ -22,9 +22,9 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-#include "softwareProfile.h"
-#include "pubsubdata.h"
+#include "softwareprofile.h"
 #include "pubsub/pubsub.h"
+#include "pubsub/notifications.h"
 #include "syslog/syslog.h"
 #include "helpers.h"
 #include "pubsubparser.h"
@@ -58,8 +58,11 @@ BrokerQueue_t agentQueue = BROKER_Q_INITIALIZER;	//queue for messages to be sent
 void *AgentListenThread(void *arg);					//listen thread spawns tx & rx threads for each connect
 pthread_t listenThread;
 pthread_t txThread;
+pthread_t pingThread;
 void *AgentRxThread(void *arg);						//rx thread function
 void *AgentTxThread(void *arg);						//tx thread function
+
+void *AgentPingThread(void *arg);					//thread send ping to router
 
 #define LISTEN_PORT_NUMBER 50000
 
@@ -79,6 +82,14 @@ int AgentInit()
 	s = pthread_create(&txThread, NULL, AgentTxThread, NULL);
 	if (s != 0) {
 		LogError("Agent Tx create failed. %i\n", strerror(s));
+		return -1;
+	}
+
+
+	//create agent Ping thread
+	s = pthread_create(&pingThread, NULL, AgentPingThread, NULL);
+	if (s != 0) {
+		LogError("Agent PingThread create failed. %i\n", strerror(s));
 		return -1;
 	}
 
@@ -196,6 +207,7 @@ void *AgentListenThread(void *arg)
 					if (s == EAGAIN) sleep(1);
 				}
 				while (s == EAGAIN);
+
 				if (s != 0) {
 					LogError("Agent %i Rx create failed - %s\n", channel, strerror(s));
 
@@ -214,6 +226,7 @@ void *AgentListenThread(void *arg)
 					LogError("Agent: mutex unlock %i", s);
 				}
 				//end critical section
+
 			}
 		}
 	}
@@ -246,6 +259,8 @@ void *AgentRxThread(void *arg)
 	}
     agentConnections++;
     agentOnline = true;
+    SetCondition(AGENT_CONNECTED);
+
 	s = pthread_mutex_unlock(&agentMtx);
 	if (s != 0)
 	{
@@ -262,7 +277,7 @@ void *AgentRxThread(void *arg)
     		if (recv(socket, &readByte, 1, 0) <= 0)
     		{
     			//quit on failure, EOF, etc.
-//    			ERRORPRINT("Agent Rx %i recv() fd=%i error: %s\n", mychan, socket, strerror(errno));
+    			ERRORPRINT("Agent Rx %i recv() fd=%i error: %s\n", mychan, socket, strerror(errno));
     			close(socket);
 
     			//critical section
@@ -276,6 +291,7 @@ void *AgentRxThread(void *arg)
     		    if (!agentConnections)
     		    {
     		    	agentOnline = false;
+    		    	CancelCondition(AGENT_CONNECTED);
     		    }
     		    close(txSocket[mychan]);
     			connected[mychan] = false;
@@ -307,7 +323,7 @@ void *AgentRxThread(void *arg)
 			RouteMessage(&rxMessage);
     	}
     }
-    //Tx disconnected
+    //Disconnected
     DEBUGPRINT("Agent %i Rx fd=%i exiting.\n", mychan, socket);
     close(socket);
 
@@ -322,6 +338,7 @@ void *AgentRxThread(void *arg)
     if (!agentConnections)
     {
     	agentOnline = false;
+    	CancelCondition(AGENT_CONNECTED);
     }
 
 	s = pthread_mutex_unlock(&agentMtx);
@@ -426,12 +443,15 @@ void *AgentTxThread(void *arg)
 				if (errorReply != 0)
 				{
 					ERRORPRINT("Agent Tx (fd:%i) send error: %s\n", socket, strerror(errno));
+					SetCondition(AGENT_ERRORS);
 					connected[i] = false;
 					close(socket);
 				}
 				else
 				{
 					DEBUGPRINT("Agent %s message sent\n", psLongMsgNames[txMessage->header.messageType]);
+					CancelCondition(AGENT_ERRORS);
+
 				}
 				s = pthread_mutex_unlock(&agentMtx);
 				if (s != 0)
@@ -447,3 +467,20 @@ void *AgentTxThread(void *arg)
 	return 0;
 }
 
+void *AgentPingThread(void *arg)
+{
+	while (1)
+	{
+		if (pingServer("192.168.1.1") > 0)
+		{
+			SetCondition(WIFI_CONNECTED);
+		}
+		else
+		{
+			CancelCondition(WIFI_CONNECTED);
+		}
+
+		sleep(10);
+	}
+	return 0;
+}

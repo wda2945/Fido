@@ -21,20 +21,29 @@ NextActivity = NextActivity + 1
 CurrentActivity = Idle;
 CurrentActivityName = 'Idle'
 
+-- called when the App selects a Behavior Tree
 activate = function(activity_name, activity_table)
 	CurrentActivity = activity_table
 	CurrentActivityName = activity_name
 	;(CurrentActivity):setObject(activity_name);
 end
 
+-- called periodically
 update = function()
 	if CurrentActivity then
 		activityResult = (CurrentActivity):run(CurrentActivityName)
 		
 		if activityResult == 'success' or activityResult == 'fail' then
-			CurrentActivity = Idle;		
+			Print('Update - ' .. activityResult)
+			CurrentActivity = Idle;	
+		else
+			if activityResult == 'running' then 
+				Print('Update - running')
+			else
+				Print('Update invalid result: ' .. activityResult) 
+				return 'invalid'
+			end	
 		end
-		if activityResult then Print('Update - ' .. activityResult) else Print('Update ?') end
 		return activityResult
 	else
 		CurrentActivity = Idle;		

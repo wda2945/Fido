@@ -11,19 +11,19 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
-
+#include <unistd.h>
 #include <dirent.h>
 #include <string.h>
 
 #include "lua.h"
 #include "lualib.h"
 
-#include "PubSubData.h"
+#include "pubsubdata.h"
 #include "pubsub/pubsub.h"
 
 #include "behavior/behavior.h"
 #include "behavior/behavior_enums.h"
-#include "behavior/behaviorDebug.h"
+#include "behavior/behaviordebug.h"
 #include "autopilot/autopilot.h"
 #include "syslog/syslog.h"
 
@@ -31,6 +31,7 @@ lua_State	*btLuaState = NULL;
 
 //logging
 static int Print(lua_State *L);				//Print("...")
+static int ErrorPrint(lua_State *L);				//Print("...")
 static int Alert(lua_State *L);
 static int Fail(lua_State *L);
 
@@ -59,44 +60,53 @@ static void *l_alloc (void *ud, void *ptr, size_t osize, size_t nsize)
 
 int InitScriptingSystem()
 {
+	lua_State	*newLuaState;
+
 	//create a new LUA state
 	if (btLuaState)
 	{
 		//close if previously opened
 		lua_close(btLuaState);
+		btLuaState = NULL;
 	}
-	btLuaState = lua_newstate(l_alloc, NULL);
 
-	if (btLuaState == NULL)
+	newLuaState = lua_newstate(l_alloc, NULL);
+
+	if (newLuaState == NULL)
 	{
 		ERRORPRINT("luaState create fail\n");
 	   	return -1;
 	}
 
 	//open standard libraries
-	luaL_openlibs(btLuaState);
+	luaL_openlibs(newLuaState);
 
-	luaopen_math(btLuaState);
-	lua_setglobal(btLuaState, "math");
-	luaopen_string(btLuaState);
-	lua_setglobal(btLuaState, "string");
+	luaopen_math(newLuaState);
+	lua_setglobal(newLuaState, "math");
+	luaopen_string(newLuaState);
+	lua_setglobal(newLuaState, "string");
 
 	//register basic call-backs
-	lua_pushcfunction(btLuaState, Alert);				//Alert Message to App
-	lua_setglobal(btLuaState, "Alert");
-	lua_pushcfunction(btLuaState, Print);				//Print Message
-	lua_setglobal(btLuaState, "Print");
-	lua_pushcfunction(btLuaState, Fail);				//Note fail() - Fail('name')
-	lua_setglobal(btLuaState, "Fail");
+	lua_pushcfunction(newLuaState, Alert);				//Alert Message to App
+	lua_setglobal(newLuaState, "Alert");
+	lua_pushcfunction(newLuaState, Print);				//Print Log Message
+	lua_setglobal(newLuaState, "Print");
+	lua_pushcfunction(newLuaState, ErrorPrint);			//Print Error Message
+	lua_setglobal(newLuaState, "ErrorPrint");
+	lua_pushcfunction(newLuaState, Fail);				//Note fail() context - Fail('name')
+	lua_setglobal(newLuaState, "Fail");
 
 	int reply = 0;
-	reply += InitPilotingCallbacks(btLuaState);			//set BT-related call-backs
-	reply += InitProximityCallbacks(btLuaState);
-	reply += InitSystemCallbacks(btLuaState);
-	reply += InitLuaGlobals(btLuaState);				//load system global constants
-	reply += LoadAllScripts(btLuaState);				//load all LUA scripts
+	reply += InitPilotingCallbacks(newLuaState);			//set BT-related call-backs
+	reply += InitProximityCallbacks(newLuaState);
+	reply += InitSystemCallbacks(newLuaState);
+	reply += InitLuaGlobals(newLuaState);				//load system global constants
+	reply += LoadAllScripts(newLuaState);				//load all LUA scripts
 
-	lua_pop(btLuaState, lua_gettop( btLuaState));		//clean stack
+	lua_pop(newLuaState, lua_gettop( newLuaState));		//clean stack
+
+	//make initialized state available to other threads
+	btLuaState = newLuaState;
 
 	if (reply == 0) return 0;
 	else return -1;
@@ -269,6 +279,9 @@ int InvokeUpdate()
 //report available activity scripts
 int AvailableScripts()
 {
+	if (!btLuaState) return 0;	//not yet initialized
+
+	DEBUGPRINT("Report Available Activities\n");
 
 	struct timespec requested_time, remaining;
 	psMessage_t msg;
@@ -293,20 +306,20 @@ int AvailableScripts()
     while (lua_next(btLuaState, table) != 0) {
       /* uses 'key' (at index -2) and 'value' (at index -1) */
 		strncpy(msg.namePayload.name, lua_tostring(btLuaState, -1), PS_NAME_LENGTH);
+		DEBUGPRINT("Activity: %s\n", msg.namePayload.name);
+
 		RouteMessage(&msg);
 		messageCount++;
 
 		//delay
-		requested_time.tv_sec = 0;
-		requested_time.tv_nsec = MESSAGE_DELAY * 1000000;
-		nanosleep(&requested_time, &remaining);
+		usleep(MESSAGE_DELAY * 1000);
 
       /* removes 'value'; keeps 'key' for next iteration */
       lua_pop(btLuaState, 1);
     }
 	lua_pop(btLuaState, lua_gettop( btLuaState));
 
-	LogRoutine("%i activities reported", messageCount);
+	DEBUGPRINT("%i activities reported\n", messageCount);
 
 	return messageCount;
 }
@@ -331,17 +344,10 @@ static int Alert(lua_State *L)				//Alert("...")
 static int Print(lua_State *L)				//Print("...")
 {
 	const char *text = lua_tostring(L,1);
-	LogRoutine("lua: %s\n",text);
-	return 0;
-}
-static int DebugPrint(lua_State *L)				//Print("...")
-{
-#ifdef BEHAVIOR_TREE_DEBUG
-	const char *text = lua_tostring(L,1);
 	DEBUGPRINT("lua: %s\n",text);
-#endif
 	return 0;
 }
+
 static int ErrorPrint(lua_State *L)				//Print("...")
 {
 	const char *text = lua_tostring(L,1);

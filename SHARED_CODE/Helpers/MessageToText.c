@@ -8,8 +8,8 @@
 //conversion utilities
 #include <stddef.h>
 
-#include "Messages.h"
-#include "Helpers.h"
+#include "messages.h"
+#include "helpers.h"
 
 //convert a psMessage_t struct into an ASCII string
 int msgToText(psMessage_t *msg, char * textBuffer, int length) {

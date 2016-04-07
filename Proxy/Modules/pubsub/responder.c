@@ -15,7 +15,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "PubSubData.h"
+#include "pubsubdata.h"
 #include "Helpers.h"
 #include "pubsub/pubsub.h"
 #include "pubsub/notifications.h"
@@ -23,7 +23,7 @@
 #include "syslog/syslog.h"
 #include "agent/agent.h"
 
-#include "brokerQ.h"
+#include "brokerq.h"
 #include "broker_debug.h"
 #include "pubsub/xbee.h"
 

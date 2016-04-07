@@ -10,7 +10,7 @@
 #ifndef WAYPOINTS_H_
 #define WAYPOINTS_H_
 
-#include "PubSubData.h"
+#include "pubsubdata.h"
 
 #ifdef __cplusplus
 extern "C" {

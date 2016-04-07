@@ -30,9 +30,9 @@
 #include "gpio.h"
 #include "i2c.h"
 
-#include "SoftwareProfile.h"
+#include "softwareprofile.h"
 
-#include "PubSubData.h"
+#include "pubsubdata.h"
 #include "pubsub/pubsub.h"
 
 #include "syslog/syslog.h"

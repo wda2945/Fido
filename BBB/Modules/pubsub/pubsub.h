@@ -13,8 +13,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "PubSubData.h"
-#include "pubsub/brokerQ.h"
+#include "pubsubdata.h"
+#include "pubsub/brokerq.h"
 
 extern FILE *psDebugFile;
 

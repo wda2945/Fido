@@ -30,6 +30,7 @@ typedef enum {
 } Subsystem_enum;
 
 #define SUBSYSTEM_NAMES {"???", "MCP", "MOT", "OVM", "APP", "APX", "APO", "BEE"}
+#define SUBSYSTEM_FULL_NAMES {"???", "MCP Comms", "Motor", "Overmind", "APP", "APX", "APO", "XBee Proxy"}
 
 //----------------------QOS
 

@@ -7,7 +7,7 @@
 #ifndef BEHAVIORDEBUG_H_
 #define BEHAVIORDEBUG_H_
 
-#include "SoftwareProfile.h"
+#include "softwareprofile.h"
 
 extern FILE *behDebugFile;
 

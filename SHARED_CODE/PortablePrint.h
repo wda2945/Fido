@@ -7,7 +7,7 @@
 
 #ifdef __XC32__
 
-#include "SysLog/SysLog.h"
+#include "syslog/syslog.h"
     
 #else
 

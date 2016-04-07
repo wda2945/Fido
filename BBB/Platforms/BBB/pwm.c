@@ -17,6 +17,9 @@
 
 #define PATHLEN 50
 
+char ocp_dir[PATHLEN];
+int pwm_initialized = 0;
+
 int pwm_set_run(PwmChannel_t *pwm, int runState) {
     int len;
     char buffer[7]; /* allow room for trailing NUL byte */
@@ -72,11 +75,15 @@ int pwm_set_duty_cycle(PwmChannel_t *pwm, float duty) {
 int pwm_start(const char *pinName, int exportNumber, char *pwmDir, float duty, float freq, int polarity, PwmChannel_t *pwm)
 {
     char pwm_control_path[PATHLEN];
-
-
     char pwm_path[PATHLEN];				//pwm channel control folder
     char export[2];
     int fd;
+
+    if  (!pwm_initialized && load_device_tree("am33xx_pwm")) {
+        build_path("/sys/devices/platform", "ocp", ocp_dir, sizeof(ocp_dir));
+        pwm_initialized = 1;
+        return 1;
+    }
 
     strncpy(pwm->key, pinName, KEYLEN);
 
@@ -87,7 +94,7 @@ int pwm_start(const char *pinName, int exportNumber, char *pwmDir, float duty, f
     //export pwm channel
     if ((fd = open("/sys/class/pwm/export", O_WRONLY)) < 0)
     {
-    	LogError("pwm open(/sys/class/pwm/export) fail (%s)\n", strerror(errno));
+    	printf("pwm open(/sys/class/pwm/export) fail (%s)\n", strerror(errno));
         return -1;
     }
     snprintf(export, 2, "%i", exportNumber);
@@ -100,21 +107,21 @@ int pwm_start(const char *pinName, int exportNumber, char *pwmDir, float duty, f
     snprintf(pwm_control_path, sizeof(pwm_control_path), "%s/period_ns", pwm_path);
     if ((pwm->period_fd = open(pwm_control_path, O_WRONLY)) < 0)
     {
-    	LogError("pwm open(%s) fail (%s)\n", pwm_control_path, strerror(errno));
+    	printf("pwm open(%s) fail (%s)\n", pwm_control_path, strerror(errno));
         return -1;
     }
 
     snprintf(pwm_control_path, sizeof(pwm_control_path), "%s/duty_ns", pwm_path);
     if ((pwm->duty_fd = open(pwm_control_path, O_WRONLY)) < 0) {
         //error, close already opened period_fd.
-    	LogError("pwm open(%s) fail (%s)\n", pwm_control_path, strerror(errno));
+    	printf("pwm open(%s) fail (%s)\n", pwm_control_path, strerror(errno));
         close(pwm->period_fd);
         return -1;
     }
 
     snprintf(pwm_control_path, sizeof(pwm_control_path), "%s/polarity", pwm_path);
     if ((pwm->polarity_fd = open(pwm_control_path, O_WRONLY)) < 0) {
-    	LogError("pwm open(%s) fail (%s)\n", pwm_control_path, strerror(errno));
+    	printf("pwm open(%s) fail (%s)\n", pwm_control_path, strerror(errno));
         //error, close already opened period_fd and duty_fd.
         close(pwm->period_fd);
         close(pwm->duty_fd);
@@ -123,7 +130,7 @@ int pwm_start(const char *pinName, int exportNumber, char *pwmDir, float duty, f
 
     snprintf(pwm_control_path, sizeof(pwm_control_path), "%s/run", pwm_path);
     if ((pwm->run_fd = open(pwm_control_path, O_WRONLY)) < 0) {
-    	LogError("pwm open(%s) fail (%s)\n", pwm_control_path, strerror(errno));
+    	printf("pwm open(%s) fail (%s)\n", pwm_control_path, strerror(errno));
         //error, close already opened period_fd and duty_fd.
     	close(pwm->polarity_fd);
         close(pwm->period_fd);

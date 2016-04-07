@@ -16,9 +16,9 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "PubSubData.h"
+#include "pubsubdata.h"
 #include "syslog/syslog.h"
-#include "brokerQ.h"
+#include "brokerq.h"
 
 //#define PSDEBUG(x) printf("%s: %s\n", processNames[process_id], x)
 #define PSDEBUG(x)
@@ -28,31 +28,31 @@ char *psTopicNames[PS_TOPIC_COUNT] = PS_TOPIC_NAMES;
 //#define messagemacro(enum, short name, qos, topic, payload, long name)
 #define messagemacro(m,q,t,f,l) f,
 int psMsgFormats[PS_MSG_COUNT] = {
-#include "Messages/MessageList.h"
+#include "messages/messagelist.h"
 };
 #undef messagemacro
 
 #define messagemacro(m,q,t,f,l) t,
 int psDefaultTopics[PS_MSG_COUNT] = {
-#include "Messages/MessageList.h"
+#include "messages/messagelist.h"
 };
 #undef messagemacro
 
 #define messagemacro(m,q,t,f,l) l,
 char *psLongMsgNames[PS_MSG_COUNT] = {
-#include "Messages/MessageList.h"
+#include "messages/messagelist.h"
 };
 #undef messagemacro
 
 #define messagemacro(m,q,t,f,l) q,
 psQOS_enum psQOS[PS_MSG_COUNT] = {
-#include "Messages/MessageList.h"
+#include "messages/messagelist.h"
 };
 #undef messagemacro
 
 #define formatmacro(e,t,v,s) s,
 int psMessageFormatLengths[PS_FORMAT_COUNT] = {
-#include "Messages/MsgFormatList.h"
+#include "messages/msgformatlist.h"
 };
 #undef formatmacro
 
@@ -68,13 +68,13 @@ int psMessageFormatLengths[PS_FORMAT_COUNT] = {
 
 #define EVENT(e, n) n,
 char *eventNames[] 	= {
-#include "Messages/NotificationEventsList.h"
+#include "messages/notificationeventslist.h"
 };
 #undef EVENT
 
 #define CONDITION(e, n) n,
 char *conditionNames[]		= {
-#include "Messages/NotificationConditionsList.h"
+#include "messages/notificationconditionslist.h"
 };
 #undef CONDITION
 

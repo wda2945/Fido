@@ -23,13 +23,13 @@
 #include "uart.h"
 #include "common.h"
 #include "gpio.h"
-#include "PubSubData.h"
-#include "PubSubParser.h"
+#include "pubsubdata.h"
+#include "pubsubparser.h"
 
 #include "syslog/syslog.h"
 #include "pubsub/notifications.h"
-#include "SoftwareProfile.h"
-#include "brokerQ.h"
+#include "softwareprofile.h"
+#include "brokerq.h"
 #include "broker_debug.h"
 #include "xbee.h"
 #include "agent/agent.h"
@@ -227,9 +227,14 @@ int XBeeBrokerInit()
 	bool xbeeReady = false;
 	int i;
 
-	for (i=0; i<10; i++)
+	while (1)
 	{
-		if (EnterCommandMode() != 0) continue;
+		if (EnterCommandMode() != 0)
+		{
+			SetCondition(XBEE_MCP_COMMS_ERRORS);
+			sleep(1);
+			continue;
+		}
 
 		int power = GetPowerLevel();
 
@@ -246,8 +251,11 @@ int XBeeBrokerInit()
 		xbeeReady = true;
 		break;
 	}
+
 	if (xbeeReady)
 	{
+		CancelCondition(XBEE_MCP_COMMS_ERRORS);
+
 		DEBUGPRINT("xbee ready\n");
 
 		//start RX & TX threads

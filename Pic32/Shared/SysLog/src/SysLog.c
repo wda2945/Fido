@@ -206,7 +206,8 @@ void Syslog_write_string(const unsigned char *buffer) {
         buffer++;
         size--;
     }
-    Syslog_write((uint8_t)'\n');
+    Syslog_write((uint8_t)'\n');    
+    Syslog_write((uint8_t)'\r');
     while (!UARTTransmissionHasCompleted(LOG_UART)) {
         vTaskDelay(1);
     }

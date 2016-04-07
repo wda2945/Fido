@@ -18,11 +18,11 @@
 
 #include "lua.h"
 
-#include "PubSubData.h"
+#include "pubsubdata.h"
 #include "pubsub/pubsub.h"
 
 #include "behavior/behavior.h"
-#include "behavior/behaviorDebug.h"
+#include "behavior/behaviordebug.h"
 #include "syslog/syslog.h"
 
 FILE *behDebugFile;
@@ -52,14 +52,13 @@ void *BehaviorMessageThread(void *arg);
 int BehaviorInit()
 {
 	pthread_t thread;
-	int s;
 
 	behDebugFile = fopen("/root/logfiles/behavior.log", "w");
 
 	int result = InitScriptingSystem();
 	if (result == 0)
 	{
-		LogInfo("Script system initialized\n");
+		DEBUGPRINT("Script system initialized\n");
 	}
 	else
 	{
@@ -67,17 +66,17 @@ int BehaviorInit()
 		return -1;
 	}
 
-	s = pthread_create(&thread, NULL, ScriptThread, NULL);
-	if (s != 0)
+	result = pthread_create(&thread, NULL, ScriptThread, NULL);
+	if (result != 0)
 	{
-		ERRORPRINT("ScriptThread create - %i\n", s);
+		ERRORPRINT("ScriptThread create - %i\n", result);
 		return -1;
 	}
 
-	s = pthread_create(&thread, NULL, BehaviorMessageThread, NULL);
-	if (s != 0)
+	result = pthread_create(&thread, NULL, BehaviorMessageThread, NULL);
+	if (result != 0)
 	{
-		ERRORPRINT("BehaviorMessageThread create - %i\n", s);
+		ERRORPRINT("BehaviorMessageThread create - %i\n", result);
 		return -1;
 	}
 
@@ -331,16 +330,19 @@ int ReportAvailableScripts()
 //BT call-back result codes
 int success(lua_State *L)
 {
+	DEBUGPRINT("+++SUCCESS\n");
 	lua_pushstring(L, "success");
 	return 1;
 }
 int running(lua_State *L)
 {
+	DEBUGPRINT("...RUNNING\n");
 	lua_pushstring(L, "running");
 	return 1;
 }
 int fail(lua_State *L)
 {
+	DEBUGPRINT("***FAIL\n");
 	lua_pushstring(L, "fail");
 	lastLuaCallFail = lastLuaCall;
 	return 1;
@@ -352,15 +354,12 @@ int actionReply(lua_State *L, ActionResult_enum result)
 	switch (result)
 	{
 	case ACTION_SUCCESS:
-		DEBUGPRINT(".. success\n")
 		return success(L);
 		break;
 	case ACTION_RUNNING:
-		DEBUGPRINT(".. running\n")
 		return running(L);
 		break;
 	default:
-		DEBUGPRINT(".. fail\n")
 		return fail(L);
 		break;
 	}

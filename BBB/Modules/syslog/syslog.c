@@ -12,8 +12,8 @@
 #include <errno.h>
 #include <pthread.h>
 
-#include "SoftwareProfile.h"
-#include "PubSubData.h"
+#include "softwareprofile.h"
+#include "pubsubdata.h"
 #include "pubsub/pubsub.h"
 
 #include "syslog/syslog.h"
@@ -36,7 +36,7 @@ pthread_t SysLogInit()
 	struct tm *timestruct = localtime(&now);
 
 	snprintf(logfilepath, 200, "%sSYS_%4i_%02i_%02i_%02i_%02i_%02i.log", LOGFILEROOT,
-			timestruct->tm_year + 1900, timestruct->tm_mon, timestruct->tm_mday,
+			timestruct->tm_year + 1900, timestruct->tm_mon + 1, timestruct->tm_mday,
 			timestruct->tm_hour, timestruct->tm_min, timestruct->tm_sec);
 
 

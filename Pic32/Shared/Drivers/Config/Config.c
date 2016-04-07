@@ -69,14 +69,33 @@ void NewSetting(psMessage_t *msg, char *name, float *var, float minV, float maxV
         SendSettingConfig(name, var, minV, maxV, 0);
     }
 }
+void SendSetOption(char *name, int var, int minV, int maxV)
+{
+    psMessage_t msg;
+    psInitPublish(msg, SET_OPTION);
+    strncpy(msg.optionPayload.name, name, PS_NAME_LENGTH);
+    msg.optionPayload.value = var;
+    msg.optionPayload.min = minV;
+    msg.optionPayload.max = maxV;
+    msg.optionPayload.subsystem = 0;
+    psSendMessage(msg);
+}
 
 void SetOptionByName(char *name, int value) {
+    bool optionFound = false;
+    
 #define optionmacro(n, var, minV, maxV, def) if (strncmp(n,name,PS_NAME_LENGTH)==0) {\
                                                     var = value;\
-                                                    SendOptionConfig(name, &var, minV, maxV, 0);\
+                                                    optionFound = true;\
+                                                    SendSetOption(name, var, minV, maxV);\
                                                     }
 #include "Options.h"
 #undef optionmacro
+    
+    if (!optionFound)
+    {
+        DebugPrint("SetOptionByName: %s not found\n", name);
+    }
 }
 
 void SendIntValue(char *name, int value)

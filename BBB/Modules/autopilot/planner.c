@@ -20,7 +20,7 @@
 #include <pthread.h>
 #include <errno.h>
 
-#include "SoftwareProfile.h"
+#include "softwareprofile.h"
 
 #include "planner.h"
 #include "autopilot_common.h"

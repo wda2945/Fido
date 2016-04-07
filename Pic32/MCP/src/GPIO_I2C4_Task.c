@@ -172,11 +172,13 @@ static void I2C4_Task(void *pvParameters) {
             if (frontLights) lights |= FRONT_LIGHTS;
             if (rearLights) lights |= REAR_LIGHTS;
 
-            if (strobeLights & (--strobeLoopCount < 0))
-            {
-                 strobeMask ^= (FRONT_LIGHTS | REAR_LIGHTS);
-                 strobeLoopCount = (int) strobeInterval / TASK_LOOP_MS;
+            if (strobeLights) {
+                if (--strobeLoopCount < 0) {
+                    strobeMask ^= (FRONT_LIGHTS | REAR_LIGHTS);
+                    strobeLoopCount = (int) strobeInterval / TASK_LOOP_MS;
+                }
             }
+            else strobeMask = 0;
             
             lights ^= strobeMask;
             

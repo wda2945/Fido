@@ -15,8 +15,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "PubSubData.h"
-#include "Helpers.h"
+#include "pubsubdata.h"
+#include "helpers.h"
 #include "pubsub/pubsub.h"
 #include "pubsub/notifications.h"
 
@@ -24,7 +24,7 @@
 #include "syslog/syslog.h"
 #include "agent/agent.h"
 
-#include "brokerQ.h"
+#include "brokerq.h"
 #include "broker_debug.h"
 
 NotificationMask_t systemActiveConditions 	= 0;

@@ -10,8 +10,8 @@
 #ifndef _PUBSUBDATA_H
 #define	_PUBSUBDATA_H
 
-#include "Messages.h"
-#include "Messages/NotificationEnums.h"
+#include "messages.h"
+#include "messages/notificationenums.h"
 
 //Names indexed header.source
 extern char *subsystemNames[SUBSYSTEM_COUNT];

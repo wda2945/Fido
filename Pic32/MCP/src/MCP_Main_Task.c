@@ -240,7 +240,7 @@ static void MCPtask(void *pvParameters) {
        
                     if (strcmp(mcpTaskRxMsg.optionPayload.name, "Power Motors") == 0) SetPinOption(MOT_PWR_IOPORT, MOT_PWR_BIT, motPower);
                     if (strcmp(mcpTaskRxMsg.optionPayload.name, "Power Overmind") == 0) SetPinOption(OVM_PWR_IOPORT, OVM_PWR_BIT, ovmPower);
-    
+                    if (strcmp(mcpTaskRxMsg.optionPayload.name, "Solar Panel") == 0) SetPinOption(SOLAR_IOPORT, SOLAR_BIT, solarEnable);
                     break;
                 case NEW_SETTING:
                     LogRoutine("New Setting %s = %f", mcpTaskRxMsg.settingPayload.name, mcpTaskRxMsg.settingPayload.value);

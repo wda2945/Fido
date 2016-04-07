@@ -18,12 +18,12 @@ int uart_setup(const char *txpin, const char *rxpin)
 {
 	if (set_pinmux(txpin, "uart") < 0)
 	{
-		printf("set_pinmux(%s) fail", txpin);
+		printf("set_pinmux(%s) fail\n", txpin);
 		return -1;
 	}
 	if (set_pinmux(rxpin, "uart") < 0)
 	{
-		printf("set_pinmux(%s) fail", rxpin);
+		printf("set_pinmux(%s) fail\n", rxpin);
 		return -1;
 	}
 

@@ -251,6 +251,7 @@ void SetPowerState(PowerState_enum state) {
         bool OVMon, MOTon, PROXon, SONARon;
         bool MOTinhibit = true;
         bool shutdown = false;
+        bool lightsOff = false;
         OVMon = ovmPower;
         MOTon = motPower;
         PROXon = irProxEnable;
@@ -282,16 +283,27 @@ void SetPowerState(PowerState_enum state) {
                     PROXon = false;
                 }
                 SONARon = MOTon = OVMon = false;
+                lightsOff = true;
                 break;
             case POWER_SLEEPING: //minimum power state with comms
                 SONARon = OVMon = MOTon = PROXon = false;
+                lightsOff = true;
                 break;
             case POWER_SHUTDOWN: //eg low battery shutdown
                 SONARon = OVMon = MOTon = PROXon = false;
                 shutdown = true;
+                lightsOff = true;
                 break;
         }
         //set power lines appropriately
+        if (lightsOff)
+        {
+            SetOptionByName("Lights Nav", 0);
+            SetOptionByName("Lights Front",  0);
+            SetOptionByName("Lights Rear",  0);
+            SetOptionByName("Lights Strobe",  0);
+        }
+        
         SetOptionByName("Power IR Prox", PROXon);
         SetOptionByName("Power Sonar Prox", SONARon);
         SetOptionByName("Power Overmind", OVMon);
@@ -312,7 +324,7 @@ void SetPowerState(PowerState_enum state) {
         LogInfo("Pwr State = %s", stateNames[state]);
 
         if (shutdown) {
-            vTaskDelay(1000); //let messages propogate
+            vTaskDelay(5000); //let messages propagate
             vTaskSuspendAll();
             taskDISABLE_INTERRUPTS();
             picShutdown();

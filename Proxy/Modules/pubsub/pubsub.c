@@ -20,15 +20,15 @@ gd Name        : Broker.c
 #include <string.h>
 #include <pthread.h>
 
-#include "PubSubData.h"
+#include "pubsubdata.h"
 #include "Helpers.h"
 #include "pubsub/pubsub.h"
 
 #include "syslog/syslog.h"
 #include "agent/agent.h"
-#include "SoftwareProfile.h"
+#include "softwareprofile.h"
 
-#include "brokerQ.h"
+#include "brokerq.h"
 #include "broker_debug.h"
 
 FILE *psDebugFile;

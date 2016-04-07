@@ -8,7 +8,7 @@
 #ifndef NOTIFICATIONS_H
 #define	NOTIFICATIONS_H
 
-#include "PubSubData.h"
+#include "pubsubdata.h"
 
 //NOTIFICATIONS
 

@@ -19,13 +19,13 @@
 #include "lua.h"
 #include "lualib.h"
 
-#include "PubSubData.h"
+#include "pubsubdata.h"
 #include "pubsub/pubsub.h"
 #include "pubsub/notifications.h"
 
 #include "behavior/behavior_enums.h"
 #include "behavior/behavior.h"
-#include "behavior/behaviorDebug.h"
+#include "behavior/behaviordebug.h"
 #include "syslog/syslog.h"
 
 //actual leaf node
@@ -126,15 +126,15 @@ int InitSystemCallbacks(lua_State *L)
 	return 0;
 }
 
-
 static int SystemAction(lua_State *L)
 {
 	psMessage_t msg;
 
 	SystemAction_enum actionCode 	= lua_tointeger(L, 1);
-	int actionReplyValue;
 
-	LogInfo("SystemAction: %s", systemActionList[actionCode]);
+	lastLuaCall = systemActionList[actionCode];	//for error reporting
+
+	DEBUGPRINT("System Action: %s\n", lastLuaCall);
 
 	switch (actionCode)
 	{
@@ -278,7 +278,8 @@ static int SystemAction(lua_State *L)
 			return fail(L);
 		break;
 	default:
-		LogError("Sys code: %i\n", actionCode);
+		ERRORPRINT("System Action: %i\n", actionCode);
+		SetCondition(BT_SCRIPT_ERROR);
 		return fail(L);
 		break;
 	}

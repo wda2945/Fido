@@ -55,24 +55,28 @@
 #define SPARE_ANALOG1		AN1
 
 //UART broker
+#define PS_UART_OVERLAY	    "BB-UART5"
 #define PS_UART_DEVICE 		"/dev/ttyO5"
 #define PS_TX_PIN				"P8_37"
 #define PS_RX_PIN				"P8_38"
 #define PS_UART_BAUDRATE 	B115200
 
 //GPS
+#define GPS_UART_OVERLAY	"BB-UART2"
 #define GPS_UART_DEVICE 	"/dev/ttyO2"
 #define GPS_TX_PIN				"P9_21"
 #define GPS_RX_PIN				"P9_22"
 #define GPS_UART_BAUDRATE 	B9600
 
 //CAMERA
+#define CAMERA_UART_OVERLAY	"BB-UART1"
 #define CAMERA_UART_DEVICE 	"/dev/ttyO1"
 #define CAM_TX_PIN				"P9_24"
 #define CAM_RX_PIN				"P9_26"
 #define CAMERA_UART_BAUDRATE 	B38400
 
 //TTS
+#define TTS_UART_OVERLAY	"BB-UART3"
 #define TTS_UART_DEVICE 	"/dev/ttyO3"
 #define TTS_TX_PIN				"P9_42"
 #define TTS_RX_PIN				""
@@ -86,6 +90,7 @@
 #define IMU_G_I2C_ADDRESS   	0x6B
 
 //IR PINGER
+#define IR_UART_OVERLAY		"BB-UART4"
 #define IR_UART_DEVICE 		"/dev/ttyO4"
 #define IR_TX_PIN				"P9_13"
 #define IR_RX_PIN				"P9_11"

@@ -16,9 +16,9 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "PubSubData.h"
+#include "pubsubdata.h"
 #include "syslog/syslog.h"
-#include "brokerQ.h"
+#include "brokerq.h"
 
 //#define PSDEBUG(x) printf("%s: %s\n", processNames[process_id], x)
 #define PSDEBUG(x)

@@ -9,10 +9,10 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "PortablePrint.h"
+#include "portableprint.h"
 
-#include "PubSubData.h"
-#include "PubSubParser.h"
+#include "pubsubdata.h"
+#include "pubsubparser.h"
 
 //#define DEBUGPRINT(...) DebugPrint(__VA_ARGS__)
 #define DEBUGPRINT(...)

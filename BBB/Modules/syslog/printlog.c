@@ -14,7 +14,7 @@
 #include <string.h>
 #include <time.h>
 
-#include "PubSubData.h"
+#include "pubsubdata.h"
 #include "syslog/syslog.h"
 
 //print to an open stream - all processes

@@ -1,6 +1,6 @@
 /*
  ============================================================================
-gd Name        : Broker.c
+cat broker.loggd Name        : Broker.c
  Author      : Martin
  Version     :
  Copyright   : (c) 2013 Martin Lane-Smith
@@ -20,8 +20,8 @@ gd Name        : Broker.c
 #include <string.h>
 #include <pthread.h>
 
-#include "PubSubData.h"
-#include "Helpers.h"
+#include "pubsubdata.h"
+#include "helpers.h"
 #include "pubsub/pubsub.h"
 
 #include "behavior/behavior.h"
@@ -30,9 +30,9 @@ gd Name        : Broker.c
 #include "autopilot/autopilot.h"
 #include "syslog/syslog.h"
 #include "agent/agent.h"
-#include "SoftwareProfile.h"
+#include "softwareprofile.h"
 
-#include "brokerQ.h"
+#include "brokerq.h"
 #include "broker_debug.h"
 
 FILE *psDebugFile;

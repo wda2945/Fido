@@ -13,8 +13,8 @@
 #include <string.h>
 #include <signal.h>
 
-#include "SoftwareProfile.h"
-#include "PubSubData.h"
+#include "softwareprofile.h"
+#include "pubsubdata.h"
 #include "pubsub/pubsub.h"
 #include "pubsub/Notifications.h"
 

@@ -8,8 +8,8 @@
 #ifndef AUTOPILOT_COMMON_H_
 #define AUTOPILOT_COMMON_H_
 
-#include "PubSubData.h"
-#include "Waypoints.h"
+#include "pubsubdata.h"
+#include "waypoints.h"
 
 extern FILE *pilotDebugFile;
 

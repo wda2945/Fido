@@ -18,12 +18,12 @@
 #include "lua.h"
 #include "lualib.h"
 
-#include "PubSubData.h"
+#include "pubsubdata.h"
 #include "pubsub/pubsub.h"
-
+#include "pubsub/notifications.h"
 #include "behavior/behavior_enums.h"
 #include "behavior/behavior.h"
-#include "behavior/behaviorDebug.h"
+#include "behavior/behaviordebug.h"
 #include "autopilot/autopilot.h"
 #include "navigator/navigator.h"
 #include "syslog/syslog.h"
@@ -142,13 +142,14 @@ int InitPilotingCallbacks(lua_State *L)
 	return 0;
 }
 
+//callback from lua BT Leaf
 static int PilotAction(lua_State *L)
 {
 	PilotingAction_enum actionCode 	= lua_tointeger(L, 1);
 
-	lastLuaCall = pilotingActionList[actionCode];
+	lastLuaCall = pilotingActionList[actionCode];	//for error reporting
 
-	LogRoutine("PilotAction: %s ...\n", lastLuaCall);
+	DEBUGPRINT("Pilot Action: %s\n", lastLuaCall);
 
 	switch (actionCode)
 	{
@@ -300,7 +301,8 @@ static int PilotAction(lua_State *L)
 		return success(L);
 		break;
 	default:
-		LogError("Nav action: %i\n", actionCode);
+		ERRORPRINT("Nav action: %i\n", actionCode);
+		SetCondition(BT_SCRIPT_ERROR);
 		return fail(L);
 		break;
 	}

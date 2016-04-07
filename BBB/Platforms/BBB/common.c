@@ -71,14 +71,15 @@ int build_path(const char *partial_path, const char *prefix, char *full_path, si
 int load_device_tree(const char *name)
 {
     FILE *file = NULL;
-    char ctrl_dir[PATHLEN];
-    char slots[PATHLEN];
     char line[256];
+    char slots[PATHLEN];
 
-    build_path("/sys/devices", "bone_capemgr", ctrl_dir, sizeof(ctrl_dir));
-    snprintf(slots, sizeof(slots), "%s/slots", ctrl_dir);
-
-    file = fopen(slots, "r+");
+//    char ctrl_dir[PATHLEN];
+//    build_path("/sys/devices", "bone_capemgr", ctrl_dir, sizeof(ctrl_dir));
+//    snprintf(slots, sizeof(slots), "%s/slots", ctrl_dir);
+//
+//    file = fopen(slots, "r+");
+    file = fopen("/sys/devices/platform/bone_capemgr/slots", "r+");
     if (!file) {
         return 0;
     }
@@ -118,15 +119,16 @@ int load_device_tree(const char *name)
 int unload_device_tree(const char *name)
 {
     FILE *file = NULL;
-    char ctrl_dir[PATHLEN];
-    char slots[PATHLEN];
     char line[256];
+    char slots[PATHLEN];
     char *slot_line;
 
-    build_path("/sys/devices", "bone_capemgr", ctrl_dir, sizeof(ctrl_dir));
-    snprintf(slots, sizeof(slots), "%s/slots", ctrl_dir);
-
-    file = fopen(slots, "r+");
+//    char ctrl_dir[PATHLEN];
+//    build_path("/sys/devices", "bone_capemgr", ctrl_dir, sizeof(ctrl_dir));
+//    snprintf(slots, sizeof(slots), "%s/slots", ctrl_dir);
+//
+//    file = fopen(slots, "r+");
+    file = fopen("/sys/devices/platform/bone_capemgr/slots", "r+");
     if (!file) {
         return 0;
     }
@@ -155,25 +157,32 @@ int unload_device_tree(const char *name)
 int set_pinmux(const char *pinName, const char *newState)
 {
 	int fd;
-    char ocp_dir[PATHLEN];				//ocp root path
-    char pinmux[20];					//+ pinmux name
-    char pinmux_dir[PATHLEN];			//= pinmux path
     char pinmux_state_path[PATHLEN];	//pinmux path / state
 
     if (strlen(pinName) == 0) return 0;
 
-    //ocp directory path
-    build_path("/sys/devices", "ocp", ocp_dir, sizeof(ocp_dir));
-    //pinmux name
-    snprintf(pinmux, sizeof(pinmux), "%s_pinmux", pinName);
+    //3.8
+//    char ocp_dir[PATHLEN];				//ocp root path
+//    char pinmux[20];					//+ pinmux name
+//    char pinmux_dir[PATHLEN];			//= pinmux path
+//
+//    //ocp directory path
+//    build_path("/sys/devices", "ocp", ocp_dir, sizeof(ocp_dir));
+//    //pinmux name
+//    snprintf(pinmux, sizeof(pinmux), "%s_pinmux", pinName);
+//    //pinmux path
+//    build_path(ocp_dir, pinmux, pinmux_dir, sizeof(pinmux_dir));
+
+//4.1
     //pinmux path
-    build_path(ocp_dir, pinmux, pinmux_dir, sizeof(pinmux_dir));
+    char pinmux_dir[PATHLEN];			//= pinmux path
+    snprintf(pinmux_dir, sizeof(pinmux_dir), "/sys/devices/platform/ocp/ocp:%s_pinmux", pinName);
 
     //set pinmux state
     snprintf(pinmux_state_path, sizeof(pinmux_state_path), "%s/state", pinmux_dir);
     if ((fd = open(pinmux_state_path, O_RDWR)) < 0)
     {
-    	LogError("open(%s) fail (%s)\n", pinmux_state_path, strerror(errno));
+    	printf("open(%s) fail (%s)\n", pinmux_state_path, strerror(errno));
         return -1;
     }
     write(fd, newState,strlen(newState));

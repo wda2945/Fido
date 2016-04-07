@@ -12,8 +12,8 @@
 #include <errno.h>
 #include <pthread.h>
 
-#include "SoftwareProfile.h"
-#include "PubSubData.h"
+#include "softwareprofile.h"
+#include "pubsubdata.h"
 #include "pubsub/pubsub.h"
 
 #include "syslog/syslog.h"

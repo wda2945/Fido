@@ -24,11 +24,11 @@
 #include <errno.h>
 
 #include "i2c.h"
-#include "PubSubData.h"
+#include "pubsubdata.h"
 #include "pubsub/pubsub.h"
 
 #include "syslog/syslog.h"
-#include "SoftwareProfile.h"
+#include "softwareprofile.h"
 
 #include "IMU.h"
 #include "LSM303.h"

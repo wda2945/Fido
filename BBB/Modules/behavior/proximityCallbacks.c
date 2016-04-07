@@ -18,12 +18,13 @@
 #include "lua.h"
 #include "lualib.h"
 
-#include "PubSubData.h"
+#include "pubsubdata.h"
 #include "pubsub/pubsub.h"
+#include "pubsub/notifications.h"
 
 #include "behavior/behavior_enums.h"
 #include "behavior/behavior.h"
-#include "behavior/behaviorDebug.h"
+#include "behavior/behaviordebug.h"
 #include "scanner/scanner.h"
 #include "syslog/syslog.h"
 
@@ -111,7 +112,9 @@ static int ProximityAction(lua_State *L)
 {
 	ProximityAction_enum actionCode 	= lua_tointeger(L, 1);
 	
-	LogRoutine("ProximityAction: %s", proximityActionList[actionCode]);
+	lastLuaCall = proximityActionList[actionCode];	//for error reporting
+
+	DEBUGPRINT("Proximity Action: %s\n", lastLuaCall);
 
 	switch (actionCode)
 	{
@@ -191,7 +194,8 @@ static int ProximityAction(lua_State *L)
 		return ChangeOption(L, "PIR_Prox", 0);
 		break;
 	default:
-		LogError("Prox action: %i\n", actionCode);
+		ERRORPRINT("Prox action: %i\n", actionCode);
+		SetCondition(BT_SCRIPT_ERROR);
 		return fail(L);
 		break;
 	}

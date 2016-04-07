@@ -11,7 +11,7 @@
 #define	PUBSUBPARSER_H
 
 #include <stdint.h>
-#include "Messages.h"
+#include "messages.h"
 
 #define STX_CHAR 0x7f
 

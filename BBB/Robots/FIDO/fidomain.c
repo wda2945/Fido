@@ -13,10 +13,10 @@
 #include <string.h>
 #include <signal.h>
 
-#include "SoftwareProfile.h"
-#include "PubSubData.h"
+#include "softwareprofile.h"
+#include "pubsubdata.h"
 #include "pubsub/pubsub.h"
-#include "pubsub/Notifications.h"
+#include "pubsub/notifications.h"
 
 #include "behavior/behavior.h"
 #include "syslog/syslog.h"
@@ -67,21 +67,23 @@ int main(int argc, const char * argv[])
 		pids++;
 	}
 
-	DEBUGPRINT("main() loading dto1\n");
+	DEBUGPRINT("main() loading dto1...\n");
 
 	//load universal dtos
 	if (!load_device_tree("cape-universal")) {
 		//error enabling pins
-		ERRORPRINT( "*** Load 'cape-universal' fail");
-		initFail = "dta1";
+		ERRORPRINT( "*** Load 'cape-universal' fail\n");
+//		initFail = "dta1";
 	}
+	else DEBUGPRINT("...loaded OK\n");
 
-	DEBUGPRINT("main() loading dto2\n");
+	DEBUGPRINT("main() loading dto2...\n");
 	if (!load_device_tree("cape-univ-hdmi")) {
 		//error enabling pins
-		ERRORPRINT( "*** Load 'cape-univ-hdmi' fail");
-		initFail = "dta2";
+		ERRORPRINT( "*** Load 'cape-univ-hdmi' fail\n");
+//		initFail = "dta2";
 	}
+	else DEBUGPRINT("...loaded OK\n");
 
 	//init other threads, etc.
 	DEBUGPRINT("main() start init\n");
@@ -90,7 +92,8 @@ int main(int argc, const char * argv[])
 	BrokerQueueInit(100);
 
 	//syslog
-	if ((reply=SysLogInit(argc, argv)) != 0)
+	reply = SysLogInit(argc, argv);
+	if (reply != 0)
 	{
 		ERRORPRINT("SysLogInit() Fail\n");
 		initFail = "log";
@@ -98,7 +101,8 @@ int main(int argc, const char * argv[])
 	else DEBUGPRINT("SysLogInit() OK\n");
 
 	//start navigator
-	if ((reply=NavigatorInit()) < 0)
+	reply  =NavigatorInit();
+	if (reply != 0)
 	{
 		ERRORPRINT("NavigatorInit() OK\n");
 		initFail = "nav";
@@ -106,76 +110,84 @@ int main(int argc, const char * argv[])
 	else DEBUGPRINT("NavigatorInit() OK\n");
 
 	//start autopilot
-	if ((reply=AutopilotInit()) < 0)
+	reply = AutopilotInit();
+	if (reply != 0)
 	{
-		ERRORPRINT("AutopilotInit() fail");
+		ERRORPRINT("AutopilotInit() fail\n");
 		initFail = "pilot";
 	}
 	else DEBUGPRINT("AutopilotInit() OK\n");
 
 	//start IMU
-	if ((reply=IMUInit()) < 0)
+	reply = IMUInit();
+	if (reply != 0)
 	{
-		ERRORPRINT("IMUInit() fail");
+		ERRORPRINT("IMUInit() fail\n");
 		initFail = "imu";
-	} DEBUGPRINT("IMUInit() OK\n");
+	}
+	else DEBUGPRINT("IMUInit() OK\n");
 
 	//start GPS
-	if ((reply=GPSInit()) < 0)
+	reply = GPSInit();
+	if (reply != 0)
 	{
-		ERRORPRINT("GPSInit() fail");
+		ERRORPRINT("GPSInit() fail\n");
 		initFail = "gps";
 	}
 	else DEBUGPRINT("GPSInit() OK\n");
 
-#ifdef SCANNER
 	//start scanner
-	if ((reply=ScannerInit()) < 0)
-	{
-		ERRORPRINT("ScannerInit() fail");
-		initFail = "scaner";
-	}
-	else {
-		DEBUGPRINT("ScannerInit() OK\n");
-	}
-#endif
+// 	reply = ScannerInit();
+// 	if (reply != 0)
+// 	{
+// 		ERRORPRINT("ScannerInit() fail\n");
+// 		initFail = "scanner";
+// 	}
+// 	else {
+// 		DEBUGPRINT("ScannerInit() OK\n");
+// 	}
 
 	//start behaviors
-	if ((reply = BehaviorInit() < 0))
+	reply = BehaviorInit();
+	if (reply != 0)
 	{
-		ERRORPRINT("BehaviorInit() fail");
+		ERRORPRINT("BehaviorInit() fail\n");
 		initFail = "behavior";
 	}
 	else DEBUGPRINT("BehaviorInit() OK\n");
 
 	//PubSub broker
-	if ((reply=PubSubInit()) < 0)
+	reply = PubSubInit();
+	if (reply != 0)
 	{
-		ERRORPRINT("PubSubInit() fail");
+		ERRORPRINT("PubSubInit() fail\n");
 		initFail = "pubsub";
 	}
 	else DEBUGPRINT("PubSubInit() OK\n");
 
 	//Serial broker
-	if ((reply=SerialBrokerInit()) < 0)
+	reply=SerialBrokerInit();
+	if (reply != 0)
 	{
-		ERRORPRINT("SerialBrokerInit() fail");
+		ERRORPRINT("SerialBrokerInit() fail\n");
 		initFail = "serial";
 	}
 	else DEBUGPRINT("SerialBrokerInit() OK\n");
 
 	//IP broker
-	if ((reply = AgentInit()) < 0)
+	reply = AgentInit();
+	if (reply != 0)
 	{
-		ERRORPRINT("AgentInit() fail");
+		ERRORPRINT("AgentInit() fail\n");
 		initFail = "agent";
 	}
 	else DEBUGPRINT("AgentInit() OK\n");
 
 	//Responder
-	if ((reply=ResponderInit()) < 0)
+	reply=ResponderInit();
+	if (reply != 0)
 	{
-		ERRORPRINT("ResponderInit() fail");
+		ERRORPRINT("ResponderInit() fail\n");
 		initFail = "responder";
 	}
 	else DEBUGPRINT("ResponderInit() OK\n");
@@ -193,7 +205,7 @@ int main(int argc, const char * argv[])
 		return -1;
 	}
 
-	LogInfo("Init complete");
+	if (strlen(initFail) == 0) LogInfo("Init complete");
 
 	sleep(10);
 
@@ -214,7 +226,7 @@ int main(int argc, const char * argv[])
 		}
 		else
 		{
-			DEBUGPRINT("SIGHUP handler set");
+			DEBUGPRINT("SIGHUP handler set\n");
 		}
 		//close stdio
 		fclose(stdout);

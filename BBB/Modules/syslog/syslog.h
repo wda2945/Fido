@@ -9,7 +9,7 @@
 #define	SYSLOG_H
 
 #include <stdio.h>
-#include "PubSubData.h"
+#include "pubsubdata.h"
 #include "pubsub/pubsub.h"
 
 enum {

@@ -17,11 +17,11 @@
 #include <math.h>
 #include "lua.h"
 
-#include "PubSubData.h"
+#include "pubsubdata.h"
 #include "pubsub/pubsub.h"
 
 #include "behavior/behavior.h"
-#include "behavior/behaviorDebug.h"
+#include "behavior/behaviordebug.h"
 #include "syslog/syslog.h"
 
 static char *batteryStatusNames[] = BATTERY_STATUS_NAMES;
@@ -88,18 +88,21 @@ int InitLuaGlobals(lua_State *L)
 
 	lua_pushstring(L, "isRaining");
 	lua_pushboolean(L, 0);
-
 	lua_settable(L, table);
+
 	lua_setglobal(L, "environment");
 
 	lua_createtable(L, 0, BATTERY_STATUS_COUNT + 2);					//Empty battery table
+	table = lua_gettop(L);
 
 	lua_pushstring(L, "status");
 	lua_pushinteger(L, BATTERY_UNKNOWN_STATUS);
 	lua_settable(L, table);
+
 	lua_pushstring(L, "volts");
 	lua_pushnumber(L, 0);
 	lua_settable(L, table);
+
 	for (i=0; i< BATTERY_STATUS_COUNT; i++)
 	{
 		lua_pushstring(L, batteryStatusNames[i]);

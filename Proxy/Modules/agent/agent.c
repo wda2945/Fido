@@ -41,10 +41,10 @@ FILE *agentDebugFile;
 
 #define ERRORPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(agentDebugFile, __VA_ARGS__);fflush(agentDebugFile);
 
-#define MAX_AGENT_CONNECTIONS 5
+#define MAX_AGENT_CONNECTIONS 10
 
-bool agentOnline = false;
-int agentConnections = 0;
+int agentOnline = 0;
+
 bool connected[MAX_AGENT_CONNECTIONS];				//whether channel is in use
 int rxSocket[MAX_AGENT_CONNECTIONS];				//socket used by rx thread
 int txSocket[MAX_AGENT_CONNECTIONS];				//socket used by tx thread
@@ -166,12 +166,6 @@ void *AgentListenThread(void *arg)
 			DEBUGPRINT("agent connect from %i.%i.%i.%i\n", addrBytes[0], addrBytes[1], addrBytes[2], addrBytes[3]);
 
 			//find a free thread
-			//critical section
-			int s = pthread_mutex_lock(&agentMtx);
-			if (s != 0)
-			{
-				LogError("agent: mutex lock %i", s);
-			}
 
 			int i;
 			int channel = -1;
@@ -186,6 +180,8 @@ void *AgentListenThread(void *arg)
 
 			if (channel < 0)
 			{
+    			pthread_mutex_unlock(&agentMtx);
+
 				DEBUGPRINT("agent listen: no available server context\n");
 			}
 			else
@@ -193,9 +189,8 @@ void *AgentListenThread(void *arg)
 
 				rxSocket[channel] = acceptSocket;
 				txSocket[channel] = dup(acceptSocket);	//separate rx & tx sockets
-				connected[channel] = true;
 
-				//create agent Rx thread
+ 				//create agent Rx thread
 				int s;
 				do {
 					s = pthread_create(&rxThread[channel], NULL, AgentRxThread, (void*) channel);
@@ -207,19 +202,12 @@ void *AgentListenThread(void *arg)
 
 					close(rxSocket[channel]);
 					close(txSocket[channel]);
-					connected[channel] = false;
 				}
 				else
 				{
 					DEBUGPRINT("agent %i Rx thread created.\n", channel);
 				}
 
-				s = pthread_mutex_unlock(&agentMtx);
-				if (s != 0)
-				{
-					LogError("agent: mutex unlock %i", s);
-				}
-				//end critical section
 			}
 		}
 	}
@@ -244,20 +232,8 @@ void *AgentRxThread(void *arg)
 
     ResetParseStatus(&parseStatus);
 
-	//critical section
-	int s = pthread_mutex_lock(&agentMtx);
-	if (s != 0)
-	{
-		LogError("agent: mutex lock %i", s);
-	}
-    agentConnections++;
-    agentOnline = true;
-	s = pthread_mutex_unlock(&agentMtx);
-	if (s != 0)
-	{
-		LogError("agent: mutex unlock %i", s);
-	}
-	//end critical section
+	agentOnline++;
+	connected[mychan] = true;
 
     while(connected[mychan])
     {
@@ -268,30 +244,20 @@ void *AgentRxThread(void *arg)
     		if (recv(socket, &readByte, 1, 0) <= 0)
     		{
     			//quit on failure, EOF, etc.
-//    			ERRORPRINT("agent Rx %i recv() fd=%i error: %s\n", mychan, socket, strerror(errno));
+    			ERRORPRINT("agent Rx %i recv() fd=%i error: %s\n", mychan, socket, strerror(errno));
+
+    			pthread_mutex_lock(&agentMtx);
+
     			close(socket);
+    			rxSocket[mychan] = -1;
 
-    			//critical section
-    			s = pthread_mutex_lock(&agentMtx);
-    			if (s != 0)
-    			{
-    				LogError("agent: mutex lock %i", s);
-    			}
-    		    agentConnections--;
-
-    		    if (!agentConnections)
-    		    {
-    		    	agentOnline = false;
-    		    }
     		    close(txSocket[mychan]);
+    		    txSocket[mychan] = -1;
     			connected[mychan] = false;
 
-    			s = pthread_mutex_unlock(&agentMtx);
-    			if (s != 0)
-    			{
-    				LogError("agent: mutex unlock %i", s);
-    			}
-    			//end critical section
+       			agentOnline--;
+
+    			pthread_mutex_unlock(&agentMtx);
 
     		    pthread_exit(NULL);
 
@@ -322,27 +288,15 @@ void *AgentRxThread(void *arg)
     }
     //Tx disconnected
     DEBUGPRINT("agent %i Rx fd=%i exiting.\n", mychan, socket);
+
+	pthread_mutex_lock(&agentMtx);
+
     close(socket);
+    rxSocket[mychan] = -1;
 
-	//critical section
-	s = pthread_mutex_lock(&agentMtx);
-	if (s != 0)
-	{
-		LogError("agent: mutex lock %i", s);
-	}
-    agentConnections--;
+	agentOnline--;
 
-    if (!agentConnections)
-    {
-    	agentOnline = false;
-    }
-
-	s = pthread_mutex_unlock(&agentMtx);
-	if (s != 0)
-	{
-		LogError("agent: mutex unlock %i", s);
-	}
-	//end critical section
+	pthread_mutex_unlock(&agentMtx);
 
     pthread_exit(NULL);
 
@@ -352,8 +306,6 @@ void *AgentRxThread(void *arg)
 //Queue a copy of a message for each active channel
 bool AgentProcessMessage(psMessage_t *msg)
 {
-	if (!agentOnline) return false;
-
 	if ((msg->header.source == APP_XBEE) || (msg->header.source == APP_OVM) || (msg->header.source == ROBO_APP)) return false;
 
 	//filter?
@@ -400,14 +352,12 @@ void *AgentTxThread(void *arg)
 
 		for (int i=0; i<MAX_AGENT_CONNECTIONS; i++)
 		{
-			//critical section
-			int s = pthread_mutex_lock(&agentMtx);
-			if (s != 0)
-			{
-				LogError("agent: mutex lock %i", s);
-			}
+
 			if (connected[i])
 			{
+
+    			pthread_mutex_lock(&agentMtx);
+
 				int socket = txSocket[i];
 
 				//send STX
@@ -439,23 +389,20 @@ void *AgentTxThread(void *arg)
 				if (errorReply != 0)
 				{
 					ERRORPRINT("agent Tx (fd:%i) send error: %s\n", socket, strerror(errno));
-					connected[i] = false;
 					close(socket);
+					txSocket[i] = -1;
+					connected[i] = false;
 				}
 				else
 				{
 					DEBUGPRINT("agent: %s sent to App\n", psLongMsgNames[txMessage->header.messageType]);
 				}
-				s = pthread_mutex_unlock(&agentMtx);
-				if (s != 0)
-				{
-					LogError("agent: mutex unlock %i", s);
-				}
-				//end critical section
-				DoneWithMessage(txMessage);
-				break;
+
+    			pthread_mutex_unlock(&agentMtx);
+
 			}
 		}
+		DoneWithMessage(txMessage);
 	}
 	return 0;
 }
