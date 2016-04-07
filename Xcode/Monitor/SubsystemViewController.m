@@ -19,7 +19,6 @@
 @interface SubsystemViewController ()
 {
     SettingsDetailViewController *detailController;
-    int mySourceCode;
     bool currentlyOnline;
     long latency;
 }
@@ -61,8 +60,8 @@
     self = [super init];
     if (self){
         self.listeners = [NSMutableArray array];
-        mySourceCode = message.msg.header.source;
-        self.name = [NSString stringWithFormat:@"%s", subsystemNames[mySourceCode]];
+        self.sourceCode = message.msg.header.source;
+        self.name = [NSString stringWithFormat:@"%s", subsystemNames[self.sourceCode]];
         
         if ((message.msg.header.messageType == SS_ONLINE) && (message.msg.responsePayload.flags & RESPONSE_INIT_ERRORS))
         {
@@ -104,7 +103,7 @@
     self.configured     = NO;
     [self sendForConfig];
     
-    if (mySourceCode == OVERMIND)
+    if (self.sourceCode == OVERMIND)
     {
         [(BehaviorViewController*)[MasterViewController getMasterViewController].behaviorViewController clearScripts];
     }
@@ -152,7 +151,7 @@
 
 -(void) didReceiveMessage: (PubSubMsg*) message
 {
-    if (mySourceCode == message.msg.header.source){
+    if (self.sourceCode == message.msg.header.source){
         
         [self restartOnlineTimeout];
 
@@ -198,7 +197,7 @@
                 }
                 
                 [(UITableView*)self.view reloadData];
-                [self restartOnlineTimeout];
+
             }
                 break;
             case SS_ONLINE:
@@ -306,7 +305,7 @@
                 if (message.msg.configPayload.requestor == ROBO_APP)
                 {
                     if (!self.configured && (message.msg.configPayload.count
-                                             == (_settings.count + _options.count + (mySourceCode != OVERMIND ? 0 :
+                                             == (_settings.count + _options.count + (self.sourceCode != OVERMIND ? 0 :
                                                                                      [MasterViewController getMasterViewController].behaviorViewController.availableScripts.count))))
                     {
                         [LogViewController logAppMessage:[NSString stringWithFormat:@"%@ configured", self.name]];
@@ -382,7 +381,7 @@
         
         psMessage_t message;
         message.header.messageType = CONFIG;
-        message.configPayload.responder = mySourceCode;
+        message.configPayload.responder = self.sourceCode;
         message.configPayload.requestor = ROBO_APP;
         [PubSubMsg sendMessage: &message];
         

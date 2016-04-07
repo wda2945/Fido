@@ -30,7 +30,7 @@ char *powerstateNames[] = POWER_STATE_NAMES;
 - (void) clearData
 {
     self.powerStateStr = @"unknown";
-    self.systemStateCommand = COMMAND_UNSPECIFIED;
+    self.systemStateCommand = COMMAND_ACTIVE;
     self.powerState = POWER_STATE_UNKNOWN;
     batteryStatus = 0;
     volts = 0.0;

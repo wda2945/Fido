@@ -28,7 +28,7 @@
 @end
 
 //pages of App - excluding subsystems
-enum { SYSTEM_PAGE, POWER_PAGE, CONDITIONS_PAGE, NAV_PAGE, MAP_PAGE, WP_PAGE, STATS_PAGE, COMMS_PAGE, OPTIONS_PAGE, SETTINGS_PAGE, DATA_PAGE, RC_PAGE, BEHAVIOR_PAGE, LOG_PAGE, PAGE_COUNT};
+enum { SYSTEM_PAGE, POWER_PAGE, CONDITIONS_PAGE, NAV_PAGE, MAP_PAGE, WP_PAGE, STATS_PAGE, COMMS_PAGE, /*OPTIONS_PAGE, SETTINGS_PAGE, DATA_PAGE, */ RC_PAGE, BEHAVIOR_PAGE, LOG_PAGE, PAGE_COUNT};
 
 static MasterViewController *me;
 
@@ -213,6 +213,7 @@ static MasterViewController *me;
 }
 
 static char *mapActionNames[] = MAP_ACTION_NAMES;
+static char *subsystemFullNames[] = SUBSYSTEM_FULL_NAMES;
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
@@ -231,18 +232,21 @@ static char *mapActionNames[] = MAP_ACTION_NAMES;
             
         }
             break;
-        case 2:     //Subsyystems
+        case 2:     //Subsystems
         {
+            
             cell = [tableView dequeueReusableCellWithIdentifier:@"SubsystemCell"];
             if (!cell)
             {
                 cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"SubsystemCell"];
             }
             NSString *ssName = [_subsystems.allKeys objectAtIndex:indexPath.row];
-            cell.textLabel.text = ssName;
+            SubsystemViewController *ss = [_subsystems objectForKey:ssName];
+            
+            cell.textLabel.text = [NSString stringWithFormat:@"%s", subsystemFullNames[ss.sourceCode]];
             cell.imageView.image = [self getStatusImage:ssName];
             
-            if (((SubsystemViewController*)[_subsystems objectForKey:ssName]).configured)
+            if (ss.configured)
             {
                 cell.accessoryType = UITableViewCellAccessoryCheckmark;
             }
@@ -297,18 +301,18 @@ static char *mapActionNames[] = MAP_ACTION_NAMES;
                     cell.textLabel.text = @"Direct Control";
                     cell.imageView.image = [UIImage imageNamed:@"rc.png"];
                     break;
-                case DATA_PAGE:
-                    cell.textLabel.text = @"Data";
-                    cell.imageView.image = [UIImage imageNamed:@"info.png"];
-                    break;
-                case OPTIONS_PAGE:
-                    cell.textLabel.text = @"Options";
-                    cell.imageView.image = [UIImage imageNamed:@"option.png"];
-                    break;
-                case SETTINGS_PAGE:
-                    cell.textLabel.text = @"Settings";
-                    cell.imageView.image = [UIImage imageNamed:@"setting.png"];
-                    break;
+//                case DATA_PAGE:
+//                    cell.textLabel.text = @"Data";
+//                    cell.imageView.image = [UIImage imageNamed:@"info.png"];
+//                    break;
+//                case OPTIONS_PAGE:
+//                    cell.textLabel.text = @"Options";
+//                    cell.imageView.image = [UIImage imageNamed:@"option.png"];
+//                    break;
+//                case SETTINGS_PAGE:
+//                    cell.textLabel.text = @"Settings";
+//                    cell.imageView.image = [UIImage imageNamed:@"setting.png"];
+//                    break;
                 case COMMS_PAGE:
                     cell.textLabel.text = @"Comms";
                     cell.imageView.image = [UIImage imageNamed:@"radio_tower.png"];
@@ -423,7 +427,7 @@ static char *mapActionNames[] = MAP_ACTION_NAMES;
             [alert addAction:defaultAction];
             [self presentViewController:alert animated:YES completion:nil];
         }
-        if (message.msg.header.messageType == CONFIG_DONE) [(UITableView*) self.view reloadData];
+        [(UITableView*) self.view reloadData];
     }
 }
 
@@ -523,15 +527,15 @@ static char *mapActionNames[] = MAP_ACTION_NAMES;
                 case STATS_PAGE:
                     if ([_collectionController presentView: @"Stats"]) return indexPath;
                     break;
-                case DATA_PAGE:
-                    if ([_collectionController presentView: @"Data"]) return indexPath;
-                    break;
-                case OPTIONS_PAGE:
-                    if ([_collectionController presentView: @"Options"]) return indexPath;
-                    break;
-                case SETTINGS_PAGE:
-                    if ([_collectionController presentView: @"Settings"]) return indexPath;
-                    break;
+//                case DATA_PAGE:
+//                    if ([_collectionController presentView: @"Data"]) return indexPath;
+//                    break;
+//                case OPTIONS_PAGE:
+//                    if ([_collectionController presentView: @"Options"]) return indexPath;
+//                    break;
+//                case SETTINGS_PAGE:
+//                    if ([_collectionController presentView: @"Settings"]) return indexPath;
+//                    break;
                 case MAP_PAGE:
                     if ([_collectionController presentView: @"Map"]) return indexPath;
                     break;

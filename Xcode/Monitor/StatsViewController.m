@@ -128,7 +128,7 @@
             [ss.stats setObject:dict forKey:@"cpu"];
             dict = [NSDictionary dictionaryWithObjectsAndKeys:
                     @"Free Memory", @"name",
-                    [NSString stringWithFormat:@"%li bytes",message.msg.sysStatsPayload.freeHeap], @"value",
+                    [NSString stringWithFormat:@"%i bytes",message.msg.sysStatsPayload.freeHeap], @"value",
                     nil];
             [ss.stats setObject:dict forKey:@"memory"];
         }

@@ -25,6 +25,7 @@
 @property          bool online;
 @property          bool configured;
 @property          bool initErrors;
+@property          int sourceCode;
 
 @property (strong) NSMutableDictionary *info;
 @property (strong) NSArray *sortedInfoNames;
