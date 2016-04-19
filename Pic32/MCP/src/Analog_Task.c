@@ -77,6 +77,10 @@ bool lastRainResult;
 TickType_t rainResultChangeTime;
 bool rainNotified;
 
+bool lastMotorInhResult;
+TickType_t motorInhResultChangeTime;
+bool motorInhNotified;
+
 //three rear digital ir sensors are wired together with voltage drop resistors
 //these thresholds allow the three detectors to be separated
 float comboThresholds[8] = {3.0,
@@ -523,8 +527,22 @@ void Evaluate(int source, float volts) {
                 chargeVolts = volts / CHARGER_VOLTS_DIVIDER;
                 break;
             case MOTOR_INH:
-                motorInhibit = (volts > 1.6f ? true : false);
-                Condition(MOTORS_INHIBIT, motorInhibit);
+            {
+                motorInhibit = (volts < 1.6f ? true : false);
+                if (lastMotorInhResult != motorInhibit) {
+                    motorInhResultChangeTime = xTaskGetTickCount();
+                    lastRainResult = motorInhibit;
+                } else if (motorInhResultChangeTime + MOTOR_INH_DELAY < xTaskGetTickCount()) {
+                    //waited long enough
+                    if (motorInhibit && !motorInhNotified) {
+                        SetCondition(MOTORS_INHIBIT);
+                        motorInhNotified = true;
+                    } else if (!motorInhibit && motorInhNotified) {
+                        CancelCondition(MOTORS_INHIBIT);
+                        motorInhNotified = false;
+                    }
+                }
+            }
                 break;
             case SOLAR_AMPS:
                 solarAmps = (volts - initialSourceVoltages[source]) / AMPS_RANGE_FACTOR; //NB Scale Amps
