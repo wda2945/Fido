@@ -38,7 +38,7 @@ FILE *mainDebugFile;
 #define DEBUGPRINT(...) fprintf(mainDebugFile, __VA_ARGS__);fflush(mainDebugFile);
 #endif
 
-#define ERRORPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(mainDebugFile, __VA_ARGS__);fflush(mainDebugFile);
+#define ERRORPRINT(...) LogError(__VA_ARGS__);fprintf(mainDebugFile, __VA_ARGS__);fflush(mainDebugFile);
 
 #define PROCESS_NAME "fido.elf"
 
@@ -75,7 +75,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT( "*** Load 'cape-universal' fail\n");
 //		initFail = "dta1";
 	}
-	else DEBUGPRINT("...loaded OK\n");
+	else {
+		DEBUGPRINT("...loaded OK\n");
+	}
 
 	DEBUGPRINT("main() loading dto2...\n");
 	if (!load_device_tree("cape-univ-hdmi")) {
@@ -83,7 +85,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT( "*** Load 'cape-univ-hdmi' fail\n");
 //		initFail = "dta2";
 	}
-	else DEBUGPRINT("...loaded OK\n");
+	else {
+		DEBUGPRINT("...loaded OK\n");
+	}
 
 	//init other threads, etc.
 	DEBUGPRINT("main() start init\n");
@@ -98,7 +102,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("SysLogInit() Fail\n");
 		initFail = "log";
 	}
-	else DEBUGPRINT("SysLogInit() OK\n");
+	else {
+		DEBUGPRINT("SysLogInit() OK\n");
+	}
 
 	//start navigator
 	reply  =NavigatorInit();
@@ -107,7 +113,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("NavigatorInit() OK\n");
 		initFail = "nav";
 	}
-	else DEBUGPRINT("NavigatorInit() OK\n");
+	else {
+		DEBUGPRINT("NavigatorInit() OK\n");
+	}
 
 	//start autopilot
 	reply = AutopilotInit();
@@ -116,7 +124,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("AutopilotInit() fail\n");
 		initFail = "pilot";
 	}
-	else DEBUGPRINT("AutopilotInit() OK\n");
+	else {
+		DEBUGPRINT("AutopilotInit() OK\n");
+	}
 
 	//start IMU
 	reply = IMUInit();
@@ -125,7 +135,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("IMUInit() fail\n");
 		initFail = "imu";
 	}
-	else DEBUGPRINT("IMUInit() OK\n");
+	else {
+		DEBUGPRINT("IMUInit() OK\n");
+	}
 
 	//start GPS
 	reply = GPSInit();
@@ -134,7 +146,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("GPSInit() fail\n");
 		initFail = "gps";
 	}
-	else DEBUGPRINT("GPSInit() OK\n");
+	else {
+		DEBUGPRINT("GPSInit() OK\n");
+	}
 
 	//start scanner
 // 	reply = ScannerInit();
@@ -154,7 +168,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("BehaviorInit() fail\n");
 		initFail = "behavior";
 	}
-	else DEBUGPRINT("BehaviorInit() OK\n");
+	else {
+		DEBUGPRINT("BehaviorInit() OK\n");
+	}
 
 	//PubSub broker
 	reply = PubSubInit();
@@ -163,7 +179,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("PubSubInit() fail\n");
 		initFail = "pubsub";
 	}
-	else DEBUGPRINT("PubSubInit() OK\n");
+	else {
+		DEBUGPRINT("PubSubInit() OK\n");
+	}
 
 	//Serial broker
 	reply=SerialBrokerInit();
@@ -172,7 +190,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("SerialBrokerInit() fail\n");
 		initFail = "serial";
 	}
-	else DEBUGPRINT("SerialBrokerInit() OK\n");
+	else {
+		DEBUGPRINT("SerialBrokerInit() OK\n");
+	}
 
 	//IP broker
 	reply = AgentInit();
@@ -181,7 +201,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("AgentInit() fail\n");
 		initFail = "agent";
 	}
-	else DEBUGPRINT("AgentInit() OK\n");
+	else {
+		DEBUGPRINT("AgentInit() OK\n");
+	}
 
 	//Responder
 	reply=ResponderInit();
@@ -190,7 +212,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("ResponderInit() fail\n");
 		initFail = "responder";
 	}
-	else DEBUGPRINT("ResponderInit() OK\n");
+	else {
+		DEBUGPRINT("ResponderInit() OK\n");
+	}
 
 	if (strlen(initFail) > 0)
 	{

@@ -48,7 +48,7 @@ FILE *navDebugFile;
 #define DEBUGPRINT(...) fprintf(navDebugFile, __VA_ARGS__);fflush(navDebugFile);
 #endif
 
-#define ERRORPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(navDebugFile, __VA_ARGS__);fflush(navDebugFile);
+#define ERRORPRINT(...) LogError(__VA_ARGS__);fprintf(navDebugFile, __VA_ARGS__);fflush(navDebugFile);
 
 enum {NO_DATA, GOT_IMU, GOT_GPS, GOOD_POSE} navigationState = NO_DATA;
 char *navStates[] = {"No Data", "IMU only", "GPS + IMU", "Good Pose"};

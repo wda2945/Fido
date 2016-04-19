@@ -82,7 +82,7 @@
 		5BB2BE1A197C9BC100699D20 /* right-128.png in Resources */ = {isa = PBXBuildFile; fileRef = 5BB2BBDA197C9BC000699D20 /* right-128.png */; };
 		5BB2BE1B197C9BC100699D20 /* up-128.png in Resources */ = {isa = PBXBuildFile; fileRef = 5BB2BBDB197C9BC000699D20 /* up-128.png */; };
 		5BB2BE1D197C9BC100699D20 /* setting.png in Resources */ = {isa = PBXBuildFile; fileRef = 5BB2BBDD197C9BC000699D20 /* setting.png */; };
-		5BB2BE1F197C9BC100699D20 /* error.png in Resources */ = {isa = PBXBuildFile; fileRef = 5BB2BBE0197C9BC000699D20 /* error.png */; };
+		5BB2BE1F197C9BC100699D20 /* disabled.png in Resources */ = {isa = PBXBuildFile; fileRef = 5BB2BBE0197C9BC000699D20 /* disabled.png */; };
 		5BB2BE20197C9BC100699D20 /* fail.png in Resources */ = {isa = PBXBuildFile; fileRef = 5BB2BBE1197C9BC000699D20 /* fail.png */; };
 		5BB2BE21197C9BC100699D20 /* offline.png in Resources */ = {isa = PBXBuildFile; fileRef = 5BB2BBE2197C9BC000699D20 /* offline.png */; };
 		5BB2BE22197C9BC100699D20 /* online.png in Resources */ = {isa = PBXBuildFile; fileRef = 5BB2BBE3197C9BC000699D20 /* online.png */; };
@@ -234,7 +234,7 @@
 		5BB2BBDA197C9BC000699D20 /* right-128.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "right-128.png"; sourceTree = "<group>"; };
 		5BB2BBDB197C9BC000699D20 /* up-128.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "up-128.png"; sourceTree = "<group>"; };
 		5BB2BBDD197C9BC000699D20 /* setting.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = setting.png; sourceTree = "<group>"; };
-		5BB2BBE0197C9BC000699D20 /* error.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = error.png; sourceTree = "<group>"; };
+		5BB2BBE0197C9BC000699D20 /* disabled.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = disabled.png; sourceTree = "<group>"; };
 		5BB2BBE1197C9BC000699D20 /* fail.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = fail.png; sourceTree = "<group>"; };
 		5BB2BBE2197C9BC000699D20 /* offline.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = offline.png; sourceTree = "<group>"; };
 		5BB2BBE3197C9BC000699D20 /* online.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = online.png; sourceTree = "<group>"; };
@@ -542,7 +542,7 @@
 			isa = PBXGroup;
 			children = (
 				5BB10DD11C6C6847005DA88E /* connected.png */,
-				5BB2BBE0197C9BC000699D20 /* error.png */,
+				5BB2BBE0197C9BC000699D20 /* disabled.png */,
 				5BB2BBE1197C9BC000699D20 /* fail.png */,
 				5BB2BBE2197C9BC000699D20 /* offline.png */,
 				5BB2BBE3197C9BC000699D20 /* online.png */,
@@ -731,7 +731,7 @@
 				5BB56CB21A8ADC6F000A591D /* flag_blue.png in Resources */,
 				5B16329A1A28330700F6F23B /* WPEditController.xib in Resources */,
 				5BB2BDEF197C9BC100699D20 /* fido.png in Resources */,
-				5BB2BE1F197C9BC100699D20 /* error.png in Resources */,
+				5BB2BE1F197C9BC100699D20 /* disabled.png in Resources */,
 				5BB2BE1D197C9BC100699D20 /* setting.png in Resources */,
 				5BCBB5D31A88A46900586051 /* define_location.png in Resources */,
 				5BB2BDE4197C9BC100699D20 /* Main_iPhone.storyboard in Resources */,

@@ -48,6 +48,9 @@ void XBeeBrokerProcessMessage(psMessage_t *msg);	//consider candidate msg to sen
 //responder
 void ResponderProcessMessage(psMessage_t *msg);
 
+void sendOptionConfig(char *name, int var, int minV, int maxV, uint8_t req);
+void sendSettingConfig(char *name, float var, float minV, float maxV, uint8_t req);
+
 //options
 #define optionmacro(name, var, min, max, def) extern int var;
 #include "options.h"

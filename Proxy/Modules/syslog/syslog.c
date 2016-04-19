@@ -24,28 +24,42 @@ BrokerQueue_t logQueue = BROKER_Q_INITIALIZER;
 
 void *LoggingThread(void *arg);
 
-FILE *logFile;
+FILE *logFile = NULL;
 
-int SysLogInit()
+struct tm *logopentime;
+
+int rotateLogFile()
 {
+	if (logFile)
+	{
+		fclose(logFile);
+	}
+
 	char logfilepath[200];
 	const time_t now = time(NULL);
-	struct tm *timestruct = localtime(&now);
+	logopentime = localtime(&now);
 
 	snprintf(logfilepath, 200, "%sSYS_%4i_%02i_%02i_%02i_%02i_%02i.log", LOGFILE_FOLDER,
-			timestruct->tm_year + 1900, timestruct->tm_mon, timestruct->tm_mday,
-			timestruct->tm_hour, timestruct->tm_min, timestruct->tm_sec);
-
+			logopentime->tm_year + 1900, logopentime->tm_mon + 1, logopentime->tm_mday,
+			logopentime->tm_hour, logopentime->tm_min, logopentime->tm_sec);
 
 	logFile = fopen(logfilepath, "w");
 	if (logFile == NULL)
 	{
 		logFile = stderr;
 		fprintf(stderr, "syslog: fopen(%s) fail (%s)\n", logfilepath, strerror(errno));
+		return -1;
 	}
 	else {
 		fprintf(stderr, "syslog: Logfile opened on %s\n", logfilepath);
+		return 0;
 	}
+}
+
+int SysLogInit()
+{
+	if (rotateLogFile() < 0)
+		return -1;
 
 	//start log print threads
 	pthread_t thread;
@@ -61,8 +75,14 @@ int SysLogInit()
 //writes log messages to the logfile
 void *LoggingThread(void *arg)
 {
-	NotificationMask_t currentActiveConditions = 0;
-	NotificationMask_t currentValidConditions = 0;
+	NotificationMask_t currentActiveConditions[MASK_PAYLOAD_COUNT];
+	NotificationMask_t currentValidConditions[MASK_PAYLOAD_COUNT];
+
+	int i;
+	for (i=0; i< MASK_PAYLOAD_COUNT; i++)
+	{
+		currentActiveConditions[i] = currentValidConditions[i] = 0;
+	}
 
 	{
 		psMessage_t msg;
@@ -73,9 +93,15 @@ void *LoggingThread(void *arg)
 
 		PrintLogMessage(&msg);
 	}
+
 	while (1)
 	{
 		psMessage_t *msg = GetNextMessage(&logQueue);
+
+		const time_t now = time(NULL);
+		struct tm *timestruct = localtime(&now);
+
+		if (logopentime->tm_mday != timestruct->tm_mday) rotateLogFile();
 
 		switch (msg->header.messageType)
 		{
@@ -115,46 +141,53 @@ void *LoggingThread(void *arg)
 						eventNames[msg->intPayload.value]);
 				PrintLogMessage(&logMsg);
 			}
-			DoneWithMessage(msg);
+				DoneWithMessage(msg);
 				break;
+
 			case CONDITIONS:
 			{
+				int j;
 				psMessage_t logMsg;
+
 				psInitPublish(logMsg, BBBLOG_MSG);
 				strncpy(logMsg.bbbLogPayload.file, subsystemNames[msg->header.source], 4);
 				logMsg.bbbLogPayload.severity = SYSLOG_ROUTINE;
 
-				NotificationMask_t valid = msg->eventMaskPayload.valid;
-				NotificationMask_t value = msg->eventMaskPayload.value;
-
-				NotificationMask_t newSets = (value & valid) & ~(currentActiveConditions & currentValidConditions);
-				NotificationMask_t newClears = (valid & ~value) & ~(currentValidConditions & ~currentActiveConditions);
-
-				if ((newSets != 0) || (newClears != 0))
+				for (j=0; j<MASK_PAYLOAD_COUNT; j++)
 				{
-					for (int i=0; i<CONDITION_COUNT; i++)
-					{
-						NotificationMask_t m = NOTIFICATION_MASK(i);
+					NotificationMask_t valid = msg->maskPayload.valid[j];
+					NotificationMask_t value = msg->maskPayload.value[j];
 
-						if (m & newSets)
+					NotificationMask_t newSets = (value & valid) & ~(currentActiveConditions[j] & currentValidConditions[j]);
+					NotificationMask_t newClears = (valid & ~value) & ~(currentValidConditions[j] & ~currentActiveConditions[j]);
+
+					if ((newSets != 0) || (newClears != 0))
+					{
+						for (int i=0; i<CONDITION_COUNT; i++)
 						{
-							snprintf(logMsg.bbbLogPayload.text, BBB_MAX_LOG_TEXT, "Set Condition: %s",
-									conditionNames[i]);
-							PrintLogMessage(&logMsg);
-						}
-						if (m & newClears)
-						{
-							snprintf(logMsg.bbbLogPayload.text, BBB_MAX_LOG_TEXT, "Clear Condition: %s",
-									conditionNames[i]);
-							PrintLogMessage(&logMsg);
+
+							NotificationMask_t m = NOTIFICATION_MASK(i);
+
+							if (m & newSets)
+							{
+								snprintf(logMsg.bbbLogPayload.text, BBB_MAX_LOG_TEXT, "Set Condition: %s",
+										conditionNames[i + 64 * j]);
+								PrintLogMessage(&logMsg);
+							}
+							if (m & newClears)
+							{
+								snprintf(logMsg.bbbLogPayload.text, BBB_MAX_LOG_TEXT, "Clear Condition: %s",
+										conditionNames[i + 64 * j]);
+								PrintLogMessage(&logMsg);
+							}
 						}
 					}
+					currentActiveConditions[j] |= (valid & value);
+					currentActiveConditions[j] &= ~(valid & ~value);
+					currentValidConditions[j] |= valid;
 				}
-				currentActiveConditions |= (valid & value);
-				currentActiveConditions &= ~(valid & ~value);
-				currentValidConditions |= valid;
 			}
-			DoneWithMessage(msg);
+				DoneWithMessage(msg);
 				break;
 			default:
 				DoneWithMessage(msg);

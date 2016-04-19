@@ -43,7 +43,7 @@ FILE *imuDebugFile;
 #define DEBUGPRINT(...) fprintf(imuDebugFile, __VA_ARGS__);fflush(imuDebugFile);
 #endif
 
-#define ERRORPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(imuDebugFile, __VA_ARGS__);fflush(imuDebugFile);
+#define ERRORPRINT(...) LogError(__VA_ARGS__);fprintf(imuDebugFile, __VA_ARGS__);fflush(imuDebugFile);
 
 
 //thread to poll IMU

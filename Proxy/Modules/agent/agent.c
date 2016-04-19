@@ -39,7 +39,7 @@ FILE *agentDebugFile;
 #define DEBUGPRINT(...) fprintf(agentDebugFile, __VA_ARGS__);fflush(agentDebugFile);
 #endif
 
-#define ERRORPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(agentDebugFile, __VA_ARGS__);fflush(agentDebugFile);
+#define ERRORPRINT(...) LogError(__VA_ARGS__);fprintf(agentDebugFile, __VA_ARGS__);fflush(agentDebugFile);
 
 #define MAX_AGENT_CONNECTIONS 10
 
@@ -54,6 +54,12 @@ pthread_mutex_t	agentMtx = PTHREAD_MUTEX_INITIALIZER;
 //queue for outgoing messages
 BrokerQueue_t agentQueue = BROKER_Q_INITIALIZER;	//queue for messages to be sent
 
+//counts for throttling logging messages
+int agentRoutine = 0;
+int agentInfo = 0;
+int agentWarning = 0;
+int agentError = 0;
+
 //Agent threads
 void *AgentListenThread(void *arg);					//listen thread spawns tx & rx threads for each connect
 pthread_t listenThread;
@@ -65,13 +71,13 @@ void *AgentTxThread(void *arg);						//tx thread function
 
 int AgentInit()
 {
-    {
-        char buff[100];
-        sprintf(buff, "%s%s", LOGFILE_FOLDER, "agent.log");
-        
-        agentDebugFile = fopen(buff, "w");
-    }
     
+	char buff[100];
+	sprintf(buff, "%s%s", LOGFILE_FOLDER, "agent.log");
+
+	agentDebugFile = fopen(buff, "w");
+
+
 	DEBUGPRINT("agent Logfile opened\n");
 
 	//create agent Listen thread
@@ -303,12 +309,45 @@ void *AgentRxThread(void *arg)
     return 0;
 }
 
-//Queue a copy of a message for each active channel
+//Queue a copy of a message
 bool AgentProcessMessage(psMessage_t *msg)
 {
 	if ((msg->header.source == APP_XBEE) || (msg->header.source == APP_OVM) || (msg->header.source == ROBO_APP)) return false;
 
-	//filter?
+	//filter syslog
+	if (msg->header.messageType == SYSLOG_MSG)
+	{
+		switch (msg->logPayload.severity)
+		{
+		case SYSLOG_ROUTINE:
+			return false;
+			break;
+        case SYSLOG_INFO:
+            if (agentInfo > (int)maxAgentInfo) {
+ //               logMessagesDiscarded++;
+                return false;
+            }
+            ++agentInfo;
+            break;
+        case SYSLOG_WARNING:
+            if (agentWarning > (int)maxAgentWarning) {
+//                logMessagesDiscarded++;
+                return false;
+            }
+            ++agentWarning;
+            break;
+        case SYSLOG_ERROR:
+            if (agentError > (int)maxAgentError) {
+//                logMessagesDiscarded++;
+                return false;
+            }
+            ++agentError;
+        default:
+        	return false;
+            break;
+		}
+	}
+
 	CopyMessageToQ(&agentQueue, msg);
 
 	return true;
@@ -396,6 +435,23 @@ void *AgentTxThread(void *arg)
 				else
 				{
 					DEBUGPRINT("agent: %s sent to App\n", psLongMsgNames[txMessage->header.messageType]);
+
+					if (psDefaultTopics[txMessage->header.messageType] == LOG_TOPIC)
+					{
+						switch (txMessage->logPayload.severity)
+						{
+						case SYSLOG_INFO:
+							agentInfo--;
+							break;
+						case SYSLOG_WARNING:
+							agentWarning--;
+							break;
+						case SYSLOG_ERROR:
+							agentError--;
+						default:
+							break;
+						}
+					}
 				}
 
     			pthread_mutex_unlock(&agentMtx);

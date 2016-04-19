@@ -165,6 +165,7 @@ static long sentRow = -1;
     sentRow = indexPath.row;
     
     NSString *script = [_availableScripts.allKeys objectAtIndex:indexPath.row];
+    
     psMessage_t msg;
     CLLocation *location = [MasterViewController getMasterViewController].mapController.location;
     
@@ -184,6 +185,7 @@ static long sentRow = -1;
     [PubSubMsg sendMessage:&msg];
     
     [LogViewController logAppMessage:[NSString stringWithFormat:@"Activate: %@", script]];
+    
     return nil;
 }
 
@@ -229,13 +231,26 @@ static long sentRow = -1;
             currentActivity = [NSString stringWithFormat:@"%s", behavior];
             lastCallFail = [NSString stringWithFormat:@"%s", lastFail];
             lastCallFailReason = [NSString stringWithFormat:@"%s", reason];
-            activityStatus = message.msg.nameIntPayload.value;
-            [(UITableView*)self.view reloadData];
+            activityStatus = message.msg.behaviorStatusPayload.status;
 
             [LogViewController logAppMessage:[NSString stringWithFormat:@"%@ %s. %@ %@", currentActivity,
                                               activityStatusNames[activityStatus],
                                               lastCallFail, lastCallFailReason]];
             
+            switch(activityStatus)
+        {
+            case BEHAVIOR_RUNNING:
+            case BEHAVIOR_ACTIVE:
+                break;
+            case BEHAVIOR_INVALID:
+            case BEHAVIOR_FAIL:
+            case BEHAVIOR_SUCCESS:
+            default:
+                sentRow = -1;
+                break;
+        }
+    
+            [(UITableView*)self.view reloadData];
             break;
         default:
             break;

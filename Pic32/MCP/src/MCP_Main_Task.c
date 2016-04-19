@@ -94,9 +94,7 @@ static void MCPtask(void *pvParameters) {
     //set default power state
     SetPinOption(MOT_PWR_IOPORT, MOT_PWR_BIT, motPower);
     SetPinOption(OVM_PWR_IOPORT, OVM_PWR_BIT, ovmPower);
-
-    WakeEventMask = 0;
-
+    
     initReply += SysLogInit();
     initReply += PubSubInit();
     initReply += NotificationsInit();
@@ -281,7 +279,7 @@ static void MCPtask(void *pvParameters) {
                     break;
                     //Notifications that will wake the Overmind
                 case WAKE_MASK:
-                    WakeEventMask = mcpTaskRxMsg.eventMaskPayload.value;
+                    WakeEventMask = mcpTaskRxMsg.maskPayload.value[0];
                     break;
                     //Notifications raised elsewhere
                 case NOTIFY:

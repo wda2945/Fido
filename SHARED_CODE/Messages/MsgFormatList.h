@@ -18,8 +18,8 @@ formatmacro(BBB_SYSLOG_PAYLOAD,bbbLogPayload_t,bbbLogPayload,-7)
 formatmacro(PS_REQUEST_PAYLOAD,psRequestPayload_t,requestPayload,sizeof(psRequestPayload_t))
 formatmacro(PS_RESPONSE_PAYLOAD,psResponsePayload_t,responsePayload,sizeof(psResponsePayload_t))
 formatmacro(PS_TICK_PAYLOAD, psTickPayload_t, tickPayload, sizeof(psTickPayload_t))
-formatmacro(PS_MASK_PAYLOAD,psEventMaskPayload_t,eventMaskPayload,sizeof(psEventMaskPayload_t))
-        //Generic Data
+formatmacro(PS_MASK_PAYLOAD,psMaskPayload_t,maskPayload,sizeof(psMaskPayload_t))
+      //Generic Data
 formatmacro(PS_BYTE_PAYLOAD,psBytePayload_t,bytePayload,sizeof(psBytePayload_t))
 formatmacro(PS_INT_PAYLOAD,psIntPayload_t,intPayload,sizeof(psIntPayload_t))
 formatmacro(PS_FLOAT_PAYLOAD,psFloatPayload_t,floatPayload,sizeof(psFloatPayload_t))
@@ -55,5 +55,4 @@ formatmacro(PS_ENVIRONMENT_PAYLOAD, psEnvironmentPayload_t, environmentPayload, 
 formatmacro(PS_MOTOR_PAYLOAD, psMotorPayload_t, motorPayload, sizeof(psMotorPayload_t))
 //behavior
 formatmacro(PS_BEHAVIOR_STATUS, psBehaviorStatusPayload_t, behaviorStatusPayload, sizeof(psBehaviorStatusPayload_t))
-
 

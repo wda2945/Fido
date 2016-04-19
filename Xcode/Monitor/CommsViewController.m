@@ -1,5 +1,5 @@
 //
-//  ProximityViewController.m
+//  CommsViewController.m
 //  RoboMonitor
 //
 //  Created by Martin Lane-Smith on 2/13/15.
@@ -8,9 +8,11 @@
 
 #import "CommsViewController.h"
 #import "MasterViewController.h"
+#import "ConditionsViewController.h"
 #import "PubSubMsg.h"
 #import "PubSubData.h"
 #import "AppDelegate.h"
+
 
 @interface CommsViewController () {
     UITableView *tableView;
@@ -22,9 +24,11 @@
     bool connected[SERVER_COUNT];
     float   connectionLatency[SERVER_COUNT];
     
+    UIImage *imgOnline;
     UIImage *imgConnected;
-    UIImage *imgDisconnected;
-    
+    UIImage *imgOffline;
+    UIImage *imgDisabled;
+
     UISwitch *sw[SERVER_COUNT+1];
     
     NSString *serverNames[SERVER_COUNT];
@@ -61,13 +65,17 @@
             
             if (i == FIDO_XBEE_SERVER) sw[i].on = YES;
             else sw[i].on = NO;
+            
+            [self swChanged: sw[i]];
         }
         serverNames[FIDO_OVM_SERVER]    = @"OVM Agent";
         serverNames[FIDO_XBEE_SERVER]   = @"XBee Agent";
         serverNames[BLE_SERVER]         = @"BLE";
         
-        imgConnected = [UIImage imageNamed:@"online.png"];
-        imgDisconnected = [UIImage imageNamed:@"offline.png"];
+        imgOnline = [UIImage imageNamed:@"online.png"];
+        imgOffline = [UIImage imageNamed:@"offline.png"];
+        imgConnected = [UIImage imageNamed:@"connected.png"];
+        imgDisabled = [UIImage imageNamed:@"disabled.png"];
     }
     return self;
 }
@@ -81,6 +89,34 @@
 {
     connectionLatency[index] = millisecs;
     [tableView reloadData];
+}
+
+- (UIImage*) getConnectionIcon: (int) index
+{
+    if (!sw[index].on)
+    {
+        return imgDisabled;
+    }
+    
+    if (index == FIDO_XBEE_SERVER)
+    {
+        if (!connected[FIDO_XBEE_SERVER])
+        {
+            return imgOffline;
+        }
+        else{
+            if ([[MasterViewController getMasterViewController].conditionsViewController isConditionSet: XBEE_MCP_ONLINE])
+            {
+                return imgOnline;
+            }
+            else{
+                return imgConnected;
+            }
+        }
+    }
+    else{
+        return (connected[index] ? imgOnline : imgOffline);
+    }
 }
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)table{
@@ -143,10 +179,12 @@
                 case 0:
                     cell.textLabel.text = connectionCaptions[indexPath.section];
                     cell.accessoryView  = sw[indexPath.section];
-                    cell.imageView.image = (connected[indexPath.row] ? imgConnected : imgDisconnected);
+                    
+                    cell.imageView.image =  [self getConnectionIcon: (int) indexPath.section];
+                    
                     break;
                 default:
-                    if (connectionLatency[indexPath.section] > 0.1)
+                    if (connectionLatency[indexPath.section] > 0)
                     {
                         cell.textLabel.text = [NSString stringWithFormat:@"Latency %i mS", (int)connectionLatency[indexPath.section]];
                     }

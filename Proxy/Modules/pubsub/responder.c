@@ -77,6 +77,7 @@ void *ResponderMessageThread(void *arg)
 
 				LogRoutine("Send Config msg\n");
 				configCount = 0;
+
 #define optionmacro(name, var, minV, maxV, def) sendOptionConfig(name, var, minV, maxV, requestor);
 #include "options.h"
 #undef optionmacro
@@ -136,14 +137,6 @@ void *ResponderMessageThread(void *arg)
 #include "options.h"
 #undef optionmacro
 			break;
-		case CONDITIONS:
-		{
-			NotificationMask_t valid = msg->eventMaskPayload.valid;
-			NotificationMask_t value = msg->eventMaskPayload.value;
-			systemActiveConditions |= (valid & value);
-			systemActiveConditions &= ~(valid & ~value);
-			systemValidConditions |= valid;
-		}
 		default:
 			//ignore anything else
 			break;

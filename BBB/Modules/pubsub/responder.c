@@ -27,9 +27,6 @@
 #include "brokerq.h"
 #include "broker_debug.h"
 
-NotificationMask_t systemActiveConditions 	= 0;
-NotificationMask_t systemValidConditions	= 0;
-
 BrokerQueue_t responderQueue = BROKER_Q_INITIALIZER;
 
 void *ResponderMessageThread(void *arg);
@@ -137,12 +134,17 @@ void *ResponderMessageThread(void *arg)
 			break;
 		case CONDITIONS:
 		{
-			NotificationMask_t valid = msg->eventMaskPayload.valid;
-			NotificationMask_t value = msg->eventMaskPayload.value;
-			systemActiveConditions |= (valid & value);
-			systemActiveConditions &= ~(valid & ~value);
-			systemValidConditions |= valid;
+			int i;
+			for (i=0; i<MASK_PAYLOAD_COUNT; i++)
+			{
+				NotificationMask_t activeSet = msg->maskPayload.value[i] & msg->maskPayload.valid[i];
+				NotificationMask_t activeCancel = ~msg->maskPayload.value[i] & msg->maskPayload.valid[i];
+				systemActiveConditions[i] |= activeSet;
+				systemActiveConditions[i] &= ~activeCancel;
+				systemValidConditions[i] |= msg->maskPayload.valid[i];
+			}
 		}
+			break;
 		default:
 			//ignore anything else
 			break;

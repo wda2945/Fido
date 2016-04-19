@@ -81,11 +81,11 @@ typedef struct {
 } psTickPayload_t;
 
 //PS_MASK
-
+#define MASK_PAYLOAD_COUNT 2
 typedef struct {
-    NotificationMask_t value;
-    NotificationMask_t valid;
-}psEventMaskPayload_t;
+    NotificationMask_t value[MASK_PAYLOAD_COUNT];
+    NotificationMask_t valid[MASK_PAYLOAD_COUNT];
+}psMaskPayload_t;
 
 //----------------------GENERAL PURPOSE FORMATS
 //PS_BYTE

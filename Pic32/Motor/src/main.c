@@ -39,6 +39,7 @@ int main(void) {
 }
 /*-----------------------------------------------------------*/
 
+static char exceptionMessage[80];
 /*-----------------------------------------------------------*/
 
 void vApplicationMallocFailedHook(void) {
@@ -75,6 +76,7 @@ void vApplicationIdleHook(void) {
 
 /*-----------------------------------------------------------*/
 int reOverflow = 0;
+int ul;
 void vApplicationStackOverflowHook(xTaskHandle pxTask, signed char *pcTaskName) {
     (void) pcTaskName;
     (void) pxTask;
@@ -86,11 +88,20 @@ void vApplicationStackOverflowHook(xTaskHandle pxTask, signed char *pcTaskName) 
     taskDISABLE_INTERRUPTS();
 
     if (reOverflow == 0) {
+        sprintf(exceptionMessage, "\nStack: %s\n", pcTaskName);
+        _ExceptionMessage(exceptionMessage);
         SysLog(SYSLOG_FAILURE, "Stack: %s", pcTaskName);
         reOverflow = 1;
     }
 
-    for (;;);
+            /* Set ul to a non-zero value using the debugger to step out of this
+        function. */
+        while (ul == 0) {
+#define COUNT3 200000
+            long i;
+            for (i = 0; i < COUNT3; i++);
+            PORTToggleBits(USER_LED_IOPORT, USER_LED_BIT);
+        }
 }
 
 /*-----------------------------------------------------------*/
@@ -144,7 +155,6 @@ static char *exceptionCode[] = {
 	"coprocessor 2"
 };
 
-static char exceptionMessage[80];
 
 void _general_exception_handler(unsigned long ulCause, unsigned long ulStatus) {
     /* This overrides the definition provided by the kernel.  Other exceptions

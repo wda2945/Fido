@@ -70,6 +70,7 @@ extern float ext_temp, int_temp, humidity, ambientLight,
 extern bool motorInhibit;
 extern bool isRaining;
 #define RAIN_DELAY 10000        //wait to declare "it's raining"
+#define MOTOR_INH_DELAY 250     //wait to set motor inhibit
 //environment report control
 extern TickType_t environmentNextReportTime;
 

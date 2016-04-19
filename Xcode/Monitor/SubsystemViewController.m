@@ -60,7 +60,9 @@
     self = [super init];
     if (self){
         self.listeners = [NSMutableArray array];
+        
         self.sourceCode = message.msg.header.source;
+        
         self.name = [NSString stringWithFormat:@"%s", subsystemNames[self.sourceCode]];
         
         if ((message.msg.header.messageType == SS_ONLINE) && (message.msg.responsePayload.flags & RESPONSE_INIT_ERRORS))
@@ -522,7 +524,7 @@
                 NSString *infoName = [_sortedInfoNames objectAtIndex: indexPath.row];
                 NSMutableDictionary *dict = [_info objectForKey:infoName];
                 cell.textLabel.text = infoName;
-                cell.detailTextLabel.text = [(NSNumber*)[dict objectForKey:@"value"] stringValue];
+                cell.detailTextLabel.text =  [NSString stringWithFormat:@"%0.2f", [(NSNumber*)[dict objectForKey:@"value"] floatValue]];
             }
             cell.imageView.image = [UIImage imageNamed:@"info.png"];
         }

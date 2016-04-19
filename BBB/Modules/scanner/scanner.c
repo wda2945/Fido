@@ -47,7 +47,7 @@ FILE *scanDebugFile;
 #define DEBUGPRINT(...) fprintf(scanDebugFile, __VA_ARGS__);fflush(scanDebugFile);
 #endif
 
-#define ERRORPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(scanDebugFile, __VA_ARGS__);fflush(scanDebugFile);
+#define ERRORPRINT(...) LogError(__VA_ARGS__);fprintf(scanDebugFile, __VA_ARGS__);fflush(scanDebugFile);
 
 typedef uint8_t PROX_BITMAP;
 

@@ -205,7 +205,7 @@ static int SystemAction(lua_State *L)
 		break;
 	case SystemWakeOnEvent:
 		psInitPublish(msg, WAKE_MASK);		//first send the wake mask
-		msg.eventMaskPayload.value = WakeMask;
+		msg.maskPayload.value[0] = WakeMask;
 		RouteMessage(&msg);
 		psInitPublish(msg, OVM_COMMAND);	//then sleep
 		msg.bytePayload.value = OVERMIND_WAKE_ON_EVENT;
@@ -254,13 +254,13 @@ static int SystemAction(lua_State *L)
 		return ChangeOption(L, "Nav Lights", 0);
 		break;
 	case isCharging:
-		if (isConditionActive(CHARGING))
+		if (conditionActive(CHARGING))
 			return success(L);
 		else
 			return fail(L);
 		break;
 	case isChargeComplete:
-		if (isConditionActive(CHARGE_COMPLETE))
+		if (conditionActive(CHARGE_COMPLETE))
 			return success(L);
 		else
 			return fail(L);
@@ -272,7 +272,7 @@ static int SystemAction(lua_State *L)
 			return fail(L);
 		break;
 	case isRaining:
-		if (isConditionActive(RAINING))
+		if (conditionActive(RAINING))
 			return success(L);
 		else
 			return fail(L);

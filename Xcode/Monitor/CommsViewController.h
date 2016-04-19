@@ -14,4 +14,6 @@
 - (void) newConnectionCaption: (NSString*) caption forServer: (int) index connected: (bool) conn;
 - (void) newLatencyMeasure: (float) millisecs forServer: (int) index;
 
+- (UIImage*) getConnectionIcon: (int) index;
+
 @end

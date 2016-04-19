@@ -32,7 +32,7 @@ FILE *mainDebugFile;
 #define DEBUGPRINT(...) {fprintf(mainDebugFile, __VA_ARGS__);fflush(mainDebugFile);}
 #endif
 
-#define ERRORPRINT(...) {fprintf(stdout, __VA_ARGS__);fprintf(mainDebugFile, __VA_ARGS__);fflush(mainDebugFile);}
+#define ERRORPRINT(...) {LogError(__VA_ARGS__);fprintf(mainDebugFile, __VA_ARGS__);fflush(mainDebugFile);}
 
 #define PROCESS_NAME "fido_proxy.elf"
 
@@ -101,7 +101,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("SysLogInit() Fail\n");
 		initFail = "log";
 	}
-	else DEBUGPRINT("SysLogInit() OK\n");
+	else {
+		DEBUGPRINT("SysLogInit() OK\n");
+	}
 
 
 	//PubSub broker
@@ -110,7 +112,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("PubSubInit() fail\n");
 		initFail = "pubsub";
 	}
-	else DEBUGPRINT("PubSubInit() OK\n");
+	else {
+		DEBUGPRINT("PubSubInit() OK\n");
+	}
     
 	//XBee broker
 	if ((reply=XBeeBrokerInit()) < 0)
@@ -118,7 +122,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("XBeeBrokerInit() fail\n");
 		initFail = "xbee";
 	}
-    else DEBUGPRINT("XBeeBrokerInit() OK\n");
+    else {
+    	DEBUGPRINT("XBeeBrokerInit() OK\n");
+    }
    
     
 	//IP broker
@@ -127,7 +133,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("AgentInit() fail\n");
 		initFail = "agent";
 	}
-	else DEBUGPRINT("AgentInit() OK\n");
+	else {
+		DEBUGPRINT("AgentInit() OK\n");
+	}
 
 	//Responder
 	if ((reply=ResponderInit()) < 0)
@@ -135,7 +143,9 @@ int main(int argc, const char * argv[])
 		ERRORPRINT("ResponderInit() fail\n");
 		initFail = "responder";
 	}
-	else DEBUGPRINT("ResponderInit() OK\n");
+	else {
+		DEBUGPRINT("ResponderInit() OK\n");
+	}
 
 	if (strlen(initFail) > 0)
 	{

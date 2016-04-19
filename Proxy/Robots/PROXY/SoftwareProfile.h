@@ -9,10 +9,6 @@
 #ifndef SoftwareProfile_h
 #define SoftwareProfile_h
 
-//FIDO version
-#define FIDO
-#define BBB
-
 #define MAIN_DEBUG
 
 //enabled subsystem debug
@@ -25,18 +21,13 @@
 #define MCP_ADDRESS 	0x5A
 #define PROXY_ADDRESS	0x1A
 
-//#define PS_UART_DEVICE 	"/dev/ttyO5"
-//#define PS_TX_PIN			"P8_37"
-//#define PS_RX_PIN			"P8_38"
-
 #define PS_UART_DEVICE 		"/dev/ttyO2"
 #define PS_TX_PIN			"P9_21"
 #define PS_RX_PIN			"P9_22"
 
 #define PS_UART_BAUDRATE 	B115200
 
-//#define XBEE_RTS			"P8-32"
-//#define XBEE_CTS			"P8-31"
+//local XBEE
 #define XBEE_RESET			"P8-33"
 #define XBEE_RESET_GPIO		9
 #define XBEE_RESET_OUT		"P9-27"
@@ -48,20 +39,22 @@
 #define XBEE_ASSOCIATE		"P9-30"
 #define XBEE_ASSOCIATE_GPIO	112
 
+//remote XBEE
+#define FIDO_XBEE_BATTERY	"D0"
+#define FIDO_XBEE_BATTERY_CHAN 0
+#define FIDO_XBEE_PWR_SW	"D1"
+#define FIDO_XBEE_LED		"D2"
+#define FIDO_XBEE_LED_MASK	0x4
+
+#define XBEE_SAMPLE_INTERVAL 10		//s
+#define XBEE_CYCLIC_SLEEP	 15		//s
+#define XBEE_TIME_TO_SLEEP	 15		//s
+
 //logfiles folder
-#ifdef __linux__
 #define LOGFILE_FOLDER "/root/logfiles/"
-#else
-#define LOGFILE_FOLDER "/Users/martin/ProxyTestLogfiles/"
-#endif
 
 //Logging level
 #define SYSLOG_LEVEL                LOG_ALL  	//published log
 
-//queueing limits for serial
-#define MAX_ROUTINE 1
-#define MAX_INFO 1
-#define MAX_WARNING 1
-#define MAX_ERROR 1
 
 #endif

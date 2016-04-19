@@ -224,6 +224,7 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 				result = ACTION_RUNNING;
 				break;
 			case PILOT_STATE_DONE:			//move complete
+			case PILOT_STATE_IDLE:			//ready for a command
 				pilotEngaged = false;
 				result =  ACTION_SUCCESS;
 				break;
@@ -231,7 +232,6 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 				pilotEngaged = false;
 				result = ACTION_FAIL;
 				break;
-			case PILOT_STATE_IDLE:			//ready for a command
 			case PILOT_STATE_INACTIVE:		//motors disabled
 			default:
 				pilotEngaged = false;
@@ -529,11 +529,14 @@ void AutopilotProcessMessage(psMessage_t *msg) {
 
 void SetVarFromCondition(psMessage_t *msg, Condition_enum e, bool *var)
 {
-	NotificationMask_t mask = NOTIFICATION_MASK(e);
+	int bit 	= e % 64;
+	int index 	= e / 64;
 
-	if (mask & msg->eventMaskPayload.valid)
+	NotificationMask_t mask = NOTIFICATION_MASK(bit);
+
+	if (mask & msg->maskPayload.valid[index])
 	{
-		*var = (mask & msg->eventMaskPayload.value);
+		*var = (mask & msg->maskPayload.value[index]);
 	}
 }
 
@@ -691,10 +694,10 @@ void *AutopilotThread(void *arg) {
 
 		case CONDITIONS:
 		{
-			currentConditions |= rxMessage->eventMaskPayload.value & rxMessage->eventMaskPayload.valid;
-			currentConditions &= ~(~rxMessage->eventMaskPayload.value & rxMessage->eventMaskPayload.valid);
+			currentConditions |= rxMessage->maskPayload.value[0] & rxMessage->maskPayload.valid[0];
+			currentConditions &= ~(~rxMessage->maskPayload.value[0] & rxMessage->maskPayload.valid[0]);
 
-			if ((currentConditions & frontCloseMask) && (pilotFlags & ENABLE_FRONT_CLOSE_ABORT)){
+			if ((currentConditions & frontCloseMask) && (pilotFlags & ENABLE_FRONT_CLOSE_ABORT)){		//assumes all flags < 64
 				if (CancelPilotOperation(PILOT_STATE_FAILED))
 				{
 					lastLuaCallReason = "ProxFront";

@@ -8,13 +8,15 @@
 
 #import "ConditionsViewController.h"
 
+#define MAX_CONDITIONS 128
+
 @interface ConditionsViewController () {
     UITableView *tableView;
     NSMutableDictionary *notifications;
     NSArray *sortedList;
     
-    NotificationMask_t conditions;
-    NotificationMask_t valid;
+    bool condition[CONDITION_COUNT];
+    bool valid[CONDITION_COUNT];
 }
 
 @end
@@ -29,7 +31,8 @@
         tableView.dataSource = self;
         tableView.delegate = self;
         
-//        notifications = [NSMutableDictionary dictionary];
+        notifications = [NSMutableDictionary dictionary];
+
     }
     return self;
 }
@@ -43,7 +46,6 @@ char *conditionNames[]		= {
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    
     for (int i=1; i< CONDITION_COUNT; i++)
     {
         NSNumber *key = [NSNumber numberWithInt:i];
@@ -51,35 +53,39 @@ char *conditionNames[]		= {
         NSString *name = [NSString stringWithFormat:@"%s", conditionNames[i]];
         [notifications setObject:name forKey:key];
         
+        condition[i] = valid[i] = false;
     }
 }
-- (void) clearConditions
+
+- (bool) isConditionSet: (Condition_enum) c
 {
-    conditions = valid = 0;
-    [(UITableView*)self.view reloadData];
+    return (condition[c] & valid[c]);
 }
+
 -(void) didConnect{
-    conditions = valid = 0;
-    [(UITableView*)self.view reloadData];
+
 }
 
 -(void) didDisconnect{}
 -(void) didReceiveMessage: (PubSubMsg*) message
 {
+    int i;
     switch(message.msg.header.messageType){
         case CONDITIONS:
         {
-            NotificationMask_t C = message.msg.eventMaskPayload.value;
-            NotificationMask_t V = message.msg.eventMaskPayload.valid;
-            
-            conditions |= (V & C);
-            
-            if ((V & ~C))
+            for (i=0; i < CONDITION_COUNT; i++)
             {
-                conditions &= ~(V & ~C);
+                int bit 	= i % 64;
+                int index 	= i / 64;
+                
+                NotificationMask_t mask = NOTIFICATION_MASK(bit);
+                NotificationMask_t C = message.msg.maskPayload.value[index] & mask;
+                NotificationMask_t V = message.msg.maskPayload.valid[index] & mask;
+                
+                condition[i] |= (V & C);
+                condition[i] &= ~(V & ~C);
+                valid[i] |= V;
             }
-            
-            valid |= V;
             
             [(UITableView*)self.view reloadData];
         }
@@ -87,7 +93,7 @@ char *conditionNames[]		= {
         default:
             break;
     }
-
+    
 }
 
 - (void)didReceiveMemoryWarning {
@@ -118,7 +124,7 @@ char *conditionNames[]		= {
             
     cell.textLabel.text = [NSString stringWithFormat:@"%s", conditionNames[indexPath.row+1]];
     
-    if (conditions & valid & NOTIFICATION_MASK((indexPath.row + 1)))
+    if (condition[indexPath.row + 1] && valid[indexPath.row + 1])
     {
         cell.accessoryType = UITableViewCellAccessoryCheckmark;
     }

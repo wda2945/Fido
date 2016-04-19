@@ -40,7 +40,7 @@ FILE *gpsDebugFile;
 #define DEBUGPRINT(...) fprintf(gpsDebugFile, __VA_ARGS__);fflush(gpsDebugFile);
 #endif
 
-#define ERRORPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(gpsDebugFile, __VA_ARGS__);fflush(gpsDebugFile);
+#define ERRORPRINT(...) LogError(__VA_ARGS__);fprintf(gpsDebugFile, __VA_ARGS__);fflush(gpsDebugFile);
 
 
 void *GPSReaderThread(void *arg);
@@ -73,14 +73,18 @@ int GPSInit()
 		ERRORPRINT("GPS uart overlay: %s failed\n", GPS_UART_OVERLAY);
 		return -1;
 	}
-	else DEBUGPRINT("GPS uart overlay OK\n", PS_UART_DEVICE);
+	else {
+		DEBUGPRINT("GPS uart overlay OK\n", PS_UART_DEVICE);
+	}
 
 	if (uart_setup(GPS_TX_PIN, GPS_RX_PIN) < 0)
 	{
 		ERRORPRINT("GPS uart_setup failed: %s\n");
 		return -1;
 	}
-	else DEBUGPRINT("broker uart pinmux OK\n");
+	else {
+		DEBUGPRINT("broker uart pinmux OK\n");
+	}
 
 	sleep(1);
 

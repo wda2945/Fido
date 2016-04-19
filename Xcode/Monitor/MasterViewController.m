@@ -228,7 +228,7 @@ static char *subsystemFullNames[] = SUBSYSTEM_FULL_NAMES;
             }
             
             cell.textLabel.text = connectionCaptions[indexPath.row];
-            cell.imageView.image = (channelsConnected[indexPath.row] ? imgConnected : imgOffline);
+            cell.imageView.image = [_commsViewController getConnectionIcon: (int) indexPath.row];
             
         }
             break;
@@ -375,7 +375,9 @@ static char *subsystemFullNames[] = SUBSYSTEM_FULL_NAMES;
 }
 -(void) didReceiveMessage: (PubSubMsg*) message
 {
-    if ((message.msg.header.source == APP_XBEE) || (message.msg.header.source == APP_OVM) || (message.msg.header.source == ROBO_APP)) return;
+    int source = message.msg.header.source;
+    
+    if ((source == APP_XBEE) || (source == APP_OVM) || (source == ROBO_APP) || (source >= SUBSYSTEM_COUNT)) return; //mine or bad
     
     if (self.collectionController == nil)
     {
@@ -389,10 +391,7 @@ static char *subsystemFullNames[] = SUBSYSTEM_FULL_NAMES;
         }
     }
     
-    
     //do we have this one?
-    int source = message.msg.header.source;
-    
     if (source > 0)
     {
         SubsystemViewController *ss = [_sourceCodes objectForKey:[NSNumber numberWithInt: source]];
@@ -400,14 +399,16 @@ static char *subsystemFullNames[] = SUBSYSTEM_FULL_NAMES;
             //new one
             ss = [[SubsystemViewController alloc] initWithMessage: message];
             
-            [_sourceCodes setObject:ss forKey:[NSNumber numberWithInt: message.msg.header.source]];
-            [_subsystems  setObject:ss forKey:ss.name];
-            
-            [ss addListener: self ];
-            [self.viewControllers setObject:ss forKey:ss.name];
-            
-            [_collectionController addSubsystem: ss];
-            [(UITableView*) self.view reloadData];
+            if (ss)
+            {
+                [_sourceCodes setObject:ss forKey:[NSNumber numberWithInt: source]];
+                [_subsystems  setObject:ss forKey:ss.name];
+                
+                [ss addListener: self ];
+                [self.viewControllers setObject:ss forKey:ss.name];
+                
+                [_collectionController addSubsystem: ss];
+            }
         }
         
         [_viewControllers.allValues makeObjectsPerformSelector:@selector(didReceiveMessage:) withObject:message];
@@ -427,6 +428,7 @@ static char *subsystemFullNames[] = SUBSYSTEM_FULL_NAMES;
             [alert addAction:defaultAction];
             [self presentViewController:alert animated:YES completion:nil];
         }
+        
         [(UITableView*) self.view reloadData];
     }
 }
@@ -565,7 +567,6 @@ static char *subsystemFullNames[] = SUBSYSTEM_FULL_NAMES;
             else if (currentPage == SYSTEM_PAGE)
             {
                 [_subsystems.allValues makeObjectsPerformSelector:@selector(reconfig)];
-                [_conditionsViewController clearConditions];
                 [(UITableView*)self.view reloadData];
             }
             else //if (currentPage == MAP_PAGE)

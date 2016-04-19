@@ -8,14 +8,15 @@
 #ifndef NOTIFICATIONS_H
 #define	NOTIFICATIONS_H
 
-#include "pubsubdata.h"
+#include "PubSubData.h"
 
 //NOTIFICATIONS
 
 //SYSTEM-WIDE (maintained by responder)
-extern NotificationMask_t systemActiveConditions;
-extern NotificationMask_t systemValidConditions;
-#define isConditionActive(e) (NOTIFICATION_MASK((e)) & systemActiveConditions & systemValidConditions)
+extern NotificationMask_t systemActiveConditions[MASK_PAYLOAD_COUNT];
+extern NotificationMask_t systemValidConditions[MASK_PAYLOAD_COUNT];
+
+bool conditionActive(Condition_enum e);
 
 extern char *eventNames[];
 extern char *conditionNames[];

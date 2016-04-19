@@ -30,17 +30,13 @@ TickType_t lastNotifiedTime[EVENT_COUNT];
 
 //--------------------------------Conditions - set and canceled
 
-NotificationMask_t ActiveConditions;
-NotificationMask_t ReportedConditions;
-NotificationMask_t ValidConditions;
+typedef enum {ACTIVE_MASK, VALID_MASK} Mask_enum;
+
+NotificationMask_t active[MASK_PAYLOAD_COUNT];
+NotificationMask_t reported[MASK_PAYLOAD_COUNT];
+NotificationMask_t valid[MASK_PAYLOAD_COUNT];
 
 SemaphoreHandle_t conditionMutex;   //Access to ActiveConditions
-
-TickType_t lastSetTime[CONDITION_COUNT];
-TickType_t lastCanceledTime[CONDITION_COUNT];
-
-//TimerHandle_t ConditionReportingTimer;
-//void ConditionTimerCallback(TimerHandle_t handle);
 
 //--------------------------------Notify task and q to process events
 
@@ -57,18 +53,16 @@ extern float notifyMinInterval;
 
 int NotificationsInit() {
     int i;
-    
-    ValidConditions = ReportedConditions = ActiveConditions = 0;
 
     //clear all timestamps
     for (i = 0; i< EVENT_COUNT; i++)
     {
         lastNotifiedTime[i] = 0;
     }
-    for (i = 0; i< CONDITION_COUNT; i++)
+
+    for (i=0; i<MASK_PAYLOAD_COUNT; i++)
     {
-        lastSetTime[i] = 0;
-        lastCanceledTime[i] = 0;
+        valid[i] = reported[i] = active[i] = 0;
     }
     
     //queue for Notify task
@@ -159,82 +153,104 @@ TickType_t GetEventLastNotifiedTime(Event_enum e)
 }
 
 //--------------------Conditions
+//--------------------Conditions
+void SetMaskBit(Mask_enum m, Condition_enum e)
+{
+	int bit 	= e % 64;
+	int index 	= e / 64;
+
+	switch(m)
+	{
+	case ACTIVE_MASK:
+		active[index] |= NOTIFICATION_MASK(e);
+		break;
+	case VALID_MASK:
+		valid[index] |= NOTIFICATION_MASK(e);
+		break;
+	}
+}
+
+void ClearMaskBit(Mask_enum m, Condition_enum e)
+{
+	int bit 	= e % 64;
+	int index 	= e / 64;
+
+	switch(m)
+	{
+	case ACTIVE_MASK:
+		active[index] &= ~NOTIFICATION_MASK(e);
+		break;
+	case VALID_MASK:
+		valid[index] &= ~NOTIFICATION_MASK(e);
+		break;
+	}
+}
+
+bool isConditionActive(Condition_enum e)
+{
+	int bit 	= e % 64;
+	int index 	= e / 64;
+
+	return (active[index] & NOTIFICATION_MASK(e));
+}
+
 void SetCondition(Condition_enum e)
 {
     if (e <= 0 || e >= CONDITION_COUNT) return;
 
-    if (ActiveConditions & NOTIFICATION_MASK(e)) return;
-        
+    bool prior;   
     xSemaphoreTake(conditionMutex, 1000);
-    ActiveConditions |= NOTIFICATION_MASK(e);
-    ValidConditions |= NOTIFICATION_MASK(e);
-    lastSetTime[e] = xTaskGetTickCount();
+    prior = isConditionActive(e);
+    SetMaskBit(ACTIVE_MASK, e);
+    SetMaskBit(VALID_MASK, e);
     xSemaphoreGive(conditionMutex);
     
-    LogRoutine("Set: %s", conditionNames[e]);
+    if (!prior) LogRoutine("Set: %s", conditionNames[e]);
 }
 
 void CancelCondition(Condition_enum e)
 {
     if (e <= 0 || e >= CONDITION_COUNT) return;
     
-    if (!(ActiveConditions & NOTIFICATION_MASK(e))) return;
+    bool prior;
     
     xSemaphoreTake(conditionMutex, 1000);
-    ActiveConditions &= ~NOTIFICATION_MASK(e);
-    ValidConditions |= NOTIFICATION_MASK(e);
-    lastCanceledTime[e] = xTaskGetTickCount();
+    prior = isConditionActive(e);
+    ClearMaskBit(ACTIVE_MASK, e);
+    SetMaskBit(VALID_MASK, e);
     xSemaphoreGive(conditionMutex);
     
-    LogRoutine("Cancel: %s", conditionNames[e]);
+    if (prior) LogRoutine("Cancel: %s", conditionNames[e]);
 }
 
-bool isConditionActive(Condition_enum e)
-{
-    return (ActiveConditions & NOTIFICATION_MASK(e));
-}
-
-NotificationMask_t GetActiveConditions()
-{
-    NotificationMask_t c;
-    
-    xSemaphoreTake(conditionMutex, 1000);
-    c = ActiveConditions;
-    xSemaphoreGive(conditionMutex);
-    
-    return c;
-}
-
-TickType_t GetConditionLastSetTime(Condition_enum e)
-{
-    if (e <= 0 || e >= CONDITION_COUNT) return 0;
-    xSemaphoreTake(conditionMutex, 1000);
-    TickType_t t = lastSetTime[e];
-    xSemaphoreGive(conditionMutex);
-    return t;
-}
-
-TickType_t GetConditionLastCancelTime(Condition_enum e)
-{
-    if (e <= 0 || e >= CONDITION_COUNT) return 0;
-    xSemaphoreTake(conditionMutex, 1000);
-    TickType_t t = lastCanceledTime[e];
-    xSemaphoreGive(conditionMutex);
-    return t;
-}
-
-void PublishConditions(bool force) {
+void PublishConditions(bool _force) {
     psMessage_t msg;
-    
-    if ((ReportedConditions != ActiveConditions) || force)
-    {  
-        psInitPublish(msg, CONDITIONS);
-        xSemaphoreTake(conditionMutex, 1000);
-        msg.eventMaskPayload.value = ReportedConditions = ActiveConditions;
-        msg.eventMaskPayload.valid = ValidConditions;
-        xSemaphoreGive(conditionMutex);
-        psSendMessage(msg);  
+    bool sendit = _force;
+    int i;
+
+    xSemaphoreTake(conditionMutex, 1000);
+       
+    if (!_force) {
+        for (i = 0; i < MASK_PAYLOAD_COUNT; i++) {
+            if (active[i] != reported[i]) {
+                sendit = true;
+                break;
+            }
+        }
     }
+    
+    if (sendit) {
+        psInitPublish(msg, CONDITIONS);
+
+        for (i = 0; i < MASK_PAYLOAD_COUNT; i++) {
+            msg.maskPayload.value[i] = active[i];
+            msg.maskPayload.valid[i] = valid[i];
+            reported[i] = active[i];
+        }
+        xSemaphoreGive(conditionMutex);
+        psSendMessage(msg);
+    }
+      else xSemaphoreGive(conditionMutex);
 }
 
 static void ConditionReportingTask(void *pvParameters) {

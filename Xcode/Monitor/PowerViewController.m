@@ -109,6 +109,12 @@ char *powerstateNames[] = POWER_STATE_NAMES;
             [(UITableView*)self.view reloadData];
         }
             break;
+        case SS_ONLINE:
+            if (message.msg.header.source == MCP_SUBSYSTEM)
+            {
+                //powering up again
+                self.systemStateCommand = COMMAND_ACTIVE;
+            }
          default:
             break;
     }

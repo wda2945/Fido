@@ -12,6 +12,6 @@
 
 @interface ConditionsViewController : UITableViewController <MessageDelegate>
 
-- (void) clearConditions;
+- (bool) isConditionSet: (Condition_enum) c;
 
 @end

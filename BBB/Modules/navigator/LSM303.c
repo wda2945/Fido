@@ -26,9 +26,10 @@
 #include "i2c.h"
 #include "LSM303.h"
 #include "IMU.h"
+#include "syslog/syslog.h"
 
 #define LOGFILEPRINT(...)  fprintf(imuDebugFile, __VA_ARGS__);fflush(imuDebugFile);
-#define ERRORPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(imuDebugFile, __VA_ARGS__);fflush(imuDebugFile);
+#define ERRORPRINT(...) LogError(__VA_ARGS__);fprintf(imuDebugFile, __VA_ARGS__);fflush(imuDebugFile);
 
 #ifdef DEBUGSTDOUT
 #define DEBUGPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(imuDebugFile, __VA_ARGS__);fflush(imuDebugFile);

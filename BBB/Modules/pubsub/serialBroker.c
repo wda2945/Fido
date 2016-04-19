@@ -74,14 +74,18 @@ int SerialBrokerInit()
 		ERRORPRINT("broker uart overlay: %s failed\n", PS_UART_OVERLAY);
 		return -1;
 	}
-	else DEBUGPRINT("broker uart overlay OK\n", PS_UART_DEVICE);
+	else {
+		DEBUGPRINT("broker uart overlay OK\n", PS_UART_DEVICE);
+	}
 
 	if (uart_setup(PS_TX_PIN, PS_RX_PIN) < 0)
 	{
 		ERRORPRINT("uart pinmux");
 		return -1;
 	}
-	else DEBUGPRINT("broker uart pinmux OK\n");
+	else {
+		DEBUGPRINT("broker uart pinmux OK\n");
+	}
 
 	sleep(1);
 
@@ -98,7 +102,9 @@ int SerialBrokerInit()
 	if (picUartFD < 0) {
 		return -1;
 	}
-	else DEBUGPRINT("%s opened\n", PS_UART_DEVICE);
+	else {
+		DEBUGPRINT("%s opened\n", PS_UART_DEVICE);
+	}
 
 
 	if (tcgetattr(picUartFD, &settings) != 0) {

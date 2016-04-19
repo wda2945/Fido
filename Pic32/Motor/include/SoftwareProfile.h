@@ -34,13 +34,13 @@
 #define ENC_IPL                     ipl6soft
 
 #define AMPS_TASK_PRIORITY          ( 3 )
-#define AMPS_TASK_STACK_SIZE        (300)
+#define AMPS_TASK_STACK_SIZE        (500)
 #define AMPS_SENSITIVITY            (110.0f / 1000)      //Volts per Amp
 #define ANALOG_VREF                 3.3f        //ADC VDD
 #define AMPS_SCALE_FACTOR           ((ANALOG_VREF / 1024) / AMPS_SENSITIVITY)  //Amps per ADC LSB
 
 #define MOT_TASK_PRIORITY           4
-#define MOT_TASK_STACK_SIZE         (400)
+#define MOT_TASK_STACK_SIZE         (500)
 #define MOT_TASK_QUEUE_LENGTH       100
 #define PID_TASK_STACK_SIZE         (1000)
 #define PID_TASK_PRIORITY           5
@@ -51,10 +51,10 @@
 #define PS_TASK_PRIORITY            ( 4 )
 #define PS_TASK_STACK_SIZE          (1000)
 #define QOS_WAIT_TIMES              {portMAX_DELAY, 250, 0}
-#define NOTIFY_TASK_STACK_SIZE      300
+#define NOTIFY_TASK_STACK_SIZE      500
 #define NOTIFY_TASK_PRIORITY        ( 4 )
-#define NOTIFY_TASK_QUEUE_LENGTH    20
-#define CONDITION_TASK_STACK_SIZE   300
+#define NOTIFY_TASK_QUEUE_LENGTH    50
+#define CONDITION_TASK_STACK_SIZE   500
 #define CONDITION_TASK_PRIORITY     ( 5 )
 #define CONDITION_REPORT_INTERVAL   250
 
@@ -71,7 +71,7 @@
 #define PS_ERRORS_CONDITION     {MOT_MCP_COMMS_ERRORS}
 
 #define OFFLINE_TIMER_PERIOD        5000
-#define UART_TASK_STACK_SIZE        300
+#define UART_TASK_STACK_SIZE        500
 #define UART_TASK_PRIORITY          ( 4 )
 #define PS_UART_ADDRESS             0xAA    //message delimeter
 #define UART_QUEUE_LENGTH           300
@@ -87,9 +87,9 @@
 
 //Serial logger
 #define DEBUG_PRINT
-#define LOG_TASK_STACK_SIZE         300
+#define LOG_TASK_STACK_SIZE         500
 #define LOG_TASK_PRIORITY           ( 2 )
-#define SERIAL_LOG_QUEUE_LENGTH     50
+#define SERIAL_LOG_QUEUE_LENGTH     100
 #define LOG_UART                    UART2B
 #define LOG_UART_BAUDRATE           (57600)
 #define USING_UART_2B_TX             1

@@ -215,8 +215,8 @@ bool PidProcessMessage(psMessage_t *msg, TickType_t wait) {
         break;
         case CONDITIONS:
             //conditions
-            if (msg->eventMaskPayload.valid & NOTIFICATION_MASK(MOTORS_INHIBIT)) {
-                if (msg->eventMaskPayload.value & NOTIFICATION_MASK(MOTORS_INHIBIT)) {
+            if (msg->maskPayload.valid[0] & NOTIFICATION_MASK(MOTORS_INHIBIT)) {        //assuming MOTORS_INHIBIT < 64
+                if (msg->maskPayload.value[0] & NOTIFICATION_MASK(MOTORS_INHIBIT)) {
                     if (!motorsInhibit) {
                         motorsInhibit = true;
                         LogRoutine("Setting MOTORS_INHIBIT\n");
@@ -229,7 +229,7 @@ bool PidProcessMessage(psMessage_t *msg, TickType_t wait) {
                     }
                 }
             }
-            if ((msg->eventMaskPayload.valid & msg->eventMaskPayload.value & NOTIFICATION_MASK(BATTERY_CRITICAL))
+            if ((msg->maskPayload.valid[0] & msg->maskPayload.value[0] & NOTIFICATION_MASK(BATTERY_CRITICAL)) //assuming BATERY_CRITICAL < 64
                     && (moveFlags & ENABLE_SYSTEM_ABORT)) {
                 AbortMotors(wait);
             }
@@ -273,7 +273,7 @@ bool PidProcessMessage(psMessage_t *msg, TickType_t wait) {
 }
 
 #define MOTOR_TRACE(x,y) if (motorsRunning && i==0) {\
-            DebugPrint("%s: %s = %f, speed = %i",thisMotor->name,x,y, thisMotor->measuredSpeed);\
+            DebugPrint("%s: %s = %0.1f, speed = %0.1f",thisMotor->name, x, y, thisMotor->measuredSpeed);\
         }
 
 //PID Task

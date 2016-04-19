@@ -110,7 +110,7 @@ void RouteMessage(psMessage_t *msg)
 		XBeeBrokerProcessMessage(msg);
 		break;
 	case PS_UNDEFINED_TOPIC:
-            break;
+        break;
 	case LOG_TOPIC:              //SysLog
 		LogProcessMessage(msg);
 		AgentProcessMessage(msg);
@@ -119,9 +119,9 @@ void RouteMessage(psMessage_t *msg)
 		LogProcessMessage(msg);
 		break;
 	case ANNOUNCEMENTS_TOPIC:    //Common channel
+		ResponderProcessMessage(msg);
 		XBeeBrokerProcessMessage(msg);
 		AgentProcessMessage(msg);
-		ResponderProcessMessage(msg);
 		break;
 	case EVENTS_TOPIC:
 		XBeeBrokerProcessMessage(msg);
