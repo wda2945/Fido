@@ -79,29 +79,10 @@ typedef union {
      "fido.local",
 };
 
-#define ADDRESS_COUNT 2
-
-int connectionList[INET_SERVER_COUNT][ADDRESS_COUNT] = {
-    {219, 0},           //fido_proxy.local
-    {169, 28},        //fido.local aka x.x.x.169 & x.x.x.28
+int connectionList[INET_SERVER_COUNT][4] = {
+    {192,168,1,219},     //fido_proxy.local
+    {192,168,2,5}        //fido.local
 };
-
-//int activeConnection = -1;
-
-- (bool) connected
-{
-    for (int i=0; i<SERVER_COUNT; i++)
-    {
-        if (socketConnected[i] && channelEnabled[i]) return YES;
-    }
-    return NO;
-}
-
-- (bool) anyConnected
-{
-    if ((_bleConnected && channelEnabled[BLE_SERVER]) || [self connected]) return YES;
-    else return NO;
-}
 
 void SIGPIPEhandler(int sig);
 void InstallSignalHandler();
@@ -127,7 +108,6 @@ void InstallSignalHandler();
         if (i == FIDO_XBEE_SERVER)
         {
             channelEnabled[i] = YES;
-            
         }
         else
         {
@@ -147,22 +127,40 @@ void InstallSignalHandler();
     
     //BLE
     _bleConnected = NO;
-    self.BLEobject = [[BLE alloc] init];
-    [self.BLEobject controlSetup];
-    self.BLEobject.delegate = self;
-    [self BLEStartScan];
-    
-    nextByte = encodedMessage;
-    bytesReceived = 0;
+//    self.BLEobject = [[BLE alloc] init];
+//    [self.BLEobject controlSetup];
+//    self.BLEobject.delegate = self;
+//    [self BLEStartScan];
+//    
+//    nextByte = encodedMessage;
+//    bytesReceived = 0;
     
     self.msgQueue = [NSMutableArray array];
     
     return YES;
 }
 
+- (bool) connected
+{
+    for (int i=0; i<SERVER_COUNT; i++)
+    {
+        if (socketConnected[i] && channelEnabled[i]) return YES;
+    }
+    return NO;
+}
+
+- (bool) anyConnected
+{
+    if ((_bleConnected && channelEnabled[BLE_SERVER]) || [self connected]) return YES;
+    else return NO;
+}
+
 - (void) setConnectedCaption: (NSString *) caption forServer: (int) index  connected: (bool) conn
 {
     captions[index] = caption;
+    socketConnected[index]  = conn;
+    
+    if (conn) socketConnecting[index]  = false;
     
     dispatch_async(dispatch_get_main_queue(), ^{
         if (channelEnabled[index])
@@ -180,14 +178,8 @@ void InstallSignalHandler();
     if (index < SERVER_COUNT)
     {
         channelEnabled[index] = state;
-        
-        if (state)
-        {
-            [[MasterViewController getMasterViewController] setConnectionCaption: captions[index] forServer:  index connected: (index < BLE_SERVER ? socketConnected[index] : _bleConnected)];
-        }
-        else{
-            [[MasterViewController getMasterViewController] setConnectionCaption: @"Disabled" forServer:  index connected: (index < BLE_SERVER ? socketConnected[index] : _bleConnected)];
-        }
+
+        [self setConnectedCaption: captions[index] forServer:  index connected: (index < BLE_SERVER ? socketConnected[index] : _bleConnected)];
     }
 }
 
@@ -249,12 +241,12 @@ void InstallSignalHandler();
     if (errorreply < 0)
     {
         NSLog(@"send error: %s\n", strerror(errno));
-        socketConnected[socketIndex] = false;
+        [self setConnectedCaption: [NSString stringWithFormat:@"%s", strerror(errno)] forServer: socketIndex connected: NO];
         sendErrors[socketIndex]++;
     }
     else{
         messagesSent[socketIndex]++;
-        
+        [self setConnectedCaption: captions[socketIndex] forServer: socketIndex connected: YES];
         NSLog(@"%s sent via %s", psLongMsgNames[txMessage.header.messageType], serverNames[socketIndex] );
     }
 }
@@ -283,17 +275,24 @@ void InstallSignalHandler();
             [self sendToServer: message];
         });
     }
-    else
-    {
-        if (channelEnabled[BLE_SERVER])
-        {
-            //use BLE
-            [_msgQueue addObject:message];
-        }
-        else{
-            [self setConnectedCaption: @"Disabled" forServer: BLE_SERVER connected: _bleConnected];
-        }
-    }
+//    else
+//    {
+//        if (channelEnabled[BLE_SERVER])
+//        {
+//            //use BLE
+//            if (_bleConnected)
+//            {
+//            [self setConnectedCaption: @"Connected" forServer: BLE_SERVER connected: YES];
+//            [_msgQueue addObject:message];
+//            }
+//            else{
+//                [self setConnectedCaption: @"Searching.." forServer: BLE_SERVER connected: NO];
+//            }
+//        }
+//        else{
+//            [self setConnectedCaption: @"Disabled" forServer: BLE_SERVER connected: _bleConnected];
+//        }
+//    }
 }
 
 //called on readQueue to service messages from the robot
@@ -471,33 +470,31 @@ typedef enum {CONNECT_ERROR, LOST_CONNECTION} ServerConnectResult_enum;
         memcpy(ipAddress.bytes, server->h_addr, 4);
         if ([self connectTo: index atAddress: ipAddress] == LOST_CONNECTION)
         {
+            socketConnecting[index] = false;
+            socketConnected[index]  = false;
             return;
         }
     }
     
-    //then try some alternatives
-    ipAddress.bytes[0] = 192;
-    ipAddress.bytes[1] = 168;
-    ipAddress.bytes[2] = 1;
+    socketConnected[index]  = false;
     
-    for (int i=0; i<ADDRESS_COUNT; i++)
+    //then try hard wired
+    for (int i=0; i<4; i++)
     {
-        ipAddress.bytes[3] = connectionList[index][i];
-        
-        if (ipAddress.bytes[3] != 0)
-        {
-            if ([self connectTo: index atAddress: ipAddress] == LOST_CONNECTION)
-            {
-                return;
-            }
-        }
+        ipAddress.bytes[i] = connectionList[index][i];
     }
     
+    if (ipAddress.bytes[0] != 0)
+    {
+        [self connectTo: index atAddress: ipAddress];
+    }
+    socketConnecting[index] = false;
+    socketConnected[index]  = false;
 }
 
 -(void) ping:(NSTimer*) timer{
 
-    //look for a connection
+    //look for a connection to connect
     for (int i=0; i<INET_SERVER_COUNT; i++)
     {
         if (!socketConnected[i] && !socketConnecting[i] && channelEnabled[i])
@@ -507,6 +504,7 @@ typedef enum {CONNECT_ERROR, LOST_CONNECTION} ServerConnectResult_enum;
             keepaliveCountdown[i] = KEEPALIVE_COUNTDOWN;
             
             dispatch_async(recvQueue[i], ^{
+                //try to connect on the recv queue
                 [self connectToServer: i ];
             });
             break;
@@ -576,7 +574,8 @@ typedef enum {CONNECT_ERROR, LOST_CONNECTION} ServerConnectResult_enum;
         
     }
     
-    bool nowConnected = [self connected];
+    //track change of state
+    bool nowConnected = [self anyConnected];
     
     if (nowConnected && !currentConnected)
     {

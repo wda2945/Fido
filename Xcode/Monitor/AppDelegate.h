@@ -37,6 +37,7 @@ typedef enum {SERVER_OFFLINE, SERVER_CONNECTED, SERVER_ONLINE} Status_enum;
 
 - (void) enableComms: (int) server enabled: (BOOL) state;
 
+
 //stats
 - (long int) MessagesSent: (int) server;
 - (long int) MessagesReceived: (int) server;
