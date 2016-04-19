@@ -224,33 +224,33 @@ int XBeeBrokerInit() {
 
     DebugPrint("xbee uart configured");
 
-    bool xbeeReady = false;
-    int i;
-
-    for (i = 0; i < 10; i++) {
-
-        if (EnterCommandMode() < 0) {
-            LogError("EnterCommandMode() fail");
-            continue;
-        }
-
-        int power = GetPowerLevel();
-        if (power < 0) {
-            LogError("Read PowerLevel fail");
-            continue;
-        }
-
-        DebugPrint("xbee power level %i", power);
-
-        if (EnterAPIMode() < 0) {
-            LogError("EnterAPIMode() fail");
-            continue;
-        }
-        xbeeReady = true;
-        break;
-    }
-
-    if (xbeeReady) {
+//    bool xbeeReady = false;
+//    int i;
+//
+//    for (i = 0; i < 10; i++) {
+//
+//        if (EnterCommandMode() < 0) {
+//            LogError("EnterCommandMode() fail");
+//            continue;
+//        }
+//
+//        int power = GetPowerLevel();
+//        if (power < 0) {
+//            LogError("Read PowerLevel fail");
+//            continue;
+//        }
+//
+//        DebugPrint("xbee power level %i", power);
+//
+//        if (EnterAPIMode() < 0) {
+//            LogError("EnterAPIMode() fail");
+//            continue;
+//        }
+//        xbeeReady = true;
+//        break;
+//    }
+//
+//    if (xbeeReady) {
 
         //create the semaphore to sync a Tx with a Tx Status
         XBeeTxResponseSemaphore = xSemaphoreCreateBinary();
@@ -314,7 +314,7 @@ int XBeeBrokerInit() {
 
         xbeeOnline = false;
         return 0;
-    } else return -1;
+//    } else return -1;
 }
 
 //called by the broker to see whether a message should be queued for the TX Thread
@@ -687,7 +687,7 @@ int APISetXBeeRegister1(const char *atCommand, uint8_t value) {
     xSemaphoreTake(XBeeTxMutex, 1000);
 
     XBeeATPacket.packetHeader.apiIdentifier = AT_COMMAND;
-    XBeeATPacket.packetHeader.frameId = 0;
+    XBeeATPacket.packetHeader.frameId = XBeeTxSequenceNumber;
     XBeeATPacket.packetHeader.ATcommand[0] = atCommand[0];
     XBeeATPacket.packetHeader.ATcommand[1] = atCommand[1];
 
@@ -713,7 +713,7 @@ int APIGetXBeeRegister1(const char *atCommand) {
     xSemaphoreTake(XBeeTxMutex, 1000);
 
     XBeeATPacket.packetHeader.apiIdentifier = AT_COMMAND;
-    XBeeATPacket.packetHeader.frameId = 0;
+    XBeeATPacket.packetHeader.frameId = XBeeTxSequenceNumber;
     XBeeATPacket.packetHeader.ATcommand[0] = atCommand[0];
     XBeeATPacket.packetHeader.ATcommand[1] = atCommand[1];
 

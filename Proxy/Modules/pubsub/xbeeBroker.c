@@ -61,14 +61,41 @@ typedef struct {
 		uint8_t frameId;
 		uint8_t ATcommand[2];
 	} packetHeader;
+	union {						//up to 4 bytes of parameter
+		struct {
+			uint8_t byteData;
+			uint8_t fill[3];
+		};
+		struct {
+			uint16_t uint16Data;
+			uint16_t fill16;
+		};
+		int 	intData;
+	};
+} ATPacket_t;				//XBee Local AT command packet
+
+typedef struct {
+	struct {
+		uint8_t apiIdentifier;	//0x17
+		uint8_t frameId;
+		uint8_t address64bit[8];
+		uint8_t destinationMSB;
+		uint8_t destinationLSB;
+		uint8_t	commandOptions;	//0x02
+		uint8_t ATcommand[2];
+	} packetHeader;
 	union {
 		struct {
 			uint8_t byteData;
 			uint8_t fill[3];
 		};
+		struct {
+			uint16_t uint16Data;
+			uint16_t fill16;
+		};
 		int 	intData;
 	};
-} ATPacket_t;				//XBee AT command packet
+} RemoteCommandPacket_t;		//XBee Remote AT command packet
 
 typedef struct {
 	uint8_t apiIdentifier;
@@ -80,7 +107,10 @@ typedef struct {
 				uint8_t rssi;
 				uint8_t options;
 			} packetHeader;
-			psMessage_t message;
+			union {
+				psMessage_t message;
+				uint8_t 	byteData[100];
+			};
 		} fidoMessage;
 
 		struct {
@@ -95,18 +125,46 @@ typedef struct {
 } RxPacket_t;					//regular Fido data packet (Rx) + status packets
 
 typedef struct {
-	uint8_t apiIdentifier;
-	uint8_t frameId;
-	uint8_t ATcommand[2];
-	uint8_t status;
+	struct {
+		uint8_t apiIdentifier;
+		uint8_t frameId;
+		uint8_t ATcommand[2];
+		uint8_t status;
+	} packetHeader;
 	union {
 		struct {
 			uint8_t byteData;
 			uint8_t fill[3];
 		};
+		struct {
+			uint16_t uint16Data;
+			uint16_t fill16;
+		};
 		int 	intData;
 	};
 } ATResponse_t;					//XBee AT Command Response
+
+typedef struct {
+	struct {
+		uint8_t 	apiIdentifier;	//0x97
+		uint8_t 	frameId;
+		uint8_t 	address64bit[8];	//responder
+		uint8_t		address16bit[2];	//responder
+		uint8_t 	ATcommand[2];
+		uint8_t		status;
+	} packetHeader;
+	union {
+		struct {
+			uint8_t byteData;
+			uint8_t fill[3];
+		};
+		struct {
+			uint16_t uint16Data;
+			uint16_t fill16;
+		};
+		int 	intData;
+	};
+} RemoteResponsePacket_t;				//XBee Remote AT command response
 
 struct {
 	XBeeTxStatus_enum 	status;
@@ -117,14 +175,22 @@ pthread_mutex_t txStatusMutex = PTHREAD_MUTEX_INITIALIZER;
 
 XBeeModemStatus_enum latestModemStatus;
 
-TxPacket_t txPacket;		//regular Fido data packet (Tx)
-ATPacket_t atPacket;		//XBee AT command packet
+TxPacket_t 				txPacket;		//regular Fido data packet (Tx)
+RxPacket_t 				rxPacket;		//regular Fido data packet (Rx) + status packets
 
-RxPacket_t rxPacket;		//regular Fido data packet (Rx) + status packets
-ATResponse_t atResponse;	//XBee AT Command Response
+ATPacket_t 				atPacket;		//XBee AT command packet
+ATResponse_t 			atResponse;	//XBee AT Command Response
+int 					atResponseLength;
 
+RemoteCommandPacket_t 	remoteCommand;	//XBee Remote AT command packet
+RemoteResponsePacket_t 	remoteResponse;	//XBee Remote AT command response
+int 					remoteResponseLength;
+
+#define COND_TIMEOUT 5		//seconds
 pthread_cond_t atResponseCond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t atResponseMutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t remoteResponseCond = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t remoteResponseMutex = PTHREAD_MUTEX_INITIALIZER;
 
 pthread_mutex_t txMutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -134,11 +200,9 @@ int rxChecksum;
 uint8_t txSequenceNumber = 1;
 uint8_t rxSequenceNumber;
 
-//counts for throttling logging messages
-int uartRoutine = 0;
-int uartInfo = 0;
-int uartWarning = 0;
-int uartError = 0;
+int currentMonitorBattery 	= 1;
+int currentMonitorLED 		= 1;
+int currentCyclicSleep 		= 1;
 
 //statistics collection
 //TX
@@ -154,19 +218,31 @@ int receiveErrors;
 int parseErrors;
 
 char *txStatusNames[] = TX_STATUS_NAMES;
-
-int SetRegister(const char *atCommand, uint8_t value);
-int GetRegister(const char *atCommand);
+char *modemStatusNames[] = MODEM_STATUS_NAMES;
+char *commandStatusNames[] = COMMAND_STATUS_NAMES;
 
 int EnterCommandMode();
+bool inCommandMode = false;
 int EnterAPIMode();
+bool inApiMode = false;
+int RemoteReset();
+int SetRegister8(const char *atCommand, uint8_t value);
+int SetRegister16(const char *atCommand, uint16_t value);
+int GetRegister8(const char *atCommand);
+int RemoteSetRegister8(const char *atCommand, uint8_t value);
+int RemoteSetRegister16(const char *atCommand, uint16_t value);
+int RemoteGetRegister8(const char *atCommand);
+
+//API commands
+int LocalCommand(const char *atCommand, uint8_t *param, int len, uint8_t *buf, int buflen );
+int RemoteCommand(const char *atCommand, uint8_t *param, int len, uint8_t *buf, int buflen );
 
 int XBeeBrokerInit()
 {
 	struct termios settings;
 
-//	gpio_export(XBEE_RESET_GPIO);
-//	gpio_set_direction(XBEE_RESET_GPIO, 1);	//input
+	//	gpio_export(XBEE_RESET_GPIO);
+	//	gpio_set_direction(XBEE_RESET_GPIO, 1);	//input
 
 	gpio_export(XBEE_DTR_GPIO);
 	gpio_set_direction(XBEE_DTR_GPIO, 0);	//output
@@ -180,9 +256,7 @@ int XBeeBrokerInit()
 
 	gpio_export(XBEE_RESET_OUT_GPIO);
 	gpio_set_direction(XBEE_RESET_OUT_GPIO, 0);	//output
-	gpio_set_value(XBEE_RESET_OUT_GPIO, 1);		//reset XBee
-	sleep(1);
-	gpio_set_value(XBEE_RESET_OUT_GPIO, 0);		//reset XBee
+	gpio_set_value(XBEE_RESET_OUT_GPIO, 0);
 
 	if (uart_setup(PS_TX_PIN, PS_RX_PIN) < 0)
 	{
@@ -224,36 +298,36 @@ int XBeeBrokerInit()
 
 	DEBUGPRINT("xbee uart configured\n");
 
-	bool xbeeReady = false;
-	int i;
-
-	while (1)
-	{
-		if (EnterCommandMode() != 0)
-		{
-			SetCondition(XBEE_MCP_COMMS_ERRORS);
-			sleep(1);
-			continue;
-		}
-
-		int power = GetPowerLevel();
-
-		if (power < 0)
-		{
-			LogError("Read PowerLevel fail\n");
-			continue;
-		}
-
-		DEBUGPRINT("xbee power level %i\n", power);
-
-		if (EnterAPIMode() != 0) continue;
-
-		xbeeReady = true;
-		break;
-	}
-
-	if (xbeeReady)
-	{
+//	bool xbeeReady = false;
+//	int i;
+//
+//	while (1)
+//	{
+//		gpio_set_value(XBEE_RESET_OUT_GPIO, 1);
+//		usleep(500000);
+//		gpio_set_value(XBEE_RESET_OUT_GPIO, 0);		//reset XBee
+//		usleep(500000);
+//
+//		if (EnterCommandMode() != 0)
+//		{
+//			SetCondition(XBEE_MCP_COMMS_ERRORS);
+//			usleep(500000);
+//			continue;
+//		}
+//
+//		if (EnterAPIMode() != 0)
+//		{
+//			SetCondition(XBEE_MCP_COMMS_ERRORS);
+//			usleep(500000);
+//			continue;
+//		}
+//
+//		xbeeReady = true;
+//		break;
+//	}
+//
+//	if (xbeeReady)
+//	{
 		CancelCondition(XBEE_MCP_COMMS_ERRORS);
 
 		DEBUGPRINT("xbee ready\n");
@@ -274,8 +348,11 @@ int XBeeBrokerInit()
 			return -1;
 		}
 		return 0;
-	}
-	else return -1;
+//	}
+//	else {
+//		SetCondition(XBEE_MCP_COMMS_ERRORS);
+//		return -1;
+//	}
 }
 
 //called by the broker to see whether a message should be queued for the TX Thread
@@ -361,15 +438,224 @@ int SendFidoMessage(psMessage_t *msg)
 
 //Tx thread - sends messages from the Tx Q
 void *TxThread(void *a) {
-    
+
+	if (SetRegister8(POWER_LEVEL, (int) powerLevel) < 0)
+	{
+		ERRORPRINT("Set Power Level fail\n");
+	}
+
+	int power = GetRegister8(POWER_LEVEL);
+	if (power < 0)
+	{
+		ERRORPRINT("Read PowerLevel fail\n");
+	} else {
+		DEBUGPRINT("xbee power level = %i\n", power);
+	}
+
+	RemoteReset();
+	sleep(1);
+
 	DEBUGPRINT("XBee TX ready\n");
 
+//	while(1)
+//	{
+//		if (RemoteSetRegister16(SAMPLE_RATE, 10000) < 0)
+//		{
+//			SetCondition(XBEE_MCP_COMMS_ERRORS);
+//			ERRORPRINT("Failed to set Poll Interval\n");
+//			usleep(500000);
+//		}
+//		else
+//		{
+//			break;
+//		}
+//	}
+
 	for (;;) {
-		struct timeval now;
 		struct timespec wait_time;
 
 		//wait for a message
 		psMessage_t *msg = GetNextMessage(&xbeeTxQueue);
+
+		//Check for changes in XBee related options
+		if (cyclicSleep != currentCyclicSleep)
+		{
+			if (cyclicSleep)
+			{
+//				if (SetRegister8(COORDINATOR_ENABLE, 1) < 0)
+//				{
+//					ERRORPRINT("Coordinator Enable fail\n");
+//					SetCondition(XBEE_MCP_COMMS_ERRORS);
+//				}
+//
+//				else if ((RemoteSetRegister16(CYCLIC_SLEEP_PERIOD, (int)(cyclicSleepPeriodS * 100)) < 0) ||
+//						(SetRegister16(CYCLIC_SLEEP_PERIOD, (int)(cyclicSleepPeriodS * 100)) < 0))
+//				{
+//					ERRORPRINT("Failed to set Cyclic Sleep Period\n");
+//					SetCondition(XBEE_MCP_COMMS_ERRORS);
+//				}
+//
+//				else if ((RemoteSetRegister16(TIME_BEFORE_SLEEP, (int)(timeToSleepS * 1000)) < 0) ||
+//						(SetRegister16(TIME_BEFORE_SLEEP, (int)(timeToSleepS * 1000)) < 0))
+//				{
+//					ERRORPRINT("Failed to set Time Before Sleep\n");
+//					SetCondition(XBEE_MCP_COMMS_ERRORS);
+//				}
+//				else
+				if (RemoteSetRegister8(SLEEP_MODE, 4) < 0)
+				{
+					ERRORPRINT("Failed to set Sleep Mode 4\n");
+					SetCondition(XBEE_MCP_COMMS_ERRORS);
+				}
+//				else if (SetRegister8(SLEEP_OPTIONS, 0) < 0)
+//				{
+//					ERRORPRINT("Failed to set Sleep Options\n");
+//					SetCondition(XBEE_MCP_COMMS_ERRORS);
+//				}
+				else
+				{
+					LogInfo("Cyclic Sleep enabled");
+					currentCyclicSleep = cyclicSleep;
+				}
+			}
+			else
+			{
+				if (RemoteSetRegister8(SLEEP_MODE, 0) < 0)
+				{
+					ERRORPRINT("Failed to set Sleep Mode 0\n");
+					SetCondition(XBEE_MCP_COMMS_ERRORS);
+				}
+				else
+				{
+					LogInfo("Cyclic Sleep disabled");
+					currentCyclicSleep = cyclicSleep;
+				}
+			}
+		}
+
+		if (monitorBattery != currentMonitorBattery)
+		{
+			if (monitorBattery)
+			{
+//				if (RemoteSetRegister16(SAMPLE_RATE, 10000) < 0)
+//				{
+//					SetCondition(XBEE_MCP_COMMS_ERRORS);
+//					ERRORPRINT("Failed to set Poll Interval\n");
+//				}
+//				else
+				if (RemoteSetRegister8(FIDO_XBEE_BATTERY, PIN_ADC) < 0)
+				{
+					SetCondition(XBEE_MCP_COMMS_ERRORS);
+					ERRORPRINT("Failed to set Battery pin to ADC\n");
+				}
+
+				else
+				{
+					LogInfo("Battery Monitor enabled\n");
+					currentMonitorBattery = monitorBattery;
+				}
+			}
+			else
+			{
+				if (RemoteSetRegister8(FIDO_XBEE_BATTERY, PIN_DISABLED) < 0)
+				{
+					ERRORPRINT("Failed to set Battery pin to Disabled\n");
+					SetCondition(XBEE_MCP_COMMS_ERRORS);
+				}
+				else
+				{
+					LogInfo("Battery Monitor disabled");
+					currentMonitorBattery = monitorBattery;
+				}
+			}
+		}
+
+		if (monitorLED != currentMonitorLED)
+		{
+			if (monitorLED)
+			{
+//				if (RemoteSetRegister16(SAMPLE_RATE, (uint16_t) 10000) < 0)
+//				{
+//					ERRORPRINT("Failed to set Sample Rate\n");
+//				}
+//				else
+				if (RemoteSetRegister8(FIDO_XBEE_LED, PIN_INPUT) < 0)
+				{
+					ERRORPRINT("Failed to set LED pin to Input\n");
+				}
+				else
+				{
+					LogInfo("LED Monitor enabled");
+					currentMonitorLED = monitorLED;
+				}
+			}
+			else
+			{
+				if (RemoteSetRegister8(FIDO_XBEE_LED, PIN_DISABLED) < 0)
+				{
+					ERRORPRINT("Failed to set LED pin to Disabled\n");
+				}
+				else
+				{
+					LogInfo("LED Monitor disabled");
+					currentMonitorLED = monitorLED;
+				}
+
+			}
+		}
+
+		if (resetXBee)
+		{
+			gpio_set_direction(XBEE_RESET_OUT_GPIO, 0);	//output
+			usleep(250000);
+			gpio_set_value(XBEE_RESET_OUT_GPIO, 1);
+			usleep(500000);
+			gpio_set_value(XBEE_RESET_OUT_GPIO, 0);		//reset XBee
+			sendOptionConfig("Reset XBee", 0, 0, 1, 0);
+			LogInfo("Reset XBee");
+		}
+
+		if (shortPress || longPress)
+		{
+			if (RemoteSetRegister8(FIDO_XBEE_PWR_SW, PIN_OUTPUT_HIGH) < 0)
+			{
+				ERRORPRINT("Failed to set LED pin High\n");
+			}
+			else
+			{
+				if (longPress) {
+					usleep((int)longPressS * 1000);
+				}
+				else
+				{
+					usleep((int)shortPressS * 1000);
+				}
+
+				//set pin low
+				if (RemoteSetRegister8(FIDO_XBEE_PWR_SW, PIN_OUTPUT_LOW) < 0)
+				{
+					ERRORPRINT("Failed to set LED pin Low\n");
+				}
+				else
+				{
+					LogInfo("Pressed Power Button");
+
+					if (shortPress) {
+						shortPress = 0;
+						sendOptionConfig("Short Press", 0, 0, 1, 0);
+					}
+					if (longPress) {
+						longPress = 0;
+						sendOptionConfig("Long Press", 0, 0, 1, 0);
+					}
+				}
+			}
+			sleep(1);
+			//set disabled
+			RemoteSetRegister8(FIDO_XBEE_PWR_SW, PIN_DISABLED);
+		}
+
+		DEBUGPRINT("XBee Tx: %s\n", psLongMsgNames[msg->header.messageType]);
 
 		pthread_mutex_lock(&txMutex);
 
@@ -377,49 +663,43 @@ void *TxThread(void *a) {
 
 		if (SendFidoMessage(msg) == 0)
 		{
-			DEBUGPRINT("XBee TX: %s\n", psLongMsgNames[msg->header.messageType]);
 
-			gettimeofday(&now, NULL);
-			wait_time.tv_sec = now.tv_sec + 5;
-			wait_time.tv_nsec = now.tv_usec * 1000;
 			latestTxStatus.frameId = txSequenceNumber;
 			latestTxStatus.status = XBEE_TX_TIMEOUT;
 
-			pthread_cond_timedwait(&txStatusCond, &txStatusMutex, &wait_time);
+			clock_gettime(CLOCK_REALTIME, &wait_time);
+			wait_time.tv_sec += XBEE_CYCLIC_SLEEP * 3;
 
-			if (latestTxStatus.frameId != txSequenceNumber || latestTxStatus.status != XBEE_TX_SUCCESS)
+			int reply = pthread_cond_timedwait(&txStatusCond, &txStatusMutex, &wait_time);
+
+			if (reply == ETIMEDOUT)
+			{
+				ERRORPRINT("Send Fido Message timed out\n");
+				SetCondition(XBEE_MCP_COMMS_ERRORS);
+				sendErrors++;
+			}
+			else if (latestTxStatus.frameId != txSequenceNumber || latestTxStatus.status != XBEE_TX_SUCCESS)
 			{
 				ERRORPRINT("XBee TX %i Status: %s\n", txSequenceNumber, txStatusNames[latestTxStatus.status]);
 				SetCondition(XBEE_MCP_COMMS_ERRORS);
+				CancelCondition(XBEE_MCP_ONLINE);
+				sendErrors++;
+			}
+			else
+			{
+				messagesSent++;
+				CancelCondition(XBEE_MCP_COMMS_ERRORS);
 			}
 		} else {
 			ERRORPRINT("XBee SendFidoMessage() error\n ");
 			SetCondition(XBEE_MCP_COMMS_ERRORS);
+			sendErrors++;
 		}
 
 		pthread_mutex_unlock(&txStatusMutex);
 
 		pthread_mutex_unlock(&txMutex);
 
-		if (psDefaultTopics[msg->header.messageType] == LOG_TOPIC)
-		{
-			switch (msg->logPayload.severity)
-			{
-			case SYSLOG_ROUTINE:
-				uartRoutine--;
-				break;
-			case SYSLOG_INFO:
-				uartInfo--;
-				break;
-			case SYSLOG_WARNING:
-				uartWarning--;
-				break;
-			case SYSLOG_ERROR:
-				uartError--;
-			default:
-				break;
-			}
-		}
 		DoneWithMessage(msg);
 	}
 	return 0;
@@ -493,7 +773,7 @@ int ReadApiPacket()
 	if (reply < 0 || (rxChecksum & 0xff) != 0xff)
 		return -1;
 	else
-		return 0;
+		return length;
 }
 
 //receives messages and passes to broker
@@ -503,16 +783,18 @@ void *RxThread(void *a) {
 	DEBUGPRINT("XBee RX ready\n");
 
 	for (;;) {
-		if (ReadApiPacket() == 0)
+		int pktLength = ReadApiPacket();
+		if (pktLength > 0)
 		{
+
 			switch(rxPacket.apiIdentifier)
 			{
 			case MODEM_STATUS:
 				latestModemStatus = rxPacket.modemStatus.status;
-				LogInfo("XBee status : %i", rxPacket.modemStatus.status);
+				LogInfo("XBee Rx XBee status : %s", modemStatusNames[rxPacket.modemStatus.status]);
 				break;
 			case TRANSMIT_STATUS:
-				DEBUGPRINT("Tx Status: %i\n", rxPacket.txStatus.status);
+				DEBUGPRINT("XBee Rx Tx_Status: %s\n", txStatusNames[rxPacket.txStatus.status]);
 				pthread_mutex_lock(&txStatusMutex);
 
 				latestTxStatus.status = rxPacket.txStatus.status;
@@ -522,15 +804,27 @@ void *RxThread(void *a) {
 				pthread_cond_signal(&txStatusCond);
 				break;
 			case AT_RESPONSE:
-				DEBUGPRINT("AT Response packet\n");
+				DEBUGPRINT("XBee Rx AT Response packet\n");
 				pthread_mutex_lock(&atResponseMutex);
 
 				memcpy(&atResponse, &rxPacket, sizeof(atResponse));
+				atResponseLength = pktLength;
 
 				pthread_mutex_unlock(&atResponseMutex);
 				pthread_cond_signal(&atResponseCond);
 				break;
+			case REMOTE_CMD_RESPONSE:
+				DEBUGPRINT("XBee Rx Remote Response packet\n");
+				pthread_mutex_lock(&remoteResponseMutex);
+
+				memcpy(&remoteResponse, &rxPacket, sizeof(remoteResponse));
+				remoteResponseLength = pktLength;
+
+				pthread_mutex_unlock(&remoteResponseMutex);
+				pthread_cond_signal(&remoteResponseCond);
+				break;
 			case RECEIVE_16:
+				SetCondition(XBEE_MCP_ONLINE);
 				msg = &rxPacket.fidoMessage.message;
 
 				if (msg->header.messageType == KEEPALIVE)
@@ -542,22 +836,60 @@ void *RxThread(void *a) {
 				{
 					if ((msg->header.source != XBEE) && (msg->header.source != APP_XBEE) && (msg->header.source != APP_OVM) && (msg->header.source != ROBO_APP))
 					{
-						DEBUGPRINT("XBee RX: %s\n", psLongMsgNames[msg->header.messageType]);
+						DEBUGPRINT("XBee Rx: %s\n", psLongMsgNames[msg->header.messageType]);
 						//route the message
 						NewBrokerMessage(msg);
 						messagesReceived++;
 					}
 					else
 					{
-						DEBUGPRINT("XBee Ignored: %s\n", psLongMsgNames[msg->header.messageType]);
+						DEBUGPRINT("XBee Rx Ignored: %s\n", psLongMsgNames[msg->header.messageType]);
 						addressIgnored++;
 					}
 				}
 				break;
 			case RECEIVE_IO_16:
-				//tbd
+			{
+				DEBUGPRINT("XBee Rx: IO_16\n");
+				//data from remote XBee
+				int length = pktLength - sizeof(rxPacket.fidoMessage.packetHeader);
+				uint8_t *next = rxPacket.fidoMessage.byteData;
+				int count = *next++;
+				uint16_t channels = (*next++ << 8) + *next++;
 
-				break;
+				if (channels & IO_MSG_DIO_MASK)
+				{
+					//digital present
+					uint16_t digitalIO = (*next++ << 8) + *next++;
+					Condition(POWER_LED_ON , digitalIO & FIDO_XBEE_LED_MASK);
+
+					DEBUGPRINT("XBee Rx: LED = %s\n", (digitalIO & FIDO_XBEE_LED_MASK ? "ON" : "OFF"));
+				}
+				int i;
+				uint16_t mask = 0x200;
+				for (i=0; i<6; i++)
+				{
+					if (channels & mask)
+					{
+						//channel present
+						uint16_t value = (*next++ << 8) + *next++;
+
+						if (i == FIDO_XBEE_BATTERY_CHAN)
+						{
+							psMessage_t msg;
+							psInitPublish(msg, FLOAT_DATA);
+							strcpy(msg.nameFloatPayload.name, "Battery");
+							msg.nameFloatPayload.value = (float) (value * 3.2 / 1024.0) * 25.0 / 2.6125;
+							RouteMessage(&msg);
+
+							DEBUGPRINT("XBee Rx: Battery = %0.2f\n", msg.nameFloatPayload.value);
+						}
+					}
+					mask = mask << 1;
+				}
+
+			}
+			break;
 			default:
 				//ignore
 				break;
@@ -565,29 +897,20 @@ void *RxThread(void *a) {
 		}
 		else
 		{
-			ERRORPRINT("XBee ReadApiPacket() Error");
+			ERRORPRINT("XBee Rx: ReadApiPacket() Error");
 			SetCondition(XBEE_MCP_COMMS_ERRORS);
 		}
 	}
 	return 0;
 }
 
-//Get/Set 1 byte registers
-//Use prior to creating threads
+//Used prior to changing to API mode
 #define MAX_REPLY 10
-int SendATCommand(char *cmdString, char *replyString)
+int GetATReply(char *replyString)
 {
+	char *next = replyString;
+	ssize_t len = MAX_REPLY-1;
 	ssize_t reply;
-	size_t len = strlen(cmdString);
-	char *next = cmdString;
-
-	while (len-- > 0)
-	{
-		WriteByte(*next++);
-	}
-
-	next = replyString;
-	len = MAX_REPLY-1;
 
 	do {
 		do {
@@ -597,94 +920,194 @@ int SendATCommand(char *cmdString, char *replyString)
 
 	*next = '\0';
 
+	DEBUGPRINT("XBee AT Reply = %s\n", replyString);
+
 	if (reply < 0) return -1;
 	else return 0;
 }
-int SetRegister(const char *atCommand, uint8_t value)
+
+int SendATCommand(char *cmdString, char *replyString)
 {
-	int reply;
-	char cmdString[MAX_REPLY];
-	char replyString[MAX_REPLY];
+	ssize_t reply;
 
-	DEBUGPRINT("XBee Set %s = %i\n", atCommand, value);
-
-	sprintf(cmdString, "AT%s%i\r", atCommand, value);
-
-	reply = SendATCommand(cmdString, replyString);
-
-	if (reply < 0 || strncmp(replyString, "OK", 2) != 0)
-		return -1;
-	else return 0;
-}
-int GetRegister(const char *atCommand)
-{
-	int reply;
-	char cmdString[MAX_REPLY];
-	char replyString[MAX_REPLY];
-
-	DEBUGPRINT("XBee Get %s\n", atCommand);
-
-	sprintf(cmdString, "AT%s\r", atCommand);
-
-	reply = SendATCommand(cmdString, replyString);
-
-	if (reply >= 0)
+	if (!inCommandMode)
 	{
-		reply = -1;
-		sscanf(replyString, "%i", &reply);
-		return reply;
+		EnterCommandMode();
 	}
-	else return -1;
+	if (!inCommandMode) return -1;
+
+	size_t len = strlen(cmdString);
+	char *next = cmdString;
+
+	while (len-- > 0)
+	{
+		WriteByte(*next++);
+	}
+
+	DEBUGPRINT("XBee Sent %s\n", cmdString);
+
+	return GetATReply(replyString);
 }
 
-int APISetRegister1(const char *atCommand, uint8_t value)
+int RemoteReset()
 {
-	uint8_t response;
+	if (RemoteCommand(SOFTWARE_RESET, NULL, 0, NULL, 0) >= 0)
+	{
+		DEBUGPRINT("XBee Remote Reset\n");
+		return 0;
+	}
+	else
+	{
+		ERRORPRINT("XBee Remote Reset fail\n");
+		return -1;
+	}
+}
 
-	DEBUGPRINT("XBee Set %s = %i\n", atCommand, value);
+int SetRegister8(const char *atCommand, uint8_t value)
+{
+
+	uint8_t param = value;
+	if (LocalCommand(atCommand, &param, 1, NULL, 0) >= 0)
+	{
+		DEBUGPRINT("XBee Set %s = %i\n", atCommand, value);
+		return 0;
+	}
+	else
+	{
+		ERRORPRINT("XBee Set %s = %i fail\n", atCommand, value);
+		return -1;
+	}
+
+}
+
+int SetRegister16(const char *atCommand, uint16_t value)
+{
+
+	uint16_t param = value;
+	if (LocalCommand(atCommand, (uint8_t*) &param, 2, NULL, 0) >= 0)
+	{
+		DEBUGPRINT("XBee Set %s = %i\n", atCommand, value);
+		return 0;
+	}
+	else
+	{
+		ERRORPRINT("XBee Set %s = %i fail\n", atCommand, value);
+		return -1;
+	}
+
+}
+
+int GetRegister8(const char *atCommand)
+{
+	//	DEBUGPRINT("XBee Get %s\n", atCommand);
+
+	uint8_t reply;
+	if (LocalCommand(atCommand, NULL, 0, &reply, 1) == 1)
+	{
+		DEBUGPRINT("XBee Get %s = %i\n", atCommand, reply);
+		return (int)reply;
+	}
+	else
+	{
+		ERRORPRINT("XBee Get %s fail\n", atCommand);
+		return -1;
+	}
+}
+
+int RemoteSetRegister8(const char *atCommand, uint8_t value)
+{
+
+	uint8_t param = value;
+	if (RemoteCommand(atCommand, &param, 1, NULL, 0) >= 0)
+	{
+		DEBUGPRINT("XBee Remote Set %s = %i\n", atCommand, value);
+		return 0;
+	}
+	else
+	{
+		ERRORPRINT("XBee Remote Set %s = %i fail\n", atCommand, value);
+		return -1;
+	}
+
+}
+
+int RemoteSetRegister16(const char *atCommand, uint16_t value)
+{
+
+	uint16_t param = value;
+	if (RemoteCommand(atCommand, (uint8_t*) &param, 2, NULL, 0) >= 0)
+	{
+		DEBUGPRINT("XBee Remote Set %s = %i\n", atCommand, value);
+		return 0;
+	}
+	else
+	{
+		ERRORPRINT("XBee Remote Set %s = %i fail\n", atCommand, value);
+		return -1;
+	}
+
+}
+
+int RemoteGetRegister8(const char *atCommand)
+{
+	//	DEBUGPRINT("XBee Remote Get %s\n", atCommand);
+
+	uint8_t reply;
+	if (RemoteCommand(atCommand, NULL, 0, &reply, 1) == 1)
+	{
+		DEBUGPRINT("XBee Remote Get %s = %i\n", atCommand, reply);
+		return (int)reply;
+	}
+	else
+	{
+		ERRORPRINT("XBee Remote Get %s fail\n", atCommand);
+		return -1;
+	}
+}
+
+
+//sends atCommand with param bytes, if any. Copies response data, if any, into buf.
+//reply: response length or -1
+int LocalCommand(const char *atCommand, uint8_t *param, int len, uint8_t *buf, int buflen )
+{
+	int response, length;
+	struct timespec absTime;
+
+	length = len;
+	if (length > 4) length = 4;
+	if (++txSequenceNumber > 0xf0) txSequenceNumber = 1;
 
 	pthread_mutex_lock(&txMutex);
 
 	atPacket.packetHeader.apiIdentifier 	= AT_COMMAND;
-	atPacket.packetHeader.frameId			= 0;
-	atPacket.packetHeader.ATcommand[0] = atCommand[0];
-	atPacket.packetHeader.ATcommand[1] = atCommand[1];
+	atPacket.packetHeader.frameId			= txSequenceNumber;
+	atPacket.packetHeader.ATcommand[0] 		= atCommand[0];
+	atPacket.packetHeader.ATcommand[1] 		= atCommand[1];
 
-	atPacket.byteData = value;
+	memcpy(&atPacket.byteData, param, length);
 
-	SendApiPacket((uint8_t*)&atPacket, sizeof(atPacket.packetHeader) + 1);
+	SendApiPacket((uint8_t*)&atPacket, sizeof(atPacket.packetHeader) + length);
 
-	pthread_cond_wait(&atResponseCond, &atResponseMutex);
+	clock_gettime(CLOCK_REALTIME, &absTime);
+	absTime.tv_sec += 5;
 
-	if (atResponse.status == 0) response = 0;
-	else response = -1;
+	int reply = pthread_cond_timedwait(&atResponseCond, &atResponseMutex, &absTime);
 
-	pthread_mutex_unlock(&atResponseMutex);
-
-	pthread_mutex_unlock(&txMutex);
-
-	return (response == 0 ? 0 : -1);
-}
-
-int APIGetRegister1(const char *atCommand)
-{
-	int response;
-
-	DEBUGPRINT("XBee Get %s\n", atCommand);
-
-	pthread_mutex_lock(&txMutex);
-
-	atPacket.packetHeader.apiIdentifier 	= AT_COMMAND;
-	atPacket.packetHeader.frameId			= 0;
-	atPacket.packetHeader.ATcommand[0] = atCommand[0];
-	atPacket.packetHeader.ATcommand[1] = atCommand[1];
-
-	SendApiPacket((uint8_t*)&atPacket, sizeof(atPacket.packetHeader));
-
-	pthread_cond_wait(&atResponseCond, &atResponseMutex);
-
-	if (atResponse.status == 0) response = atResponse.byteData;
-	else response = -1;
+	if (reply == ETIMEDOUT)
+	{
+		ERRORPRINT("API Call timed out\n");
+		response = -1;
+	}
+	else if (atResponse.packetHeader.status == COMMAND_OK) {
+		DEBUGPRINT("Sent API Pkt %s OK\n", atCommand);
+		response = atResponseLength - sizeof(atResponse.packetHeader);
+		if (response > buflen) response = buflen;
+		memcpy(buf, &atResponse.byteData, response);
+	}
+	else {
+		ERRORPRINT("API Call failed: %s\n", commandStatusNames[atResponse.packetHeader.status]);
+		response = -1;
+	}
 
 	pthread_mutex_unlock(&atResponseMutex);
 
@@ -692,53 +1115,134 @@ int APIGetRegister1(const char *atCommand)
 
 	return response;
 }
+
+//remote version
+//sends atCommand with param bytes, if any. Copies response data, if any, into buf.
+int RemoteCommand(const char *atCommand, uint8_t *param, int len, uint8_t *buf, int buflen )
+{
+	int response, length;
+	struct timespec absTime;
+
+	length = len;
+	if (length > 4) length = 4;
+	if (++txSequenceNumber > 0xf0) txSequenceNumber = 1;
+
+	pthread_mutex_lock(&txMutex);
+
+	remoteCommand.packetHeader.apiIdentifier 	= REMOTE_AT_COMMAND;
+	remoteCommand.packetHeader.frameId			= txSequenceNumber;
+	remoteCommand.packetHeader.commandOptions	= 0x02;
+	remoteCommand.packetHeader.destinationMSB  	= 0;
+	remoteCommand.packetHeader.destinationLSB  	= MCP_ADDRESS;
+	remoteCommand.packetHeader.ATcommand[0] 	= atCommand[0];
+	remoteCommand.packetHeader.ATcommand[1] 	= atCommand[1];
+
+	memcpy(&remoteCommand.byteData, param, length);
+
+	SendApiPacket((uint8_t*)&remoteCommand, sizeof(remoteCommand.packetHeader) + length);
+
+	clock_gettime(CLOCK_REALTIME, &absTime);
+	absTime.tv_sec += XBEE_CYCLIC_SLEEP * 3;
+
+	int reply = pthread_cond_timedwait(&remoteResponseCond, &remoteResponseMutex, &absTime);
+
+	if (reply == ETIMEDOUT)
+	{
+		ERRORPRINT("Remote API Call timed out\n");
+		response = -1;
+	}
+	else if (remoteResponse.packetHeader.status == COMMAND_OK) {
+		DEBUGPRINT("Sent Remote API Pkt %s OK\n", atCommand);
+		response = remoteResponseLength - sizeof(remoteResponse.packetHeader);
+		if (response > buflen) response = buflen;
+		memcpy(buf, &remoteResponse.byteData, response);
+	}
+	else {
+		ERRORPRINT("Remote API Call failed: %s\n", commandStatusNames[remoteResponse.packetHeader.status]);
+		response = -1;
+	}
+
+	pthread_mutex_unlock(&remoteResponseMutex);
+
+	pthread_mutex_unlock(&txMutex);
+
+	return response;
+}
+
 //tx power level
 int SetPowerLevel(int pl)
 {
-	return SetRegister(POWER_LEVEL, pl);
+	return SetRegister8(POWER_LEVEL, pl);
 }
 int GetPowerLevel()
 {
-	return GetRegister(POWER_LEVEL);
+	return GetRegister8(POWER_LEVEL);
 }
 
 int EnterCommandMode()
 {
 	int reply;
 	char replyString[MAX_REPLY];
-	sleep(1);
-	WriteByte('+');
-	WriteByte('+');
-	WriteByte('+');
-	sleep(1);
 
-	reply = SendATCommand("", replyString);
+	tcflush(xbeeUartFD, TCIOFLUSH);
+
+	usleep(1500000);
+
+	WriteByte('+');
+	WriteByte('+');
+	WriteByte('+');
+
+	reply = GetATReply(replyString);
 
 	DEBUGPRINT("Command Mode: %s\n", replyString);
 
+	usleep(500000);
+
 	if (reply < 0 || strncmp(replyString, "OK", 2) != 0)
+	{
+		inCommandMode = false;
 		return -1;
-	else return 0;
+	}
+	else {
+		inCommandMode = true;
+		return 0;
+	}
 }
 int EnterAPIMode()
 {
-	return SetRegister("AP", 2);
+	int reply;
+
+	char replyString[MAX_REPLY];
+
+	reply = SendATCommand("ATAP2\r", replyString);
+
+	if (reply < 0 || strncmp(replyString, "OK", 2) != 0)
+	{
+		ERRORPRINT("API Mode set fail\n");
+		return -1;
+	}
+
+	DEBUGPRINT("API Mode Set\n");
+
+	inApiMode = true;
+
+	return reply;
 }
 
 void SendStats() {
-    psMessage_t msg;
-    psInitPublish(msg, COMMS_STATS);
+	psMessage_t msg;
+	psInitPublish(msg, COMMS_STATS);
 
-    strncpy(msg.commsStatsPayload.destination, "MCP", 4);
-    msg.commsStatsPayload.messagesSent = messagesSent;
-    msg.commsStatsPayload.sendErrors	= sendErrors;
-    msg.commsStatsPayload.addressDiscarded = addressDiscarded;
-    msg.commsStatsPayload.congestionDiscarded = congestionDiscarded; //congestion
-    msg.commsStatsPayload.messagesReceived = messagesReceived;
-    msg.commsStatsPayload.addressIgnored = addressIgnored; //wrong address
-    msg.commsStatsPayload.receiveErrors = receiveErrors;
-    msg.commsStatsPayload.parseErrors = parseErrors;
+	strncpy(msg.commsStatsPayload.destination, "MCP", 4);
+	msg.commsStatsPayload.messagesSent = messagesSent;
+	msg.commsStatsPayload.sendErrors	= sendErrors;
+	msg.commsStatsPayload.addressDiscarded = addressDiscarded;
+	msg.commsStatsPayload.congestionDiscarded = congestionDiscarded; //congestion
+	msg.commsStatsPayload.messagesReceived = messagesReceived;
+	msg.commsStatsPayload.addressIgnored = addressIgnored; //wrong address
+	msg.commsStatsPayload.receiveErrors = receiveErrors;
+	msg.commsStatsPayload.parseErrors = parseErrors;
 
-    NewBrokerMessage(&msg);
+	NewBrokerMessage(&msg);
 }
 
