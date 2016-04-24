@@ -148,6 +148,7 @@ void RouteMessage(psMessage_t *msg)
 		SerialBrokerProcessMessage(msg);
 		break;
 	case MOT_ACTION_TOPIC:		 //To send commands to the motors
+	case MCP_ACTION_TOPIC:		 //To send commands to MCP
 		SerialBrokerProcessMessage(msg);
 		break;
 	case NAV_REPORT_TOPIC:       //Fused Odometry & Prox Reports
