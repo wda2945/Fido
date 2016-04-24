@@ -91,7 +91,7 @@ void BehaviorProcessMessage(psMessage_t *msg)
 //thread to receive messages and update lua blackboard
 void *BehaviorMessageThread(void *arg)
 {
-	LogInfo("Behavior message thread started\n");
+	DEBUGPRINT("Behavior message thread started\n");
 
 	{
 		psMessage_t activityMsg;
@@ -107,7 +107,7 @@ void *BehaviorMessageThread(void *arg)
 	{
 		psMessage_t *msg = GetNextMessage(&behaviorQueue);
 
-		//		DEBUGPRINT("BT msg: %s\n", psLongMsgNames[msg->header.messageType]);
+		DEBUGPRINT("BT msg: %s\n", psLongMsgNames[msg->header.messageType]);
 
 		switch(msg->header.source)
 		{
@@ -115,7 +115,7 @@ void *BehaviorMessageThread(void *arg)
 			if (!MCPonline)
 			{
 				MCPonline = true;
-				LogInfo("MCP online\n");
+				DEBUGPRINT("MCP online\n");
 			}
 			lastMCPresponseTime = time(NULL);
 			break;
@@ -123,7 +123,7 @@ void *BehaviorMessageThread(void *arg)
 			if (!MOTonline)
 			{
 				MOTonline = true;
-				LogInfo("MOT online\n");
+				DEBUGPRINT("MOT online\n");
 			}
 			lastMOTresponseTime = time(NULL);
 			break;
@@ -133,7 +133,7 @@ void *BehaviorMessageThread(void *arg)
 			if (!APPonline)
 			{
 				APPonline = true;
-				LogInfo("APP online\n");
+				DEBUGPRINT("APP online\n");
 			}
 			lastAPPresponseTime = time(NULL);
 			break;
@@ -156,7 +156,7 @@ void *BehaviorMessageThread(void *arg)
 					msg.configPayload.requestor = OVERMIND;
 					msg.configPayload.responder = MCP_SUBSYSTEM;
 					RouteMessage(&msg);
-					LogInfo("MCP config requested\n");
+					DEBUGPRINT("MCP config requested\n");
 					MCPconfigRequested = true;
 					MCPconfigRequestedTime = time(NULL);
 				}
@@ -171,7 +171,7 @@ void *BehaviorMessageThread(void *arg)
 					msg.configPayload.requestor = OVERMIND;
 					msg.configPayload.responder = MOTOR_SUBSYSTEM;
 					RouteMessage(&msg);
-					LogInfo("MOT config requested\n");
+					DEBUGPRINT("MOT config requested\n");
 					MOTconfigRequested = true;
 					MOTconfigRequestedTime = time(NULL);
 				}
@@ -195,12 +195,12 @@ void *BehaviorMessageThread(void *arg)
 					{
 					case MCP_SUBSYSTEM:
 						MCPconfigured 		 = true;
-						if (MCPconfigRequested) LogInfo("MCP configured\n");
+						if (MCPconfigRequested) DEBUGPRINT("MCP configured\n");
 						MCPconfigRequested 	 = false;
 						break;
 					case MOTOR_SUBSYSTEM:
 						MOTconfigured 		 = true;
-						if (MOTconfigRequested) LogInfo("MOT configured\n");
+						if (MOTconfigRequested) DEBUGPRINT("MOT configured\n");
 						MOTconfigRequested 	 = false;
 						break;
 					default:
@@ -242,7 +242,7 @@ void *ScriptThread(void *arg)
 
 	time_t lastPing = time(NULL);
 
-	LogInfo("Script thread started\n");
+	DEBUGPRINT("Script thread started\n");
 
 	while (1)
 	{
@@ -272,14 +272,14 @@ void *ScriptThread(void *arg)
 			msg.requestPayload.responder = 0;
 			RouteMessage(&msg);
 
-			LogRoutine("OVM Ping sent\n");
+			DEBUGPRINT("OVM Ping sent\n");
 		}
 
 		//check network status
 		if (MCPonline && (lastMCPresponseTime + (int)networkTimeout < time(NULL)))
 		{
 			MCPonline = false;
-			LogInfo("MCP offline\n");
+			DEBUGPRINT("MCP offline\n");
 		}
 		if (MCPconfigRequestedTime + (int)networkTimeout < time(NULL))
 		{
@@ -288,7 +288,7 @@ void *ScriptThread(void *arg)
 		if (MOTonline && ((lastMOTresponseTime + (int)networkTimeout) < time(NULL)))
 		{
 			MOTonline = false;
-			LogInfo("MOT offline\n");
+			DEBUGPRINT("MOT offline\n");
 		}
 		if (MOTconfigRequestedTime + (int)networkTimeout < time(NULL))
 		{
@@ -297,7 +297,7 @@ void *ScriptThread(void *arg)
 		if (APPonline && (lastAPPresponseTime + (int)networkTimeout < time(NULL)))
 		{
 			APPonline = false;
-			LogInfo("APP offline\n");
+			DEBUGPRINT("APP offline\n");
 		}
 
 		//delay
@@ -372,7 +372,7 @@ int ChangeOption(lua_State *L, const char *name, int value)
 	strncpy(msg.optionPayload.name, name, PS_NAME_LENGTH);
 	msg.optionPayload.value = value;
 	RouteMessage(&msg);
-	LogInfo("lua: ChangeOption(%s, %i)\n", name, value);
+	DEBUGPRINT("lua: ChangeOption(%s, %i)\n", name, value);
 	return success(L);
 }
 
@@ -383,6 +383,6 @@ int ChangeSetting(lua_State *L, const char *name, float value)
 	strncpy(msg.settingPayload.name, name, PS_NAME_LENGTH);
 	msg.settingPayload.value = value;
 	RouteMessage(&msg);
-	LogInfo("lua: ChangeSetting(%s, %i)\n", name, value);
+	DEBUGPRINT("lua: ChangeSetting(%s, %i)\n", name, value);
 	return success(L);
 }

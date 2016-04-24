@@ -8,18 +8,20 @@
 #ifndef AUTOPILOT_COMMON_H_
 #define AUTOPILOT_COMMON_H_
 
+#include "softwareprofile.h"
 #include "pubsubdata.h"
 #include "waypoints.h"
+#include "syslog/syslog.h"
 
 extern FILE *pilotDebugFile;
 
 #ifdef AUTOPILOT_DEBUG
-#define DEBUGPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(pilotDebugFile, __VA_ARGS__);fflush(pilotDebugFile);
+#define DEBUGPRINT(...) tprintf( __VA_ARGS__);fprintf(pilotDebugFile, __VA_ARGS__);fflush(pilotDebugFile);
 #else
 #define DEBUGPRINT(...) fprintf(pilotDebugFile, __VA_ARGS__);fflush(pilotDebugFile);
 #endif
 
-#define ERRORPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(pilotDebugFile, __VA_ARGS__);fflush(pilotDebugFile);
+#define ERRORPRINT(...) tprintf( __VA_ARGS__);fprintf(pilotDebugFile, __VA_ARGS__);fflush(pilotDebugFile);
 
 float GetRangeToGoal();
 

@@ -9,7 +9,7 @@
 #define	SYSLOG_H
 
 #include <stdio.h>
-#include "PubSubData.h"
+#include "pubsubdata.h"
 #include "pubsub/pubsub.h"
 
 enum {
@@ -52,6 +52,13 @@ int SysLogInit();
 void LogProcessMessage(psMessage_t *msg);				//process for logging
 
 void PrintLogMessage(psMessage_t *msg);
+
+#define tprintf(...) {char tmp[100];\
+    snprintf(tmp,100,__VA_ARGS__);\
+    tmp[100-1] = 0;\
+    DebugPrint(tmp);}
+
+void DebugPrint(char *logtext);
 
 #endif	/* SYSLOG_H */
 

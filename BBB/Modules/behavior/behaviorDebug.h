@@ -8,16 +8,17 @@
 #define BEHAVIORDEBUG_H_
 
 #include "softwareprofile.h"
+#include "syslog/syslog.h"
 
 extern FILE *behDebugFile;
 
 #ifdef BEHAVIOR_DEBUG
-#define DEBUGPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(behDebugFile, __VA_ARGS__);fflush(behDebugFile);
+#define DEBUGPRINT(...) tprintf( __VA_ARGS__);fprintf(behDebugFile, __VA_ARGS__);fflush(behDebugFile);
 #else
 #define DEBUGPRINT(...)
 #endif
 
-#define ERRORPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(behDebugFile, __VA_ARGS__);fflush(behDebugFile);
+#define ERRORPRINT(...) tprintf( __VA_ARGS__);fprintf(behDebugFile, __VA_ARGS__);fflush(behDebugFile);
 
 #define ASSERT_LUA_TABLE(L, x, s) if (!lua_istable(L, x)) {ERRORPRINT("Not a LUA Table : %s\n", s); abort();}
 

@@ -155,15 +155,15 @@ void *NavigatorThread(void *arg)
 
 	/* We only observe (h) each time */
 	set_matrix(HeadingFilter.observation_model,
-		     1.0, 0.0);
+			1.0, 0.0);
 #define SET_HEADING_OBSERVATION(H) set_matrix(HeadingFilter.observation, H);
 	//then estimate(f)
 
 	/* Noise in the world. */
 	double pos = 10.0;
 	set_matrix(HeadingFilter.process_noise_covariance,
-		     pos, 0.0,
-		     0.0, 1.0);
+			pos, 0.0,
+			0.0, 1.0);
 #define SET_HEADING_PROCESS_NOISE(N) HeadingFilter.process_noise_covariance.data[0][0] = N;
 
 	/* Noise in our observation */
@@ -176,13 +176,13 @@ void *NavigatorThread(void *arg)
 	scale_matrix(HeadingFilter.estimate_covariance, 100000.0);
 #define GET_HEADING NORMALIZE_HEADING((int) HeadingFilter.state_estimate.data[0][0])	//always 0 to 359
 
-//	PRINT_MATRIX(HeadingFilter.state_transition);
-//	PRINT_MATRIX(HeadingFilter.process_noise_covariance);
-//	PRINT_MATRIX(HeadingFilter.observation_model);
-//	PRINT_MATRIX(HeadingFilter.observation);
-//	PRINT_MATRIX(HeadingFilter.observation_noise_covariance);
-//	PRINT_MATRIX(HeadingFilter.state_estimate);
-//	PRINT_MATRIX(HeadingFilter.estimate_covariance);
+	//	PRINT_MATRIX(HeadingFilter.state_transition);
+	//	PRINT_MATRIX(HeadingFilter.process_noise_covariance);
+	//	PRINT_MATRIX(HeadingFilter.observation_model);
+	//	PRINT_MATRIX(HeadingFilter.observation);
+	//	PRINT_MATRIX(HeadingFilter.observation_noise_covariance);
+	//	PRINT_MATRIX(HeadingFilter.state_estimate);
+	//	PRINT_MATRIX(HeadingFilter.estimate_covariance);
 
 	////////////////////////////////////////////////////////////////////////////
 	//location filter - 4 dimensions system (n,e,dn,de), 2 dimensions measurement (x,y)
@@ -222,13 +222,13 @@ void *NavigatorThread(void *arg)
 #define GET_LONGITUDE 	(LocationFilter.state_estimate.data[1][0])
 
 
-//	PRINT_MATRIX(LocationFilter.state_transition);
-//	PRINT_MATRIX(LocationFilter.process_noise_covariance);
-//	PRINT_MATRIX(LocationFilter.observation_model);
-//	PRINT_MATRIX(LocationFilter.observation);
-//	PRINT_MATRIX(LocationFilter.observation_noise_covariance);
-//	PRINT_MATRIX(LocationFilter.state_estimate);
-//	PRINT_MATRIX(LocationFilter.estimate_covariance);
+	//	PRINT_MATRIX(LocationFilter.state_transition);
+	//	PRINT_MATRIX(LocationFilter.process_noise_covariance);
+	//	PRINT_MATRIX(LocationFilter.observation_model);
+	//	PRINT_MATRIX(LocationFilter.observation);
+	//	PRINT_MATRIX(LocationFilter.observation_noise_covariance);
+	//	PRINT_MATRIX(LocationFilter.state_estimate);
+	//	PRINT_MATRIX(LocationFilter.estimate_covariance);
 
 	///////////////////////////////////////////////////////////////////////////////
 
@@ -454,15 +454,7 @@ void *NavigatorThread(void *arg)
 			else
 			{
 				//whether to report
-#define max(a,b) (a>b?a:b)
 
-				if ((abs(lastPoseMsg.position.latitude - poseMsg.posePayload.position.latitude) > REPORT_LOCATION_CHANGE) ||
-						(abs(lastPoseMsg.position.longitude - poseMsg.posePayload.position.longitude) > REPORT_LOCATION_CHANGE) ||
-						(abs(NORMALIZE_HEADING(lastPoseMsg.orientation.heading - poseMsg.posePayload.orientation.heading)) > REPORT_BEARING_CHANGE) ||
-						(latestReportTime + REPORT_MAX_INTERVAL > time(NULL)))
-				{
-					reportRequired = true;
-				}
 			}
 			break;
 		}
@@ -472,43 +464,66 @@ void *NavigatorThread(void *arg)
 			LogInfo("NAV: State: %s\n", navStates[navigationState]);
 		}
 
+		switch (navigationState)
+		{
+		case NO_DATA:
+			break;
+		case GOT_IMU:
+		case GOT_GPS:
+			if ((abs(NORMALIZE_HEADING(lastPoseMsg.orientation.heading - poseMsg.posePayload.orientation.heading)) > REPORT_BEARING_CHANGE) ||
+					(latestReportTime + REPORT_MAX_INTERVAL > time(NULL)))
+			{
+				reportRequired = true;
+			}
+			break;
+		case GOOD_POSE:
+			if ((abs(lastPoseMsg.position.latitude - poseMsg.posePayload.position.latitude) > REPORT_LOCATION_CHANGE) ||
+					(abs(lastPoseMsg.position.longitude - poseMsg.posePayload.position.longitude) > REPORT_LOCATION_CHANGE) ||
+					(abs(NORMALIZE_HEADING(lastPoseMsg.orientation.heading - poseMsg.posePayload.orientation.heading)) > REPORT_BEARING_CHANGE) ||
+					(latestReportTime + REPORT_MAX_INTERVAL > time(NULL)))
+			{
+				reportRequired = true;
+			}
+			break;
+		}
+
+		memset(&poseMsg, 0, sizeof(poseMsg));
+		psInitPublish(poseMsg, POSE);
+
+		if (GPSGood) {
+			poseMsg.posePayload.position.latitude = GET_LATITUDE;
+			poseMsg.posePayload.position.longitude = GET_LONGITUDE;
+			settingLatitude = GET_LATITUDE;
+			settingLongitude = -GET_LONGITUDE;
+		}
+		else if (simGPS)
+		{
+			poseMsg.posePayload.position.latitude = settingLatitude;
+			poseMsg.posePayload.position.longitude = -settingLongitude;
+		}
+
+		if (IMUGood) {
+			poseMsg.posePayload.orientation.roll = roll;
+			poseMsg.posePayload.orientation.pitch = pitch;
+			poseMsg.posePayload.orientation.heading = GET_HEADING;
+		}
+		poseMsg.posePayload.orientationValid = IMUGood;
+		poseMsg.posePayload.positionValid = (GPSGood || simGPS);
+
 		if (reportRequired)
 		{
-			memset(&poseMsg, 0, sizeof(poseMsg));
-			psInitPublish(poseMsg, POSE);
-
-			if (GPSGood) {
-				poseMsg.posePayload.position.latitude = GET_LATITUDE;
-				poseMsg.posePayload.position.longitude = GET_LONGITUDE;
-				settingLatitude = GET_LATITUDE;
-				settingLongitude = -GET_LONGITUDE;
-			}
-			else if (simGPS)
-			{
-				poseMsg.posePayload.position.latitude = settingLatitude;
-				poseMsg.posePayload.position.longitude = -settingLongitude;
-			}
-
-			if (IMUGood) {
-				poseMsg.posePayload.orientation.roll = roll;
-				poseMsg.posePayload.orientation.pitch = pitch;
-				poseMsg.posePayload.orientation.heading = GET_HEADING;
-			}
-			poseMsg.posePayload.orientationValid = IMUGood;
-			poseMsg.posePayload.positionValid = (GPSGood || simGPS);
-
 			lastPoseMsg = poseMsg.posePayload;
 			RouteMessage(&poseMsg);
 			latestReportTime = time(NULL);
-
-			if (latestAppReportTime + appReportInterval < time(NULL)){
-				LogRoutine("NAV: N=%f, E=%f, H=%f\n", poseMsg.posePayload.position.latitude, poseMsg.posePayload.position.longitude, lastPoseMsg.orientation.heading )
-				//send another to the App
-				psInitPublish(poseMsg, POSEREP);
-				RouteMessage(&poseMsg);
-				latestAppReportTime = time(NULL);
-			}
 		}
+		if (latestAppReportTime + appReportInterval < time(NULL)){
+			DEBUGPRINT("NAV: N=%f, E=%f, H=%f\n", poseMsg.posePayload.position.latitude, poseMsg.posePayload.position.longitude, lastPoseMsg.orientation.heading )
+			//send another to the App
+			psInitPublish(poseMsg, POSEREP);
+			RouteMessage(&poseMsg);
+			latestAppReportTime = time(NULL);
+		}
+
 
 		//TODO: GPS stats collection if stationary.
 	}

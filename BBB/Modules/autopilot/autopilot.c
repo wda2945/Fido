@@ -161,7 +161,7 @@ bool CancelPilotOperation(PilotState_enum newState)
 	case PILOT_STATE_MOVE_SENT:
 		//send stop message
 		SendMotorCommand(0,0,0,0);
-		LogRoutine("Pilot %s Cancelled.\n", pilotStateNames[pilotState]);
+		DEBUGPRINT("Pilot %s Cancelled.\n", pilotStateNames[pilotState]);
 		pilotState = newState;
 		return true;			//stop sent
 		break;
@@ -350,7 +350,7 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 				case PILOT_TURN_S:
 				case PILOT_TURN_E:
 				case PILOT_TURN_W:
-					LogRoutine("Pilot: Orient to: %i\n", desiredCompassHeading);
+					DEBUGPRINT("Pilot: Orient to: %i\n", desiredCompassHeading);
 					if (PerformOrient())
 					{
 						result = ACTION_SUCCESS;
@@ -361,7 +361,7 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 					}
 					break;
 				case PILOT_ENGAGE:
-					LogRoutine("Pilot: Move to: %fN, %fE\n", nextPosition.longitude, nextPosition.latitude);
+					DEBUGPRINT("Pilot: Move to: %fN, %fE\n", nextPosition.longitude, nextPosition.latitude);
 					if (PerformMovement())
 					{
 						result = ACTION_SUCCESS;
@@ -376,7 +376,7 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 					int distance = CalculateRandomDistance();
 					SendMotorCommand(distance, distance, SlowSpeed, pilotFlags);
 					motorsRunTimeout = distance * timeoutPerCM + 5;
-					LogRoutine("Pilot: Move forward\n");
+					DEBUGPRINT("Pilot: Move forward\n");
 					pilotState = PILOT_STATE_FORWARD_SENT;
 				}
 					break;
@@ -385,7 +385,7 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 					int distance = CalculateRandomDistance();
 					SendMotorCommand(-distance, -distance, SlowSpeed, pilotFlags);
 					motorsRunTimeout = distance * timeoutPerCM + 5;
-					LogRoutine("Pilot: Move backward\n");
+					DEBUGPRINT("Pilot: Move backward\n");
 					pilotState = PILOT_STATE_BACKWARD_SENT;
 				}
 					break;
@@ -394,7 +394,7 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 					int distance = 10;
 					SendMotorCommand(distance, distance, SlowSpeed, pilotFlags);
 					motorsRunTimeout = distance * timeoutPerCM + 5;
-					LogRoutine("Pilot: Move forward 10\n");
+					DEBUGPRINT("Pilot: Move forward 10\n");
 					pilotState = PILOT_STATE_FORWARD_SENT;
 				}
 					break;
@@ -403,7 +403,7 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 					int distance = 10;
 					SendMotorCommand(-distance, -distance, SlowSpeed, pilotFlags);
 					motorsRunTimeout = distance * timeoutPerCM + 5;
-					LogRoutine("Pilot: Move backward 10\n");
+					DEBUGPRINT("Pilot: Move backward 10\n");
 					pilotState = PILOT_STATE_BACKWARD_SENT;
 				}
 					break;
@@ -554,7 +554,7 @@ void *AutopilotThread(void *arg) {
 	while (1) {
 		psMessage_t *rxMessage = GetNextMessage(&autopilotQueue);
 
-//		DEBUGPRINT("Pilot Msg: %s\n", psLongMsgNames[rxMessage->header.messageType]);
+		DEBUGPRINT("Pilot Msg: %s\n", psLongMsgNames[rxMessage->header.messageType]);
 
 		reviewProgress = false;
 
@@ -575,14 +575,14 @@ void *AutopilotThread(void *arg) {
 			{
 				//shutting down
 				CancelPilotOperation(PILOT_STATE_INACTIVE);
-				LogInfo("Pilot Shutdown\n");			}
+				DEBUGPRINT("Pilot Shutdown\n");			}
 			else
 			{
 				//make pilot available
 				if (moveOK && !motorsInhibit && (pilotState == PILOT_STATE_INACTIVE) && MOTonline && MCPonline)
 				{
 					pilotState = PILOT_STATE_IDLE;
-					LogInfo("Pilot Available\n");
+					DEBUGPRINT("Pilot Available\n");
 				}
 			}
 			reviewProgress = true;
@@ -652,38 +652,38 @@ void *AutopilotThread(void *arg) {
 				if (pilotFlags & (ENABLE_FRONT_CONTACT_ABORT)) {
 					CancelPilotOperation(PILOT_STATE_FAILED);
 					lastLuaCallReason = "BumpFront";
-					LogInfo("Pilot Front Contact Stop\n");
+					DEBUGPRINT("Pilot Front Contact Stop\n");
 				}
 				break;
 			case REAR_CONTACT_EVENT:
 				if (pilotFlags & (ENABLE_REAR_CONTACT_ABORT)){
 					CancelPilotOperation(PILOT_STATE_FAILED);
 					lastLuaCallReason = "BumpRear";
-					LogInfo("Pilot Rear Contact Stop\n");
+					DEBUGPRINT("Pilot Rear Contact Stop\n");
 				}
 				break;
 			case SLEEPING_EVENT:
 				CancelPilotOperation(PILOT_STATE_FAILED);
 				lastLuaCallReason = "Sleeping";
-				LogInfo("Pilot System Stop\n");
+				DEBUGPRINT("Pilot System Stop\n");
 				break;
 			case BATTERY_SHUTDOWN_EVENT:
 				CancelPilotOperation(PILOT_STATE_FAILED);
 				lastLuaCallReason = "Battery";
-				LogInfo("Pilot Shutdown Stop\n");
+				DEBUGPRINT("Pilot Shutdown Stop\n");
 				break;
 			case BATTERY_CRITICAL_EVENT:
 				if (pilotFlags & ENABLE_SYSTEM_ABORT) {
 					CancelPilotOperation(PILOT_STATE_FAILED);
 					lastLuaCallReason = "Battery";
-					LogInfo("Pilot Critical Stop\n");
+					DEBUGPRINT("Pilot Critical Stop\n");
 				}
 				break;
 			case LOST_FIX_EVENT:
 				if (pilotFlags & ENABLE_LOSTFIX_ABORT) {
 					CancelPilotOperation(PILOT_STATE_FAILED);
 					lastLuaCallReason = "Lost Fix";
-					LogInfo("Pilot Lost Fix Stop\n");
+					DEBUGPRINT("Pilot Lost Fix Stop\n");
 				}
 				break;
 			default:
@@ -701,21 +701,21 @@ void *AutopilotThread(void *arg) {
 				if (CancelPilotOperation(PILOT_STATE_FAILED))
 				{
 					lastLuaCallReason = "ProxFront";
-					LogRoutine("Pilot Front Prox Stop\n");
+					DEBUGPRINT("Pilot Front Prox Stop\n");
 				}
 			}
 			if ((currentConditions & rearCloseMask) && (pilotFlags & ENABLE_REAR_CLOSE_ABORT)) {
 				if (CancelPilotOperation(PILOT_STATE_FAILED))
 				{
 					lastLuaCallReason = "ProxRear";
-					LogRoutine("Pilot Rear Prox Stop\n");
+					DEBUGPRINT("Pilot Rear Prox Stop\n");
 				}
 			}
 			if ((currentConditions & frontFarMask) && (pilotFlags & ENABLE_FRONT_FAR_ABORT)){
 				if (CancelPilotOperation(PILOT_STATE_FAILED))
 				{
 					lastLuaCallReason = "ProxFar";
-					LogRoutine("Pilot Far Prox Stop");
+					DEBUGPRINT("Pilot Far Prox Stop");
 				}
 			}
 
@@ -728,7 +728,7 @@ void *AutopilotThread(void *arg) {
 				if (CancelPilotOperation(PILOT_STATE_INACTIVE))
 				{
 					lastLuaCallReason = "MotInhibit";
-					LogInfo("Pilot Motor Inhibit Stop");
+					DEBUGPRINT("Pilot Motor Inhibit Stop");
 				}
 			}
 			if (motorsBusy)
@@ -737,19 +737,19 @@ void *AutopilotThread(void *arg) {
 				{
 				case PILOT_STATE_FORWARD_SENT:
 					pilotState = PILOT_STATE_FORWARD;
-					 LogRoutine("Pilot Move Fwd Started\n");
+					DEBUGPRINT("Pilot Move Fwd Started\n");
 					break;
 				case PILOT_STATE_BACKWARD_SENT:
 					pilotState = PILOT_STATE_BACKWARD;
-					LogRoutine("Pilot Move Back Started\n");
+					DEBUGPRINT("Pilot Move Back Started\n");
 					break;
 				case PILOT_STATE_ORIENT_SENT:
 					pilotState = PILOT_STATE_ORIENT;
-					LogRoutine("Pilot Orient Started\n");
+					DEBUGPRINT("Pilot Orient Started\n");
 					break;
 				case PILOT_STATE_MOVE_SENT:
 					pilotState = PILOT_STATE_MOVE;
-					LogRoutine("Pilot Move Started\n");
+					DEBUGPRINT("Pilot Move Started\n");
 					break;
 				default:
 					break;
@@ -762,13 +762,13 @@ void *AutopilotThread(void *arg) {
 				case PILOT_STATE_FORWARD:
 				case PILOT_STATE_BACKWARD:
 					pilotState = PILOT_STATE_DONE;
-					LogRoutine("Pilot Move Done\n");
+					DEBUGPRINT("Pilot Move Done\n");
 					break;
 				case PILOT_STATE_ORIENT:
 					if (deadReckon)
 					{
 						pilotState = PILOT_STATE_DONE;
-						LogRoutine("D/R Orient Done\n");
+						DEBUGPRINT("D/R Orient Done\n");
 					}
 					else
 					{
@@ -808,12 +808,17 @@ void *AutopilotThread(void *arg) {
 
 		//update notifications
 		if (priorPilotState != pilotState) {
-			LogRoutine("Pilot State: %s", pilotStateNames[pilotState]);
+			DEBUGPRINT("New Pilot State: %s", pilotStateNames[pilotState]);
 
 			switch (priorPilotState) {
 			case PILOT_STATE_IDLE:
 			case PILOT_STATE_INACTIVE:
+				CancelCondition(PILOT_IDLE);
 				break;
+			case PILOT_STATE_FORWARD_SENT:
+			case PILOT_STATE_BACKWARD_SENT:
+			case PILOT_STATE_ORIENT_SENT:
+			case PILOT_STATE_MOVE_SENT:
 			case PILOT_STATE_FORWARD:
 			case PILOT_STATE_BACKWARD:
 			case PILOT_STATE_ORIENT:
@@ -827,10 +832,11 @@ void *AutopilotThread(void *arg) {
 				CancelCondition(PILOT_FAILED);
 				break;
 			}
+
 			switch (pilotState) {
 			case PILOT_STATE_IDLE:
 			case PILOT_STATE_INACTIVE:
-				CancelCondition(PILOT_ENGAGED);
+				SetCondition(PILOT_IDLE);
 				break;
 			case PILOT_STATE_FORWARD_SENT:
 			case PILOT_STATE_BACKWARD_SENT:
@@ -865,7 +871,7 @@ void *AutopilotThread(void *arg) {
 bool VerifyCompass()
 {
 	if (!pose.orientationValid && !deadReckon) {
-		LogRoutine("Pilot: No compass fail\n");
+		DEBUGPRINT("Pilot: No compass fail\n");
 		pilotState = PILOT_STATE_FAILED;
 		lastLuaCallReason = "Compass";
 		return false;
@@ -876,7 +882,7 @@ bool VerifyCompass()
 bool VerifyGPS()
 {
 	if (!pose.positionValid) {
-		LogRoutine("Pilot: No GPS fail");
+		DEBUGPRINT("Pilot: No GPS fail");
 		pilotState = PILOT_STATE_FAILED;
 		lastLuaCallReason = "NoGPS";
 		return false;
@@ -904,11 +910,11 @@ bool PerformOrient()
 	//if close, report done
 	if (abs(angleError) < arrivalHeading) {
 		SendMotorCommand(0,0,0,0);
-		LogRoutine("Pilot: Orient done\n");
+		DEBUGPRINT("Pilot: Orient done\n");
 		pilotState = PILOT_STATE_DONE;
 		return true;
 	} else {
-		LogRoutine("Pilot: angle error %f\n", angleError);
+		DEBUGPRINT("Pilot: angle error %f\n", angleError);
 		//send turn command
 		float range = abs(angleError * FIDO_RADIUS * M_PI / 180.0);
 		//send turn command
@@ -941,14 +947,14 @@ bool PerformMovement()
 {
 	float rangeCM = GetRangeToGoal();
 
-	LogRoutine("Pilot: Range = %.0f\n", rangeCM);
+	DEBUGPRINT("Pilot: Range = %.0f\n", rangeCM);
 
 	while (rangeCM < arrivalRange)
 	{
 		SendMotorCommand(0,0,0,0);
 		if (++routeWaypointIndex >= planWaypointCount)
 		{
-			LogRoutine("Pilot: Route done\n");
+			DEBUGPRINT("Pilot: Route done\n");
 			pilotState = PILOT_STATE_DONE;
 			return true;
 		}
@@ -956,7 +962,7 @@ bool PerformMovement()
 		{
 			if (pilotFlags & ENABLE_WAYPOINT_STOP)
 				{
-				LogRoutine("Pilot: Waypoint done\n");
+					DEBUGPRINT("Pilot: Waypoint done\n");
 					pilotState = PILOT_STATE_DONE;
 					return true;
 				}
@@ -1007,7 +1013,7 @@ void SendMotorCommand(int _port, int _starboard, int _speed, uint16_t _flags)
 	RouteMessage(&motorMessage);
 //	gettimeofday(&latestMotorTime, NULL);
 
-	LogRoutine("Pilot: Motors %i, %i\n", _port, _starboard);
+	DEBUGPRINT("Pilot: Motors %i, %i\n", _port, _starboard);
 }
 
 //convenience routines

@@ -121,7 +121,7 @@ int ScriptProcessMessage(psMessage_t *msg)
 	{
 	case RELOAD:
 		//reload all scripts
-		LogInfo("Reload scripts\n");
+		DEBUGPRINT("Reload scripts\n");
 		if (InitScriptingSystem() < 0)
 		{
 			LogError("Error on Reload scripts\n");
@@ -130,7 +130,7 @@ int ScriptProcessMessage(psMessage_t *msg)
 
 	case ACTIVATE:
 		//start BT activity
-		LogInfo("Activate: %s\n", msg->namePayload.name);
+		DEBUGPRINT("Activate: %s\n", msg->namePayload.name);
 
 		lua_getglobal(btLuaState, "activate");						//reference to 'activate(...)
 		if (lua_isfunction(btLuaState,lua_gettop(btLuaState)))
@@ -194,7 +194,7 @@ int InvokeUpdate()
 			if (reply)
 			{
 				const char *errormsg = lua_tostring(btLuaState, -1);
-				LogInfo("Script update, Error: %s\n",errormsg);
+				ERRORPRINT("Script update, Error: %s\n",errormsg);
 				lua_pop(btLuaState, lua_gettop( btLuaState));
 				return -1;
 			}
@@ -228,7 +228,7 @@ int InvokeUpdate()
 					switch (statusCode)
 					{
 					case BEHAVIOR_SUCCESS:
-						LogInfo("%s SUCCESS", behaviorName);
+						DEBUGPRINT("%s SUCCESS", behaviorName);
 						activityMsg.behaviorStatusPayload.lastLuaCallFail[0] = '\0';
 						activityMsg.behaviorStatusPayload.lastFailReason[0] = '\0';
 						RouteMessage(&activityMsg);
@@ -239,7 +239,7 @@ int InvokeUpdate()
 						RouteMessage(&activityMsg);
 						break;
 					case BEHAVIOR_FAIL:
-						LogInfo("%s FAIL @ %s - %s", behaviorName, lastLuaCallFail, lastLuaCallReason);
+						DEBUGPRINT("%s FAIL @ %s - %s", behaviorName, lastLuaCallFail, lastLuaCallReason);
 						strncpy(activityMsg.behaviorStatusPayload.lastLuaCallFail, lastLuaCallFail, PS_SHORT_NAME_LENGTH);
 						strncpy(activityMsg.behaviorStatusPayload.lastFailReason, lastLuaCallReason, PS_SHORT_NAME_LENGTH);
 						RouteMessage(&activityMsg);
@@ -247,7 +247,7 @@ int InvokeUpdate()
 					case BEHAVIOR_ACTIVE:
 					case BEHAVIOR_INVALID:
 					default:
-						LogError("%s Bad Response", behaviorName);
+						DEBUGPRINT("%s Bad Response", behaviorName);
 						strncpy(activityMsg.behaviorStatusPayload.lastLuaCallFail, "update", PS_SHORT_NAME_LENGTH);
 						strncpy(activityMsg.behaviorStatusPayload.lastFailReason, "Bad Status", PS_SHORT_NAME_LENGTH);
 						RouteMessage(&activityMsg);
@@ -335,7 +335,7 @@ static int Alert(lua_State *L)				//Alert("...")
 	psInitPublish(msg, ALERT);
 	strncpy(msg.namePayload.name, text, PS_NAME_LENGTH);
 	RouteMessage(&msg);
-	LogInfo("lua: Alert (%s)\n", text);
+	DEBUGPRINT("lua: Alert (%s)\n", text);
 
 	return 0;
 }
@@ -366,7 +366,7 @@ static int Fail(lua_State *L)				//Fail('name')
 		lastLuaCallFail = failBuffer;
 	}
 
-	LogRoutine("lua: fail at %s\n",name);
+	DEBUGPRINT("lua: fail at %s\n",name);
 	return 0;
 }
 

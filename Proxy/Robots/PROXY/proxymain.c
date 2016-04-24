@@ -27,7 +27,7 @@ int *pidof (char *pname);
 FILE *mainDebugFile;
 
 #ifdef MAIN_DEBUG
-#define DEBUGPRINT(...) {fprintf(stdout, __VA_ARGS__);fprintf(mainDebugFile, __VA_ARGS__);fflush(mainDebugFile);}
+#define DEBUGPRINT(...) {tprintf( __VA_ARGS__);fprintf(mainDebugFile, __VA_ARGS__);fflush(mainDebugFile);}
 #else
 #define DEBUGPRINT(...) {fprintf(mainDebugFile, __VA_ARGS__);fflush(mainDebugFile);}
 #endif

@@ -17,6 +17,8 @@
 #include "pubsubdata.h"
 #include "syslog/syslog.h"
 
+#define MAX_MESSAGE 256
+
 //print to an open stream - all processes
 void PrintLogMessage(psMessage_t *msg)
 {
@@ -24,7 +26,7 @@ void PrintLogMessage(psMessage_t *msg)
 	char *logText;
 	char *severity;
 	char *source;
-	char printBuff[100];
+	char printBuff[MAX_MESSAGE];
 
 	const time_t now = time(NULL);
 	struct tm *timestruct = localtime(&now);
@@ -53,12 +55,9 @@ void PrintLogMessage(psMessage_t *msg)
 		case APP_XBEE:
 		case ROBO_APP:
 			source = "APP";
-		case XBEE:
-			source = "BEE";
 			break;
 		}
 		break;
-    default:
 	case BBBLOG_MSG:
 		severityCode = msg->bbbLogPayload.severity;
 		logText = msg->bbbLogPayload.text;
@@ -86,15 +85,27 @@ void PrintLogMessage(psMessage_t *msg)
 		break;
 	}
 	//remove newline
-	int len = (int) strlen(logText);
+	int len = strlen(logText);
 	if (logText[len-1] == '\n') logText[len-1] = '\0';
 
-	snprintf(printBuff, 100, "%02i:%02i:%02i %s@%s: %s\n",
+	snprintf(printBuff, MAX_MESSAGE, "%02i:%02i:%02i %s@%s: %s\n",
 			timestruct->tm_hour, timestruct->tm_min, timestruct->tm_sec,
 			severity, source, logText);
 
-	fprintf(logFile, "%s", printBuff);
+	fprintf(logFile, printBuff);
 	fflush(logFile);
 
-	printf("%s", printBuff);
+	printf(printBuff);
+}
+
+void DebugPrint(char *logtext)
+{
+	char printBuff[MAX_MESSAGE];
+	const time_t now = time(NULL);
+	struct tm *timestruct = localtime(&now);
+
+	snprintf(printBuff, MAX_MESSAGE, "%02i:%02i:%02i %s",
+			timestruct->tm_hour, timestruct->tm_min, timestruct->tm_sec, logtext);
+
+	fprintf(stdout, printBuff);
 }
