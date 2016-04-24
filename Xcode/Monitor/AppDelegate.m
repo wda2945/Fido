@@ -80,8 +80,8 @@ typedef union {
 };
 
 int connectionList[INET_SERVER_COUNT][4] = {
-    {192,168,1,219},     //fido_proxy.local
-    {192,168,2,5}        //fido.local
+    {10,204,244,129},     //fido_proxy.local
+    {10,204,244,150}        //fido.local
 };
 
 void SIGPIPEhandler(int sig);

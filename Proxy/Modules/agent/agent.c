@@ -34,7 +34,7 @@
 FILE *agentDebugFile;
 
 #ifdef AGENT_DEBUG
-#define DEBUGPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(agentDebugFile, __VA_ARGS__);fflush(agentDebugFile);
+#define DEBUGPRINT(...) tprintf( __VA_ARGS__);fprintf(agentDebugFile, __VA_ARGS__);fflush(agentDebugFile);
 #else
 #define DEBUGPRINT(...) fprintf(agentDebugFile, __VA_ARGS__);fflush(agentDebugFile);
 #endif
@@ -64,8 +64,10 @@ int agentError = 0;
 void *AgentListenThread(void *arg);					//listen thread spawns tx & rx threads for each connect
 pthread_t listenThread;
 pthread_t txThread;
+pthread_t pingThread;
 void *AgentRxThread(void *arg);						//rx thread function
 void *AgentTxThread(void *arg);						//tx thread function
+void *AgentPingThread(void *arg);					//thread send ping to router
 
 #define LISTEN_PORT_NUMBER 50000
 
@@ -91,6 +93,13 @@ int AgentInit()
 	s = pthread_create(&txThread, NULL, AgentTxThread, NULL);
 	if (s != 0) {
 		LogError("agent Tx create failed. %s\n", strerror(s));
+		return -1;
+	}
+
+	//create agent Ping thread
+	s = pthread_create(&pingThread, NULL, AgentPingThread, NULL);
+	if (s != 0) {
+		LogError("Agent PingThread create failed. %i\n", strerror(s));
 		return -1;
 	}
 
@@ -463,3 +472,13 @@ void *AgentTxThread(void *arg)
 	return 0;
 }
 
+void *AgentPingThread(void *arg)
+{
+	while (1)
+	{
+		pingServer("10.204.244.243");
+
+		sleep(10);
+	}
+	return 0;
+}

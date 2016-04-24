@@ -471,7 +471,7 @@ void *AgentPingThread(void *arg)
 {
 	while (1)
 	{
-		if (pingServer("192.168.1.1") > 0)
+		if (pingServer("10.204.244.243") > 0)
 		{
 			SetCondition(WIFI_CONNECTED);
 		}
