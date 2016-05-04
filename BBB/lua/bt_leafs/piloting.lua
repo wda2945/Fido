@@ -11,6 +11,7 @@
 	ComputeRandomClosePosition,
 	Orient,
 	Engage,
+	Turn,
 	TurnLeft,
 	TurnRight,
 	TurnN,
@@ -111,6 +112,13 @@ BT.Task:new({
   name = 'Engage',
   run = function(self, object)
   	result(PilotAction(pilot.Engage))
+  end
+})
+
+BT.Task:new({
+  name = 'Turn',
+  run = function(self, object)
+  	result(PilotAction(pilot.Turn))
   end
 })
 

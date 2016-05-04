@@ -25,7 +25,7 @@ CurrentActivityName = 'Idle'
 activate = function(activity_name, activity_table)
 	CurrentActivity = activity_table
 	CurrentActivityName = activity_name
-	;(CurrentActivity):setObject(activity_name);
+	;(CurrentActivity):setObject(CurrentActivityName);
 end
 
 -- called periodically
@@ -35,7 +35,7 @@ update = function()
 		
 		if activityResult == 'success' or activityResult == 'fail' then
 			Print('Update - ' .. activityResult)
-			CurrentActivity = Idle;	
+			activate('IdleTask', Idle)	
 		else
 			if activityResult == 'running' then 
 				Print('Update - running')
@@ -46,7 +46,7 @@ update = function()
 		end
 		return activityResult
 	else
-		CurrentActivity = Idle;		
+		activate('IdleTask', Idle)		
 		return 'invalid'
 	end
 end

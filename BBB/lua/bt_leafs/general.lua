@@ -20,7 +20,7 @@ BT.Task:new({
   	Print('Wait10...')
   end,
   run = function(self, object)
-    if (startTime + 10) > secondCount then
+    if (startTime + 10) < secondCount then
   		Print('...done')
     	success()
     else 
@@ -36,7 +36,7 @@ BT.Task:new({
   	startTime = secondCount
   end,
   run = function(self, object)
-    if (startTime + 60) > secondCount then
+    if (startTime + 60) < secondCount then
   		Print('...done')
     	success()
     else 

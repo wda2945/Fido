@@ -28,7 +28,7 @@ BT.AlwaysSucceedDecorator:new({
 BT.Sequence:new({
 	name = 'DriveAndAvoidObstacle',
 	nodes = {
-		BT.RepeatWhileFail:new({			-- right now, retries for ever!
+		BT.RepeatWhileFail:new({			-- right now, retries forever!
 		name = 'Retry.Avoid.Obstacle',
 			nodes = {
 				BT.Priority:new({
@@ -51,7 +51,7 @@ BT.Sequence:new({
 							name = 'Front.Contact',	-- first possible reason for fail
 							nodes = {
 								'isFrontContact',
-								'DiableFrontContactStop',
+								'DisableFrontContactStop',
 								'DisableFrontCloseStop',
 								'EnableRearContactStop',
 								'MoveBackwardAlwaysSucceed',
@@ -68,7 +68,7 @@ BT.Sequence:new({
 							name = 'Front.Left.Contact',  -- second possible reason, etc.
 							nodes = {
 								'isFrontLeftContact',
-								'DiableFrontContactStop',
+								'DisableFrontContactStop',
 								'DisableFrontCloseStop',
 								'EnableRearContactStop',
 								'MoveBackwardAlwaysSucceed',
@@ -85,7 +85,7 @@ BT.Sequence:new({
 							name = 'Front.Right.Contact',
 							nodes = {
 								'isFrontRightContact',
-								'DiableFrontContactStop',
+								'DisableFrontContactStop',
 								'DisableFrontCloseStop',
 								'EnableRearContactStop',
 								'MoveBackwardAlwaysSucceed',
