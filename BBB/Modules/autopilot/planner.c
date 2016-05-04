@@ -273,11 +273,11 @@ ActionResult_enum NewWaypointPath()
 		}
 		planWaypoints[0] = nodeList[source].nodeName;
 
-		LogRoutine("A* %i steps, total cost %.1f\n", planWaypointCount, totalPlanCost);
+		DEBUGPRINT("A* %i steps, total cost %.1f\n", planWaypointCount, totalPlanCost);
 
 		for (int i=0; i<planWaypointCount; i++)
 		{
-			LogRoutine("%2i: %s\n", i+1, planWaypoints[i]);
+			DEBUGPRINT("%2i: %s\n", i+1, planWaypoints[i]);
 		}
 
 		routeWaypointIndex 		= 0;
@@ -391,7 +391,7 @@ int InitNodeList()
 					}
 					else
 					{
-						LogError("A* toNode %s not found\n", conn->waypointName);
+						ERRORPRINT("A* toNode %s not found\n", conn->waypointName);
 						return -1;
 					}
 					conn = conn->next;

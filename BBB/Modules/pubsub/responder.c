@@ -75,7 +75,7 @@ void *ResponderMessageThread(void *arg)
 			{
 				requestor = msg->configPayload.requestor;
 
-				LogRoutine("Send Config msg\n");
+				DEBUGPRINT("Send Config msg\n");
 				configCount = 0;
 #define optionmacro(name, var, minV, maxV, def) sendOptionConfig(name, var, minV, maxV, requestor);
 #include "options.h"
@@ -95,7 +95,7 @@ void *ResponderMessageThread(void *arg)
 					msg.configPayload.count = configCount;
 					RouteMessage(&msg);
 				}
-				LogRoutine("Config Done\n");
+				DEBUGPRINT("Config Done\n");
 			}
 			break;
 
@@ -103,7 +103,7 @@ void *ResponderMessageThread(void *arg)
 		{
 			if (msg->header.source != OVERMIND)
 			{
-				LogRoutine("APP Ping msg\n");
+				DEBUGPRINT("APP Ping msg\n");
 				psMessage_t msg2;
 				psInitPublish(msg2, PING_RESPONSE);
 				strcpy(msg2.responsePayload.subsystem, "OVM");
@@ -118,7 +118,8 @@ void *ResponderMessageThread(void *arg)
 		}
 		break;
 		case NEW_SETTING:
-			LogRoutine("Setting: %s = %f\n", msg->settingPayload.name, msg->settingPayload.value);
+			LogInfo("Setting: %s = %f\n", msg->settingPayload.name, msg->settingPayload.value);
+			DEBUGPRINT("Setting: %s = %f\n", msg->settingPayload.name, msg->settingPayload.value);
 #define settingmacro(n, var, min, max, def) if (strncmp(n,msg->settingPayload.name,PS_NAME_LENGTH) == 0)\
 		var = msg->settingPayload.value;
 #include "settings.h"
@@ -126,7 +127,8 @@ void *ResponderMessageThread(void *arg)
 			break;
 
 		case SET_OPTION:
-			LogRoutine("Option: %s = %i\n", msg->optionPayload.name, msg->optionPayload.value);
+			LogInfo("Option: %s = %i\n", msg->optionPayload.name, msg->optionPayload.value);
+			DEBUGPRINT("Option: %s = %i\n", msg->optionPayload.name, msg->optionPayload.value);
 #define optionmacro(n, var, min, max, def) if (strncmp(n,msg->optionPayload.name,PS_NAME_LENGTH) == 0)\
 		var = msg->optionPayload.value;
 #include "options.h"

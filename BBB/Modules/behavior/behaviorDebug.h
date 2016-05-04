@@ -13,12 +13,12 @@
 extern FILE *behDebugFile;
 
 #ifdef BEHAVIOR_DEBUG
-#define DEBUGPRINT(...) tprintf( __VA_ARGS__);fprintf(behDebugFile, __VA_ARGS__);fflush(behDebugFile);
+#define DEBUGPRINT(...) tprintf( __VA_ARGS__);tfprintf(behDebugFile, __VA_ARGS__);
 #else
-#define DEBUGPRINT(...)
+#define DEBUGPRINT(...) tfprintf(behDebugFile, __VA_ARGS__);
 #endif
 
-#define ERRORPRINT(...) tprintf( __VA_ARGS__);fprintf(behDebugFile, __VA_ARGS__);fflush(behDebugFile);
+#define ERRORPRINT(...) tprintf( __VA_ARGS__);tfprintf(behDebugFile, __VA_ARGS__);
 
 #define ASSERT_LUA_TABLE(L, x, s) if (!lua_istable(L, x)) {ERRORPRINT("Not a LUA Table : %s\n", s); abort();}
 

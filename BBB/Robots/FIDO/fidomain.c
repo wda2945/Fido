@@ -38,7 +38,7 @@ FILE *mainDebugFile;
 #define DEBUGPRINT(...) fprintf(mainDebugFile, __VA_ARGS__);fflush(mainDebugFile);
 #endif
 
-#define ERRORPRINT(...) LogError(__VA_ARGS__);fprintf(mainDebugFile, __VA_ARGS__);fflush(mainDebugFile);
+#define ERRORPRINT(...) LogError(__VA_ARGS__);fprintf(stdout, __VA_ARGS__);fprintf(mainDebugFile, __VA_ARGS__);fflush(mainDebugFile);
 
 #define PROCESS_NAME "fido.elf"
 
@@ -110,7 +110,7 @@ int main(int argc, const char * argv[])
 	reply  =NavigatorInit();
 	if (reply != 0)
 	{
-		ERRORPRINT("NavigatorInit() OK\n");
+		ERRORPRINT("NavigatorInit() Fail\n");
 		initFail = "nav";
 	}
 	else {
@@ -216,6 +216,17 @@ int main(int argc, const char * argv[])
 		DEBUGPRINT("ResponderInit() OK\n");
 	}
 
+	//Notifications
+	reply=NotificationsInit();
+	if (reply != 0)
+	{
+		ERRORPRINT("NotificationsInit() fail\n");
+		initFail = "responder";
+	}
+	else {
+		DEBUGPRINT("NotificationsInit() OK\n");
+	}
+
 	if (strlen(initFail) > 0)
 	{
 		psMessage_t msg;
@@ -244,22 +255,14 @@ int main(int argc, const char * argv[])
 	if (getppid() == 1)
 	{
 		//child of init/systemd
-		if (signal(SIGHUP, SIGHUPhandler) == SIG_ERR)
-		{
-			LogError("SIGHUP err: %s", strerror(errno));
-		}
-		else
-		{
-			DEBUGPRINT("SIGHUP handler set\n");
-		}
+
 		//close stdio
 		fclose(stdout);
 		fclose(stderr);
 		stdout = fopen("/dev/null", "w");
 		stderr = fopen("/dev/null", "w");
 	}
-	else
-	{
+
 		signal(SIGILL, fatal_error_signal);
 		signal(SIGABRT, fatal_error_signal);
 		signal(SIGIOT, fatal_error_signal);
@@ -270,30 +273,16 @@ int main(int argc, const char * argv[])
 		signal(SIGCHLD, fatal_error_signal);
 		signal(SIGSYS, fatal_error_signal);
 		signal(SIGCHLD, fatal_error_signal);
-	}
+
 
 	while(1)
 	{
 		sleep(1);
-		if (SIGHUPflag)
-		{
-			//SIGHUP Signal used to reload lua scripts
-			psMessage_t msg;
-			psInitPublish(msg, RELOAD);
-			RouteMessage(&msg);
-
-			SIGHUPflag = 0;
-		}
 	}
 
 	return 0;
 }
-//SIGHUP
-void SIGHUPhandler(int sig)
-{
-	SIGHUPflag = 1;
-	LogError("SIGHUP signal");
-}
+
 
 //other signals
 volatile sig_atomic_t fatal_error_in_progress = 0;

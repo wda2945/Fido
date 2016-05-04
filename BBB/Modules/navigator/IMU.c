@@ -26,6 +26,8 @@
 #include "i2c.h"
 #include "pubsubdata.h"
 #include "pubsub/pubsub.h"
+#include "pubsub/notifications.h"
+#include "common.h"
 
 #include "syslog/syslog.h"
 #include "softwareprofile.h"
@@ -33,17 +35,15 @@
 #include "IMU.h"
 #include "LSM303.h"
 
-
-
 FILE *imuDebugFile;
 
 #ifdef IMU_DEBUG
-#define DEBUGPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(imuDebugFile, __VA_ARGS__);fflush(imuDebugFile);
+#define DEBUGPRINT(...) tprintf( __VA_ARGS__);tfprintf(imuDebugFile, __VA_ARGS__);
 #else
-#define DEBUGPRINT(...) fprintf(imuDebugFile, __VA_ARGS__);fflush(imuDebugFile);
+#define DEBUGPRINT(...) tfprintf(imuDebugFile, __VA_ARGS__);
 #endif
 
-#define ERRORPRINT(...) LogError(__VA_ARGS__);fprintf(imuDebugFile, __VA_ARGS__);fflush(imuDebugFile);
+#define ERRORPRINT(...) tprintf( __VA_ARGS__);tfprintf(imuDebugFile, __VA_ARGS__);
 
 
 //thread to poll IMU
@@ -55,11 +55,19 @@ int IMUInit()
 	imuDebugFile = fopen("/root/logfiles/imu.log", "w");
 
 	//prep I2C
+	if (load_device_tree(IMU_I2C_OVERLAY) < 0)
+	{
+		ERRORPRINT("IMU I2C overlay: %s failed\n", IMU_I2C_OVERLAY);
+//		return -1;
+	}
+	else {
+		DEBUGPRINT("IMU I2C overlay OK\n", PS_UART_DEVICE);
+	}
 
 	if (i2c_setup(IMU_SCL_PIN, IMU_SDA_PIN) < 0)
 	{
-		ERRORPRINT("IMU I2C setup fail\n");
-		return -1;
+		ERRORPRINT("IMU I2C pinmux setup fail\n");
+//		return -1;
 	}
 
 	//create IMU thread
@@ -79,48 +87,58 @@ int IMU_FD;
 //thread to poll IMU
 void *IMUReaderThread(void *arg)
 {
-	struct timespec request, remain;
-	request.tv_sec = 0;
 	psMessage_t msg;
-
 	int result;
-	struct timespec waitTime = {0,0};
-	char IMU_I2CdevName[50];
-
-	//LIDAR I2C device path
-	snprintf(IMU_I2CdevName, sizeof(IMU_I2CdevName), "/dev/i2c-%d", IMU_I2C);
 
 	//open I2C driver
-	if ((IMU_FD = open(IMU_I2CdevName, O_RDWR)) < 0){
-		LogError("open(%s): %s\n", IMU_I2CdevName, strerror(errno));
-		return 0;
-	}
-	if (ioctl(IMU_FD, I2C_SLAVE, I2C_SLAVE_LSM) < 0){
-		LogError("I2C @ %2x: %s\n", I2C_SLAVE_LSM, strerror(errno));
-		return 0;
+	while(1)
+	{
+		if ((IMU_FD = open(IMU_I2C_PATH, O_RDWR)) < 0){
+			ERRORPRINT("open(%s): %s\n", IMU_I2C_PATH, strerror(errno));
+			usleep(250000);
+			continue;
+		}
+		else if (ioctl(IMU_FD, I2C_SLAVE, I2C_SLAVE_LSM) < 0){
+			ERRORPRINT("I2C @ %2x: %s\n", I2C_SLAVE_LSM, strerror(errno));
+			close(IMU_FD);
+			usleep(250000);
+			continue;
+		}
+		else if (LSM303_enableDefault() < 0)
+		{
+			ERRORPRINT("LSM303_enableDefault error\n");
+			close(IMU_FD);
+			usleep(250000);
+			continue;
+		}
+		break;
 	}
 
-	LSM303_enableDefault();
-	
+	DEBUGPRINT("IMU opened %s\n", IMU_I2C_PATH);
+
 	sleep(1);
 
 	while (1)
 	{
-		LSM303_read();
+		if (LSM303_read() >= 0)
+		{
+			//send raw message
+			psInitPublish(msg, IMU_REPORT);
 
-		//send raw message
-		psInitPublish(msg, IMU_REPORT);
+			msg.threeFloatPayload.heading = fmodf(LSM303_heading() + compassOffset, 360.0);
+			msg.threeFloatPayload.pitch = LSM303_pitch();
+			msg.threeFloatPayload.roll = LSM303_roll();
 
-		msg.threeFloatPayload.heading = LSM303_heading() + COMPASS_OFFSET;
-		msg.threeFloatPayload.pitch = LSM303_pitch();
-		msg.threeFloatPayload.roll = LSM303_roll();
+			RouteMessage(&msg);
 
-		RouteMessage(&msg);
-
-		DEBUGPRINT("Compass: %f\n", msg.threeFloatPayload.heading);
-
-
-		request.tv_nsec = imuLoopDelay * 1000000;
-		int reply = nanosleep(&request, &remain);
+			DEBUGPRINT("Compass: %f\n", msg.threeFloatPayload.heading);
+			CancelCondition(IMU_ERROR);
+		}
+		else
+		{
+			ERRORPRINT("IMU Read fail\n");
+			SetCondition(IMU_ERROR);
+		}
+		usleep(imuLoopDelay * 1000);
 	}
 }

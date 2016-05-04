@@ -69,18 +69,18 @@ int SerialBrokerInit()
 {
 	struct termios settings;
 
-	if (load_device_tree(PS_UART_OVERLAY) < 0)
-	{
-		ERRORPRINT("broker uart overlay: %s failed\n", PS_UART_OVERLAY);
-		return -1;
-	}
-	else {
-		DEBUGPRINT("broker uart overlay OK\n", PS_UART_DEVICE);
-	}
+//	if (load_device_tree(PS_UART_OVERLAY) < 0)
+//	{
+//		ERRORPRINT("broker uart overlay: %s failed\n", PS_UART_OVERLAY);
+//		return -1;
+//	}
+//	else {
+//		DEBUGPRINT("broker uart overlay OK\n", PS_UART_DEVICE);
+//	}
 
 	if (uart_setup(PS_TX_PIN, PS_RX_PIN) < 0)
 	{
-		ERRORPRINT("uart pinmux");
+		ERRORPRINT("uart pinmux fail");
 		return -1;
 	}
 	else {
@@ -243,7 +243,7 @@ void *TxThread(void *a) {
 		{
 			DEBUGPRINT("uart TX: %s\n", psLongMsgNames[msg->header.messageType]);
 		} else {
-			LogError("uart TX:. %s\n", strerror(errno));
+			ERRORPRINT("uart TX:. %s\n", strerror(errno));
 			SetCondition(OVM_MCP_COMMS_ERRORS);
 		}
 
@@ -307,7 +307,7 @@ void *RxThread(void *a) {
 					if (messagesReceived > 1)	//ignore first sequence error
 					{
 						receiveErrors++;
-						LogError("Parse: %s\n", parseErrorsText[result]);
+						ERRORPRINT("Parse: %s\n", parseErrorsText[result]);
 						SetCondition(OVM_MCP_COMMS_ERRORS);
 					}
 					result = PARSE_OK;
@@ -315,7 +315,7 @@ void *RxThread(void *a) {
 
 				default:
 					//error
-					LogError("Parse: %s\n", parseErrorsText[result]);
+					ERRORPRINT("Parse: %s\n", parseErrorsText[result]);
 					parseErrors++;
 					SetCondition(OVM_MCP_COMMS_ERRORS);
 					result = PARSE_OK;
@@ -324,7 +324,7 @@ void *RxThread(void *a) {
 			}
 			else if (count < 0)
 			{
-				LogError("uart RX: %s\n", strerror(errno));
+				ERRORPRINT("uart RX: %s\n", strerror(errno));
 				SetCondition(OVM_MCP_COMMS_ERRORS);
 				result = PARSE_OK;
 			}

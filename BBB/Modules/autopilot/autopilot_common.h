@@ -16,12 +16,12 @@
 extern FILE *pilotDebugFile;
 
 #ifdef AUTOPILOT_DEBUG
-#define DEBUGPRINT(...) tprintf( __VA_ARGS__);fprintf(pilotDebugFile, __VA_ARGS__);fflush(pilotDebugFile);
+#define DEBUGPRINT(...) tprintf( __VA_ARGS__);tfprintf(pilotDebugFile, __VA_ARGS__);
 #else
-#define DEBUGPRINT(...) fprintf(pilotDebugFile, __VA_ARGS__);fflush(pilotDebugFile);
+#define DEBUGPRINT(...) tfprintf(pilotDebugFile, __VA_ARGS__);
 #endif
 
-#define ERRORPRINT(...) tprintf( __VA_ARGS__);fprintf(pilotDebugFile, __VA_ARGS__);fflush(pilotDebugFile);
+#define ERRORPRINT(...) tprintf( __VA_ARGS__);tfprintf(pilotDebugFile, __VA_ARGS__);
 
 float GetRangeToGoal();
 

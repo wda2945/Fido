@@ -153,7 +153,7 @@ void RouteMessage(psMessage_t *msg)
 		break;
 	case NAV_REPORT_TOPIC:       //Fused Odometry & Prox Reports
 		AutopilotProcessMessage(msg);
-		BehaviorProcessMessage(msg);
+//		BehaviorProcessMessage(msg);
 		break;
 	case OVM_ACTION_TOPIC:
 		BehaviorProcessMessage(msg);

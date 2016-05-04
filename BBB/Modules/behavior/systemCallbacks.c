@@ -314,7 +314,7 @@ int SaveSettingsAndOptions(lua_State *L, bool useDefault)
 			}
 			else
 			{
-				LogRoutine("Settings and Options Saved\n");
+				LogInfo("Settings and Options Saved\n");
 				return success(L);
 			}
 		}
@@ -380,7 +380,7 @@ int LoadSettingsAndOptions(lua_State *L)
 
 			fclose(fp);
 
-			LogRoutine("Settings and Options Saved\n");
+			LogInfo("Settings and Options Saved\n");
 			return success(L);
 		}
 		else

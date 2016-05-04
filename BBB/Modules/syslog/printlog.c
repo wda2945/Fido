@@ -98,7 +98,7 @@ void PrintLogMessage(psMessage_t *msg)
 	printf(printBuff);
 }
 
-void DebugPrint(char *logtext)
+void DebugPrint(FILE *dbgfile, char *logtext)
 {
 	char printBuff[MAX_MESSAGE];
 	const time_t now = time(NULL);
@@ -107,5 +107,6 @@ void DebugPrint(char *logtext)
 	snprintf(printBuff, MAX_MESSAGE, "%02i:%02i:%02i %s",
 			timestruct->tm_hour, timestruct->tm_min, timestruct->tm_sec, logtext);
 
-	fprintf(stdout, printBuff);
+	fprintf(dbgfile, printBuff);
+	fflush(dbgfile);
 }

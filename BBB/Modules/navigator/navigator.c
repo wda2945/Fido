@@ -43,12 +43,12 @@
 FILE *navDebugFile;
 
 #ifdef NAVIGATOR_DEBUG
-#define DEBUGPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(navDebugFile, __VA_ARGS__);fflush(navDebugFile);
+#define DEBUGPRINT(...) tprintf( __VA_ARGS__);tfprintf(navDebugFile, __VA_ARGS__);
 #else
-#define DEBUGPRINT(...) fprintf(navDebugFile, __VA_ARGS__);fflush(navDebugFile);
+#define DEBUGPRINT(...) tfprintf(navDebugFile, __VA_ARGS__);fflush(navDebugFile);
 #endif
 
-#define ERRORPRINT(...) LogError(__VA_ARGS__);fprintf(navDebugFile, __VA_ARGS__);fflush(navDebugFile);
+#define ERRORPRINT(...) tprintf( __VA_ARGS__);tfprintf(navDebugFile, __VA_ARGS__);
 
 enum {NO_DATA, GOT_IMU, GOT_GPS, GOOD_POSE} navigationState = NO_DATA;
 char *navStates[] = {"No Data", "IMU only", "GPS + IMU", "Good Pose"};
@@ -141,9 +141,9 @@ void *NavigatorThread(void *arg)
 	psMessage_t poseMsg;
 	psPosePayload_t lastPoseMsg;
 
-	bool GPSGood;
-	bool IMUGood;
-	bool reportRequired;
+	bool GPSGood	= false;
+	bool IMUGood	= false;
+	bool reportRequired	= false;
 
 	//set up filters
 	////////////////////////////////////////////////////////////////////////
@@ -236,7 +236,7 @@ void *NavigatorThread(void *arg)
 
 		msg = GetNextMessage(&navigatorQueue);
 
-		DEBUGPRINT("Navigator RX: %s\n", psLongMsgNames[msg->header.messageType]);
+//		DEBUGPRINT("Navigator RX: %s\n", psLongMsgNames[msg->header.messageType]);
 
 		reportRequired = false;
 
@@ -244,9 +244,9 @@ void *NavigatorThread(void *arg)
 		{
 		case GPS_REPORT:
 		{
-			if ((msg->positionPayload.gpsStatus && msg->positionPayload.HDOP <= 10) || simGPS)
+			if ((msg->positionPayload.gpsStatus && msg->positionPayload.HDOP <= minHDOP) || simGPS)
 			{
-				if (oldestGPSFixTime = 0) oldestGPSFixTime = time(NULL);
+				if (oldestGPSFixTime == 0) oldestGPSFixTime = time(NULL);
 				//save the fix
 				latestGPSFixTime = time(NULL);
 				GPS_report = msg->positionPayload;
@@ -262,71 +262,9 @@ void *NavigatorThread(void *arg)
 
 				DEBUGPRINT("GPS: %fN, %fE\n", GET_LATITUDE, GET_LONGITUDE);
 
-				if (getFixEndTime > time(NULL))
-				{
-					//fix averaging
-					//save message
-					AppendQueueEntry(&getFixQueue, (BrokerQueueEntry_t *) msg);
-				}
-				else if (!isQueueEmpty(&getFixQueue))
-				{
-					AppendQueueEntry(&getFixQueue, (BrokerQueueEntry_t *) msg);
-					latitudeSum = longitudeSum = 0;
-					sampleCount = 0;
-					//get average
-					while (!isQueueEmpty(&getFixQueue))
-					{
-						psMessage_t *fixmsg = GetNextMessage(&getFixQueue);		//only if not empty - no wait
+				GPSGood = true;
+				DoneWithMessage(msg);
 
-						latitudeSum += fixmsg->positionPayload.latitude;
-						longitudeSum  += fixmsg->positionPayload.longitude;
-						sampleCount++;
-
-						DEBUGPRINT("#%i GetFix: %fN, %fE\n",
-								sampleCount,fixmsg->positionPayload.latitude,
-								fixmsg->positionPayload.longitude);
-
-						AppendQueueEntry(&varianceQueue, (BrokerQueueEntry_t *) fixmsg);
-					}
-					double latitude = latitudeSum / sampleCount;		//mean
-					double longitude = longitudeSum / sampleCount;
-					double latitudeSumErrors 	= 0;
-					double longitudeSumErrors 	= 0;
-					double HDOP					= 0;
-					//get variance
-					while (!isQueueEmpty(&varianceQueue))
-					{
-						psMessage_t *fixmsg = GetNextMessage(&varianceQueue);		//only if not empty - no wait
-
-						double errorN = latitude - fixmsg->positionPayload.latitude;
-						double errorE = longitude - fixmsg->positionPayload.longitude;
-
-						latitudeSumErrors = errorN * errorN;
-						longitudeSumErrors = errorE * errorE;
-
-						HDOP   = fixmsg->positionPayload.HDOP;
-
-						DoneWithMessage(fixmsg);
-					}
-					double latitudeVariance = latitudeSumErrors / sampleCount;
-					double longitudeVariance = longitudeSumErrors / sampleCount;
-
-					//load into Kalman Filter
-					SET_NORTHING_CHANGE(0.0);
-					SET_EASTING_CHANGE(0.0);
-					predict(LocationFilter);
-					SET_LOCATION_OBSERVATION(latitude, longitude);
-					SET_LOCATION_OBSERVATION_NOISE(latitudeVariance + HDOP, longitudeVariance + HDOP);
-					estimate(LocationFilter);
-
-					DEBUGPRINT("Fix:: %f, %f. Var %f, %f\n", GET_LONGITUDE, GET_LATITUDE, latitudeVariance, longitudeVariance);
-
-					GPSGood = ((sampleCount > 10) && (HDOP <= 10));
-				}
-				else
-				{
-					DoneWithMessage(msg);
-				}
 			}
 			else
 			{
@@ -390,12 +328,11 @@ void *NavigatorThread(void *arg)
 		}
 
 
-		if (time(NULL) - latestGPSFixTime > RAW_DATA_TIMEOUT)
+		if (latestGPSFixTime + RAW_DATA_TIMEOUT < time(NULL))
 		{
-			latestGPSFixTime = 0;
 			GPSGood = false;
 		}
-		if (time(NULL) - latestIMUReportTime > RAW_DATA_TIMEOUT)
+		if (latestIMUReportTime + RAW_DATA_TIMEOUT < time(NULL))
 		{
 			IMUGood = false;
 		}
@@ -451,17 +388,13 @@ void *NavigatorThread(void *arg)
 					reportRequired = true;
 				}
 			}
-			else
-			{
-				//whether to report
-
-			}
 			break;
 		}
 
 		if (savedState != navigationState)
 		{
 			LogInfo("NAV: State: %s\n", navStates[navigationState]);
+			DEBUGPRINT("NAV: State: %s\n", navStates[navigationState]);
 		}
 
 		switch (navigationState)
@@ -516,7 +449,7 @@ void *NavigatorThread(void *arg)
 			RouteMessage(&poseMsg);
 			latestReportTime = time(NULL);
 		}
-		if (latestAppReportTime + appReportInterval < time(NULL)){
+		if (latestAppReportTime + (time_t)appReportInterval < time(NULL)){
 			DEBUGPRINT("NAV: N=%f, E=%f, H=%f\n", poseMsg.posePayload.position.latitude, poseMsg.posePayload.position.longitude, lastPoseMsg.orientation.heading )
 			//send another to the App
 			psInitPublish(poseMsg, POSEREP);

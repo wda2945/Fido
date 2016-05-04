@@ -35,12 +35,12 @@
 FILE *gpsDebugFile;
 
 #ifdef GPS_DEBUG
-#define DEBUGPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(gpsDebugFile, __VA_ARGS__);fflush(gpsDebugFile);
+#define DEBUGPRINT(...) tprintf( __VA_ARGS__);tfprintf(gpsDebugFile, __VA_ARGS__);t
 #else
-#define DEBUGPRINT(...) fprintf(gpsDebugFile, __VA_ARGS__);fflush(gpsDebugFile);
+#define DEBUGPRINT(...) tfprintf(gpsDebugFile, __VA_ARGS__);
 #endif
 
-#define ERRORPRINT(...) LogError(__VA_ARGS__);fprintf(gpsDebugFile, __VA_ARGS__);fflush(gpsDebugFile);
+#define ERRORPRINT(...) tprintf( __VA_ARGS__);tfprintf(gpsDebugFile, __VA_ARGS__);
 
 
 void *GPSReaderThread(void *arg);
@@ -67,15 +67,6 @@ int GPSInit()
 
 	//open GPS uart
 	struct termios settings;
-
-	if (load_device_tree(GPS_UART_OVERLAY) < 0)
-	{
-		ERRORPRINT("GPS uart overlay: %s failed\n", GPS_UART_OVERLAY);
-		return -1;
-	}
-	else {
-		DEBUGPRINT("GPS uart overlay OK\n", PS_UART_DEVICE);
-	}
 
 	if (uart_setup(GPS_TX_PIN, GPS_RX_PIN) < 0)
 	{
@@ -342,29 +333,15 @@ int ParseNMEA() {
 
     //send a message
 
-    DEBUGPRINT("GPS Report: %s @ %f N, %f W\n", (fix > 0 ? "Fix" : "No Fix"), latitude, longitude);
+    DEBUGPRINT("GPS Report: %s (%0.2f) @ %f N, %f W\n", (fix > 0 ? "Fix" : "No Fix"), HDOP, latitude, longitude);
 
     psInitPublish(msg, GPS_REPORT);
     msg.positionPayload.gpsStatus = (fix > 0 ? 1 : 0);
-//    msg.positionPayload.seconds = seconds;
-//    msg.positionPayload.hour = hour;
-//    msg.positionPayload.minute = minute;
-//    msg.positionPayload.seconds = seconds;
-//    msg.positionPayload.year = year;
-//    msg.positionPayload.month = month;
-//    msg.positionPayload.day = day;
     msg.positionPayload.latitude = latitude;
     msg.positionPayload.longitude = longitude;
     msg.positionPayload.HDOP = HDOP;
 
     RouteMessage(&msg);
-
-//    hour = minute = seconds = year = month = day =
-//            fixquality = satellites = 0; // uint8_t
-//    lat = lon = mag = 0; // char
-//    milliseconds = 0; // uint16_t
-//    latitude = longitude = geoidheight = altitude =
-//            speed = angle = magvariation = HDOP = 0.0; // float
 
     return true;
 }

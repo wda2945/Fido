@@ -9,8 +9,6 @@
 
 int IMUInit();
 
-#define COMPASS_OFFSET 13.0
-
 extern FILE *imuDebugFile;
 
 #endif

@@ -17,7 +17,7 @@
 
 //enabled subsystem debug
 //#define BROKER_DEBUG
-#define NOTIFICATIONS_DEBUG
+//#define NOTIFICATIONS_DEBUG
 //#define AGENT_DEBUG
 
 #define BEHAVIOR_DEBUG
@@ -49,60 +49,57 @@
 
 #define WAYPOINT_FILE_PATH	"/root/data/waypoints.xml"
 #define SAVED_SETTINGS_FILE "/root/data/settings.txt"
-#define SAVED_OPTIONS_FILE "/root/data/options.txt"
+#define SAVED_OPTIONS_FILE  "/root/data/options.txt"
 
 #define SPARE_ANALOG0		AN0
 #define SPARE_ANALOG1		AN1
 
 //UART broker
-#define PS_UART_OVERLAY	    "BB-UART5"
-#define PS_UART_DEVICE 		"/dev/ttyO5"
+#define PS_UART_DEVICE 			"/dev/ttyO5"
 #define PS_TX_PIN				"P8_37"
 #define PS_RX_PIN				"P8_38"
-#define PS_UART_BAUDRATE 	B115200
+#define PS_UART_BAUDRATE 		B115200
 
 //GPS
-#define GPS_UART_OVERLAY	"BB-UART2"
-#define GPS_UART_DEVICE 	"/dev/ttyO2"
+#define GPS_UART_DEVICE 		"/dev/ttyO2"
 #define GPS_TX_PIN				"P9_21"
 #define GPS_RX_PIN				"P9_22"
-#define GPS_UART_BAUDRATE 	B9600
+#define GPS_UART_BAUDRATE 		B9600
 
 //CAMERA
-#define CAMERA_UART_OVERLAY	"BB-UART1"
-#define CAMERA_UART_DEVICE 	"/dev/ttyO1"
+#define CAMERA_UART_DEVICE 		"/dev/ttyO1"
 #define CAM_TX_PIN				"P9_24"
 #define CAM_RX_PIN				"P9_26"
 #define CAMERA_UART_BAUDRATE 	B38400
 
 //TTS
-#define TTS_UART_OVERLAY	"BB-UART3"
-#define TTS_UART_DEVICE 	"/dev/ttyO3"
+#define TTS_UART_DEVICE 		"/dev/ttyO3"
 #define TTS_TX_PIN				"P9_42"
 #define TTS_RX_PIN				""
-#define TTS_UART_BAUDRATE 	B9600
+#define TTS_UART_BAUDRATE 		B9600
 
 //IMU
-#define IMU_I2C           		1
-#define IMU_SCL_PIN				""
-#define IMU_SDA_PIN				""
+#define IMU_I2C           		2
+#define IMU_I2C_PATH			"/dev/i2c-2"
+#define IMU_I2C_OVERLAY			"BB-I2C2"
+#define IMU_SCL_PIN				"P9_19"
+#define IMU_SDA_PIN				"P9_20"
 #define IMU_XM_I2C_ADDRESS   	0x1D
 #define IMU_G_I2C_ADDRESS   	0x6B
 
 //IR PINGER
-#define IR_UART_OVERLAY		"BB-UART4"
-#define IR_UART_DEVICE 		"/dev/ttyO4"
+#define IR_UART_DEVICE 			"/dev/ttyO4"
 #define IR_TX_PIN				"P9_13"
 #define IR_RX_PIN				"P9_11"
-#define IR_UART_BAUDRATE 	B57600
-#define IR_PWM_KEY   		"P9_14"
-#define IR_PWM_EXPORT		1
-#define IR_PWM_DIR			"pwm1"
-#define IR_PWM_FREQUENCY	38000.0		//Hz
-#define IR_PWM_PERIOD		(1000.0/IR_PWM_FREQUENCY)	//ms
+#define IR_UART_BAUDRATE 		B57600
+#define IR_PWM_KEY   			"P9_14"
+#define IR_PWM_EXPORT			1
+#define IR_PWM_DIR				"pwm1"
+#define IR_PWM_FREQUENCY		38000.0		//Hz
+#define IR_PWM_PERIOD			(1000.0/IR_PWM_FREQUENCY)	//ms
 
 //I2C Lidar
-#define LIDAR_I2C           		2
+#define LIDAR_I2C           		1
 #define LIDAR_SCL_PIN				"P9_17"
 #define LIDAR_SDA_PIN				"P9_18"
 #define LIDAR_I2C_ADDRESS   		0x62

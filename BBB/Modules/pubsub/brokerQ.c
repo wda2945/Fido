@@ -62,7 +62,7 @@ void AppendQueueEntry(BrokerQueue_t *q, BrokerQueueEntry_t *e)
 	int s = pthread_mutex_lock(&q->mtx);
 	if (s != 0)
 	{
-		LogError("brokerQ: mutex lock %i", s);
+		ERRORPRINT("brokerQ: mutex lock %i", s);
 	}
 
 	int wake = 0;
@@ -80,7 +80,7 @@ void AppendQueueEntry(BrokerQueue_t *q, BrokerQueueEntry_t *e)
 	s = pthread_mutex_unlock(&q->mtx);
 	if (s != 0)
 	{
-		LogError("brokerQ: mutex unlock %i", s);
+		ERRORPRINT("brokerQ: mutex unlock %i", s);
 	}
 	//end critical section
 
@@ -101,7 +101,7 @@ psMessage_t *GetNextMessage(BrokerQueue_t *q)
 	int s = pthread_mutex_lock(&q->mtx);
 	if (s != 0)
 	{
-		LogError("brokerQ: mutex lock %i", s);
+		ERRORPRINT("brokerQ: mutex lock %i", s);
 	}
 	//empty wait case
 	while (q->qHead == NULL) pthread_cond_wait(&q->cond, &q->mtx);
@@ -118,7 +118,7 @@ psMessage_t *GetNextMessage(BrokerQueue_t *q)
 	s = pthread_mutex_unlock(&q->mtx);
 	if (s != 0)
 	{
-		LogError("brokerQ: mutex unlock %i", s);
+		ERRORPRINT("brokerQ: mutex unlock %i", s);
 	}
 	//end critical section
 
@@ -149,7 +149,7 @@ void AddToFreelist(BrokerQueueEntry_t *e)
 	int s = pthread_mutex_lock(&freeMtx);
 	if (s != 0)
 	{
-		LogError("brokerQ: freelist mutex lock %i", s);
+		ERRORPRINT("brokerQ: freelist mutex lock %i", s);
 	}
 	e->next = freelist;
 	freelist = e;
@@ -157,7 +157,7 @@ void AddToFreelist(BrokerQueueEntry_t *e)
 	s = pthread_mutex_unlock(&freeMtx);
 	if (s != 0)
 	{
-		LogError("brokerQ: freelist mutex unlock %i", s);
+		ERRORPRINT("brokerQ: freelist mutex unlock %i", s);
 	}
 	//end critical section
 }
@@ -171,7 +171,7 @@ BrokerQueueEntry_t *GetFreeEntry()
 	int s = pthread_mutex_lock(&freeMtx);
 	if (s != 0)
 	{
-		LogError("brokerQ: freelist mutex lock %i", s);
+		ERRORPRINT("brokerQ: freelist mutex lock %i", s);
 	}
 
 	if (freelist)
@@ -188,7 +188,7 @@ BrokerQueueEntry_t *GetFreeEntry()
 	s = pthread_mutex_unlock(&freeMtx);
 	if (s != 0)
 	{
-		LogError("brokerQ: freelist mutex unlock %i", s);
+		ERRORPRINT("brokerQ: freelist mutex unlock %i", s);
 	}
 	//end critical section
 

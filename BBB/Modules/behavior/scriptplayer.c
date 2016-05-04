@@ -125,6 +125,7 @@ int ScriptProcessMessage(psMessage_t *msg)
 		if (InitScriptingSystem() < 0)
 		{
 			LogError("Error on Reload scripts\n");
+			ERRORPRINT("Error on Reload scripts\n");
 		}
 		break;
 
@@ -133,36 +134,40 @@ int ScriptProcessMessage(psMessage_t *msg)
 		DEBUGPRINT("Activate: %s\n", msg->namePayload.name);
 
 		lua_getglobal(btLuaState, "activate");						//reference to 'activate(...)
-		if (lua_isfunction(btLuaState,lua_gettop(btLuaState)))
+		if (lua_isfunction(btLuaState, -1))
 		{
 			//activate() exists
 			lua_pushstring(btLuaState, msg->namePayload.name);		//name of target BT
 			lua_getglobal(btLuaState, msg->namePayload.name);		//reference to the tree itself
-			if (lua_istable(btLuaState,lua_gettop(btLuaState)))
+			if (lua_istable(btLuaState, -1))
 			{
 				//target table exists - call activate()
+				strncpy(behaviorName, msg->namePayload.name, PS_NAME_LENGTH);
+
 				int status = lua_pcall(btLuaState, 2, 0, 0);
-				if (status)
+				if (status != 0)
 				{
 					const char *errormsg = lua_tostring(btLuaState, -1);
-					LogError("%s, Error: %s\n",msg->namePayload.name,errormsg);
+					ERRORPRINT("%s, Activate error: %s\n",msg->namePayload.name,errormsg);
+					behaviorStatus = BEHAVIOR_INVALID;
 				}
 				else
 				{
-					strncpy(behaviorName, msg->namePayload.name, PS_NAME_LENGTH);
 					behaviorStatus = BEHAVIOR_ACTIVE;
 				}
 			}
 			else
 			{
-				//target table does not exist
-				LogError("%s is type %s\n",msg->namePayload.name,lua_typename(btLuaState,lua_type(btLuaState,lua_gettop(btLuaState))) );
+				//target BT does not exist
+				LogError("%s is type %s\n",msg->namePayload.name,lua_typename(btLuaState,lua_type(btLuaState, -1)) );
+				ERRORPRINT("%s is type %s\n",msg->namePayload.name,lua_typename(btLuaState,lua_type(btLuaState, -1)) );
 			}
 		}
 		else
 		{
 			//activate() does not exist
-			LogError("activate is type %s\n",lua_typename(btLuaState,lua_type(btLuaState,lua_gettop(btLuaState))) );
+			LogError("activate is type %s\n",lua_typename(btLuaState,lua_type(btLuaState, -1)) );
+			ERRORPRINT("activate is type %s\n",lua_typename(btLuaState,lua_type(btLuaState, -1)) );
 		}
 		lua_pop(btLuaState, lua_gettop( btLuaState));
 		break;
@@ -175,10 +180,16 @@ int ScriptProcessMessage(psMessage_t *msg)
 }
 
 static char *behaviorStatusNames[BEHAVIOR_STATUS_COUNT] = BEHAVIOR_STATUS_NAMES;
+
 //periodic behavior tree update invocation
 int InvokeUpdate()
 {
 	if (!btLuaState) return -1;
+
+	//prepare Activity msg
+	psMessage_t activityMsg;
+	psInitPublish(activityMsg, ACTIVITY);
+	strncpy(activityMsg.behaviorStatusPayload.behavior, behaviorName, PS_SHORT_NAME_LENGTH);
 
 	switch (behaviorStatus)
 	{
@@ -187,7 +198,7 @@ int InvokeUpdate()
 
 		lua_getglobal(btLuaState, "update");
 
-		if (lua_isfunction(btLuaState,lua_gettop(btLuaState)))
+		if (lua_isfunction(btLuaState, -1))
 		{
 			//		DEBUGPRINT("LUA: calling update\n");
 			int reply = lua_pcall(btLuaState, 0, 1, 0);
@@ -196,6 +207,12 @@ int InvokeUpdate()
 				const char *errormsg = lua_tostring(btLuaState, -1);
 				ERRORPRINT("Script update, Error: %s\n",errormsg);
 				lua_pop(btLuaState, lua_gettop( btLuaState));
+				behaviorStatus = BEHAVIOR_ERROR;
+				strncpy(activityMsg.behaviorStatusPayload.lastLuaCallFail, "update", PS_SHORT_NAME_LENGTH);
+				strncpy(activityMsg.behaviorStatusPayload.lastFailReason, "LUA Error", PS_SHORT_NAME_LENGTH);
+				activityMsg.behaviorStatusPayload.status = behaviorStatus;
+				RouteMessage(&activityMsg);
+
 				return -1;
 			}
 			else
@@ -217,18 +234,13 @@ int InvokeUpdate()
 
 				if ((statusCode != behaviorStatus) || (strcmp(lastActivityName, behaviorName) != 0))
 				{
-					psMessage_t activityMsg;
-
 					//change in activity or status
-
-					psInitPublish(activityMsg, ACTIVITY);
-					strncpy(activityMsg.behaviorStatusPayload.behavior, behaviorName, PS_SHORT_NAME_LENGTH);
 					activityMsg.behaviorStatusPayload.status = statusCode;
 
 					switch (statusCode)
 					{
 					case BEHAVIOR_SUCCESS:
-						DEBUGPRINT("%s SUCCESS", behaviorName);
+						DEBUGPRINT("%s SUCCESS\n", behaviorName);
 						activityMsg.behaviorStatusPayload.lastLuaCallFail[0] = '\0';
 						activityMsg.behaviorStatusPayload.lastFailReason[0] = '\0';
 						RouteMessage(&activityMsg);
@@ -239,7 +251,7 @@ int InvokeUpdate()
 						RouteMessage(&activityMsg);
 						break;
 					case BEHAVIOR_FAIL:
-						DEBUGPRINT("%s FAIL @ %s - %s", behaviorName, lastLuaCallFail, lastLuaCallReason);
+						DEBUGPRINT("%s FAIL @ %s - %s\n", behaviorName, lastLuaCallFail, lastLuaCallReason);
 						strncpy(activityMsg.behaviorStatusPayload.lastLuaCallFail, lastLuaCallFail, PS_SHORT_NAME_LENGTH);
 						strncpy(activityMsg.behaviorStatusPayload.lastFailReason, lastLuaCallReason, PS_SHORT_NAME_LENGTH);
 						RouteMessage(&activityMsg);
@@ -247,7 +259,7 @@ int InvokeUpdate()
 					case BEHAVIOR_ACTIVE:
 					case BEHAVIOR_INVALID:
 					default:
-						DEBUGPRINT("%s Bad Response", behaviorName);
+						DEBUGPRINT("%s Bad Response\n", behaviorName);
 						strncpy(activityMsg.behaviorStatusPayload.lastLuaCallFail, "update", PS_SHORT_NAME_LENGTH);
 						strncpy(activityMsg.behaviorStatusPayload.lastFailReason, "Bad Status", PS_SHORT_NAME_LENGTH);
 						RouteMessage(&activityMsg);
@@ -266,7 +278,8 @@ int InvokeUpdate()
 		}
 		else
 		{
-			LogError("Global update is of type %s\n",lua_typename(btLuaState,lua_type(btLuaState,lua_gettop(btLuaState))) );
+			LogError("Global update is of type %s\n",lua_typename(btLuaState,lua_type(btLuaState, -1)) );
+			ERRORPRINT("Global update is of type %s\n",lua_typename(btLuaState,lua_type(btLuaState, -1)) );
 			lua_pop(btLuaState, lua_gettop( btLuaState));
 			return -1;
 		}
@@ -298,6 +311,7 @@ int AvailableScripts()
 	{
 		//not a table
 		LogError("No Activities table\n" );
+		ERRORPRINT("No Activities table\n" );
 		lua_pop(btLuaState, lua_gettop( btLuaState));
 		return 0;
 	}

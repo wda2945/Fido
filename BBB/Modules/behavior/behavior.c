@@ -11,7 +11,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
-
+#include <unistd.h>
 #include <time.h>
 #include <string.h>
 #include <pthread.h>
@@ -92,6 +92,7 @@ void BehaviorProcessMessage(psMessage_t *msg)
 void *BehaviorMessageThread(void *arg)
 {
 	DEBUGPRINT("Behavior message thread started\n");
+	sleep(5);
 
 	{
 		psMessage_t activityMsg;
@@ -107,7 +108,7 @@ void *BehaviorMessageThread(void *arg)
 	{
 		psMessage_t *msg = GetNextMessage(&behaviorQueue);
 
-		DEBUGPRINT("BT msg: %s\n", psLongMsgNames[msg->header.messageType]);
+//		DEBUGPRINT("BT msg: %s\n", psLongMsgNames[msg->header.messageType]);
 
 		switch(msg->header.source)
 		{
@@ -237,9 +238,6 @@ void *BehaviorMessageThread(void *arg)
 //thread to run scripts periodically
 void *ScriptThread(void *arg)
 {
-	struct timespec requested_time = {0,0};
-	struct timespec remaining;
-
 	time_t lastPing = time(NULL);
 
 	DEBUGPRINT("Script thread started\n");
@@ -301,8 +299,7 @@ void *ScriptThread(void *arg)
 		}
 
 		//delay
-		requested_time.tv_nsec = behLoopDelay * 1000000;
-		nanosleep(&requested_time, &remaining);
+		usleep( behLoopDelay * 1000);
 	}
 }
 

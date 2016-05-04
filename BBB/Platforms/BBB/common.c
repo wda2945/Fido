@@ -72,20 +72,14 @@ int load_device_tree(const char *name)
 {
     FILE *file = NULL;
     char line[256];
-    char slots[PATHLEN];
 
-//    char ctrl_dir[PATHLEN];
-//    build_path("/sys/devices", "bone_capemgr", ctrl_dir, sizeof(ctrl_dir));
-//    snprintf(slots, sizeof(slots), "%s/slots", ctrl_dir);
-//
-//    file = fopen(slots, "r+");
     file = fopen("/sys/devices/platform/bone_capemgr/slots", "r+");
     if (!file) {
-        return 0;
+        return -1;
     }
 
     while (fgets(line, sizeof(line), file)) {
-        //the device is already loaded, return 1
+        //if the device is already loaded, return 1
         if (strstr(line, name)) {
             fclose(file);
             return 1;
@@ -97,40 +91,34 @@ int load_device_tree(const char *name)
     fclose(file);
 
     //0.2 second delay
-    nanosleep((struct timespec[]){{0, 200000000}}, NULL);
+    usleep(200000);
 
     //check
-    file = fopen(slots, "r+");
+    file = fopen("/sys/devices/platform/bone_capemgr/slots", "r+");
     if (!file) {
-        return 0;
+        return -1;
     }
 
     while (fgets(line, sizeof(line), file)) {
-        //the device is loaded, return 1
+        //if the device is loaded, return 0
         if (strstr(line, name)) {
             fclose(file);
-            return 1;
+            return 0;
         }
     }
     fclose(file);
-    return 0;
+    return -1;
 }
 
 int unload_device_tree(const char *name)
 {
     FILE *file = NULL;
     char line[256];
-    char slots[PATHLEN];
     char *slot_line;
 
-//    char ctrl_dir[PATHLEN];
-//    build_path("/sys/devices", "bone_capemgr", ctrl_dir, sizeof(ctrl_dir));
-//    snprintf(slots, sizeof(slots), "%s/slots", ctrl_dir);
-//
-//    file = fopen(slots, "r+");
     file = fopen("/sys/devices/platform/bone_capemgr/slots", "r+");
     if (!file) {
-        return 0;
+        return -1;
     }
 
     while (fgets(line, sizeof(line), file)) {
@@ -143,14 +131,13 @@ int unload_device_tree(const char *name)
 
             fprintf(file, "-%s", slot_line);
             fclose(file);
-            return 1;
+            return 0;
         }
     }
 
     //not loaded, close file
     fclose(file);
-
-    return 1;
+    return 0;
 }
 
 
@@ -161,19 +148,6 @@ int set_pinmux(const char *pinName, const char *newState)
 
     if (strlen(pinName) == 0) return 0;
 
-    //3.8
-//    char ocp_dir[PATHLEN];				//ocp root path
-//    char pinmux[20];					//+ pinmux name
-//    char pinmux_dir[PATHLEN];			//= pinmux path
-//
-//    //ocp directory path
-//    build_path("/sys/devices", "ocp", ocp_dir, sizeof(ocp_dir));
-//    //pinmux name
-//    snprintf(pinmux, sizeof(pinmux), "%s_pinmux", pinName);
-//    //pinmux path
-//    build_path(ocp_dir, pinmux, pinmux_dir, sizeof(pinmux_dir));
-
-//4.1
     //pinmux path
     char pinmux_dir[PATHLEN];			//= pinmux path
     snprintf(pinmux_dir, sizeof(pinmux_dir), "/sys/devices/platform/ocp/ocp:%s_pinmux", pinName);
@@ -182,7 +156,6 @@ int set_pinmux(const char *pinName, const char *newState)
     snprintf(pinmux_state_path, sizeof(pinmux_state_path), "%s/state", pinmux_dir);
     if ((fd = open(pinmux_state_path, O_RDWR)) < 0)
     {
-    	printf("open(%s) fail (%s)\n", pinmux_state_path, strerror(errno));
         return -1;
     }
     write(fd, newState,strlen(newState));

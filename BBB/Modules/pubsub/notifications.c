@@ -60,7 +60,7 @@ int NotificationsInit() {
 	NotifiedEvents = 0;
 
 	int i;
-	for (i = 0; i< CONDITION_COUNT; i++)
+	for (i = 0; i< MASK_PAYLOAD_COUNT; i++)
 	{
 		active[i] = valid[i] = reported[i] = 0;
 	}
@@ -68,7 +68,7 @@ int NotificationsInit() {
 	int s = pthread_create(&nthread, NULL, ConditionThread, NULL);
 	if (s != 0)
 	{
-		ERRORPRINT("Conditions Thread: %i\n", s);
+		LogError("Conditions Thread: %i\n", s);
 		return -1;
 	}
 

@@ -34,12 +34,12 @@
 FILE *agentDebugFile;
 
 #ifdef AGENT_DEBUG
-#define DEBUGPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(agentDebugFile, __VA_ARGS__);fflush(agentDebugFile);
+#define DEBUGPRINT(...) tprintf( __VA_ARGS__);tfprintf(agentDebugFile, __VA_ARGS__);
 #else
-#define DEBUGPRINT(...) fprintf(agentDebugFile, __VA_ARGS__);fflush(agentDebugFile);
+#define DEBUGPRINT(...) tfprintf(agentDebugFile, __VA_ARGS__);
 #endif
 
-#define ERRORPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(agentDebugFile, __VA_ARGS__);fflush(agentDebugFile);
+#define ERRORPRINT(...) tprintf( __VA_ARGS__);tfprintf(agentDebugFile, __VA_ARGS__);
 
 #define MAX_AGENT_CONNECTIONS 5
 
@@ -175,7 +175,7 @@ void *AgentListenThread(void *arg)
 			int s = pthread_mutex_lock(&agentMtx);
 			if (s != 0)
 			{
-				LogError("agent: mutex lock %i", s);
+				ERRORPRINT("agent: mutex lock %i", s);
 			}
 
 			int i;
@@ -223,7 +223,7 @@ void *AgentListenThread(void *arg)
 				s = pthread_mutex_unlock(&agentMtx);
 				if (s != 0)
 				{
-					LogError("Agent: mutex unlock %i", s);
+					ERRORPRINT("Agent: mutex unlock %i", s);
 				}
 				//end critical section
 
@@ -255,7 +255,7 @@ void *AgentRxThread(void *arg)
 	int s = pthread_mutex_lock(&agentMtx);
 	if (s != 0)
 	{
-		LogError("agent: mutex lock %i", s);
+		ERRORPRINT("agent: mutex lock %i", s);
 	}
     agentConnections++;
     agentOnline = true;
@@ -264,7 +264,7 @@ void *AgentRxThread(void *arg)
 	s = pthread_mutex_unlock(&agentMtx);
 	if (s != 0)
 	{
-		LogError("agent: mutex unlock %i", s);
+		ERRORPRINT("agent: mutex unlock %i", s);
 	}
 	//end critical section
 
@@ -284,7 +284,7 @@ void *AgentRxThread(void *arg)
     			s = pthread_mutex_lock(&agentMtx);
     			if (s != 0)
     			{
-    				LogError("agent: mutex lock %i", s);
+    				ERRORPRINT("agent: mutex lock %i", s);
     			}
     		    agentConnections--;
 
@@ -299,7 +299,7 @@ void *AgentRxThread(void *arg)
     			s = pthread_mutex_unlock(&agentMtx);
     			if (s != 0)
     			{
-    				LogError("agent: mutex unlock %i", s);
+    				ERRORPRINT("agent: mutex unlock %i", s);
     			}
     			//end critical section
 
@@ -331,7 +331,7 @@ void *AgentRxThread(void *arg)
 	s = pthread_mutex_lock(&agentMtx);
 	if (s != 0)
 	{
-		LogError("agent: mutex lock %i", s);
+		ERRORPRINT("agent: mutex lock %i", s);
 	}
     agentConnections--;
 
@@ -344,7 +344,7 @@ void *AgentRxThread(void *arg)
 	s = pthread_mutex_unlock(&agentMtx);
 	if (s != 0)
 	{
-		LogError("agent: mutex unlock %i", s);
+		ERRORPRINT("agent: mutex unlock %i", s);
 	}
 	//end critical section
 
@@ -371,7 +371,7 @@ int writeToSocket(int socket, uint8_t c, int *checksum, int *error)
 {
 	ssize_t reply;
 	do {
-		reply = send(socket, &c, 1, 0);
+		reply = send(socket, &c, 1, MSG_NOSIGNAL);
 	} while (reply == 0);
 
 	if (reply == 1)
@@ -408,7 +408,7 @@ void *AgentTxThread(void *arg)
 			int s = pthread_mutex_lock(&agentMtx);
 			if (s != 0)
 			{
-				LogError("agent: mutex lock %i", s);
+				ERRORPRINT("agent: mutex lock %i", s);
 			}
 			if (connected[i])
 			{
@@ -456,7 +456,7 @@ void *AgentTxThread(void *arg)
 				s = pthread_mutex_unlock(&agentMtx);
 				if (s != 0)
 				{
-					LogError("agent: mutex unlock %i", s);
+					ERRORPRINT("agent: mutex unlock %i", s);
 				}
 				//end critical section
 				DoneWithMessage(txMessage);

@@ -245,21 +245,21 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 			//start new action
 			//verify pre-requisites
 			switch (_action) {
-			case PILOT_FAST_SPEED:
-				motorSpeed = FastSpeed;
-				result = ACTION_SUCCESS;
-				break;
-			case PILOT_MEDIUM_SPEED:
-				motorSpeed = MediumSpeed;
-				result = ACTION_SUCCESS;
-				break;
-			case PILOT_SLOW_SPEED:
-				motorSpeed = SlowSpeed;
-				result = ACTION_SUCCESS;
-				break;
-			case PILOT_RESET:
-				result = ACTION_SUCCESS;
-				break;
+//			case PILOT_FAST_SPEED:
+//				motorSpeed = FastSpeed;
+//				result = ACTION_SUCCESS;
+//				break;
+//			case PILOT_MEDIUM_SPEED:
+//				motorSpeed = MediumSpeed;
+//				result = ACTION_SUCCESS;
+//				break;
+//			case PILOT_SLOW_SPEED:
+//				motorSpeed = SlowSpeed;
+//				result = ACTION_SUCCESS;
+//				break;
+//			case PILOT_RESET:
+//				result = ACTION_SUCCESS;
+//				break;
 			case PILOT_ORIENT:
 			case PILOT_TURN_LEFT:
 			case PILOT_TURN_RIGHT:
@@ -269,7 +269,12 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 			case PILOT_TURN_S:
 			case PILOT_TURN_E:
 			case PILOT_TURN_W:
-				if (VerifyCompass()) {
+				if (!turnOK)
+				{
+					result = ACTION_FAIL;
+					lastLuaCallReason = "Not OK";
+				}
+				else if (VerifyCompass()) {
 					result = ACTION_RUNNING;
 				}
 				else
@@ -279,7 +284,12 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 				}
 				break;
 			case PILOT_ENGAGE:
-				if (VerifyCompass() && VerifyGPS()) {
+				if (!turnOK || !moveOK)
+				{
+						result = ACTION_FAIL;
+						lastLuaCallReason = "Not OK";
+				}
+				else if (VerifyCompass() && VerifyGPS()) {
 					result = ACTION_RUNNING;
 				}
 				else
@@ -293,12 +303,17 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 			case PILOT_MOVE_BACKWARD:
 			case PILOT_MOVE_FORWARD_10:
 			case PILOT_MOVE_BACKWARD_10:
-				result = ACTION_RUNNING;
+				if (!moveOK)
+				{
+					result = ACTION_FAIL;
+					lastLuaCallReason = "Not OK";
+				}
+				else result = ACTION_RUNNING;
 				break;
 			default:
-				LogError("Pilot action: %i\n", _action);
+				ERRORPRINT("Invalid Pilot Action: %i\n", _action);
 				result = ACTION_FAIL;
-				lastLuaCallReason = "BadCode";
+				lastLuaCallReason = "Bad Code";
 				break;
 			}
 
@@ -316,7 +331,7 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 					desiredCompassHeading = (pose.orientation.heading + CalculateRandomTurn()) % 360;
 					break;
 				case PILOT_TURN_LEFT_90:
-					desiredCompassHeading = (pose.orientation.heading - 90) % 360;
+					desiredCompassHeading = (pose.orientation.heading + 270) % 360;
 					break;
 				case PILOT_TURN_RIGHT_90:
 					desiredCompassHeading = (pose.orientation.heading + 90) % 360;
@@ -374,7 +389,7 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 				case PILOT_MOVE_FORWARD:
 				{
 					int distance = CalculateRandomDistance();
-					SendMotorCommand(distance, distance, SlowSpeed, pilotFlags);
+					if (moveOK) SendMotorCommand(distance, distance, SlowSpeed, pilotFlags);
 					motorsRunTimeout = distance * timeoutPerCM + 5;
 					DEBUGPRINT("Pilot: Move forward\n");
 					pilotState = PILOT_STATE_FORWARD_SENT;
@@ -383,7 +398,7 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 				case PILOT_MOVE_BACKWARD:
 				{
 					int distance = CalculateRandomDistance();
-					SendMotorCommand(-distance, -distance, SlowSpeed, pilotFlags);
+					if (moveOK) SendMotorCommand(-distance, -distance, SlowSpeed, pilotFlags);
 					motorsRunTimeout = distance * timeoutPerCM + 5;
 					DEBUGPRINT("Pilot: Move backward\n");
 					pilotState = PILOT_STATE_BACKWARD_SENT;
@@ -392,7 +407,7 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 				case PILOT_MOVE_FORWARD_10:
 				{
 					int distance = 10;
-					SendMotorCommand(distance, distance, SlowSpeed, pilotFlags);
+					if (moveOK) SendMotorCommand(distance, distance, SlowSpeed, pilotFlags);
 					motorsRunTimeout = distance * timeoutPerCM + 5;
 					DEBUGPRINT("Pilot: Move forward 10\n");
 					pilotState = PILOT_STATE_FORWARD_SENT;
@@ -401,7 +416,7 @@ ActionResult_enum AutopilotAction(PilotAction_enum _action)
 				case PILOT_MOVE_BACKWARD_10:
 				{
 					int distance = 10;
-					SendMotorCommand(-distance, -distance, SlowSpeed, pilotFlags);
+					if (moveOK) SendMotorCommand(-distance, -distance, SlowSpeed, pilotFlags);
 					motorsRunTimeout = distance * timeoutPerCM + 5;
 					DEBUGPRINT("Pilot: Move backward 10\n");
 					pilotState = PILOT_STATE_BACKWARD_SENT;
@@ -474,6 +489,8 @@ ActionResult_enum pilotIsAtWaypoint()
 
 ActionResult_enum pilotSetGoalWaypoint(char *waypointName)
 {
+	DEBUGPRINT("Set Goal = %s\n", waypointName);
+
 	if (!pose.positionValid) {
 		lastLuaCallReason = "NoGPS";
 		return ACTION_FAIL;
@@ -486,6 +503,8 @@ ActionResult_enum pilotSetGoalWaypoint(char *waypointName)
 
 ActionResult_enum pilotSetGoalPosition(Position_struct _goal)
 {
+	DEBUGPRINT("Set Goal = %0.3f, %0.3f\n", _goal.latitude, _goal.longitude);
+
 	if (!pose.positionValid) {
 		lastLuaCallReason = "NoGPS";
 		return ACTION_FAIL;
@@ -496,6 +515,8 @@ ActionResult_enum pilotSetGoalPosition(Position_struct _goal)
 
 ActionResult_enum pilotSetRandomGoal(int _rangeCM)
 {
+	DEBUGPRINT("Set Random Goal\n");
+
 	if (!pose.positionValid){
 		lastLuaCallReason = "NoGPS";
 		return ACTION_FAIL;
@@ -554,7 +575,7 @@ void *AutopilotThread(void *arg) {
 	while (1) {
 		psMessage_t *rxMessage = GetNextMessage(&autopilotQueue);
 
-		DEBUGPRINT("Pilot Msg: %s\n", psLongMsgNames[rxMessage->header.messageType]);
+//		DEBUGPRINT("Pilot Msg: %s\n", psLongMsgNames[rxMessage->header.messageType]);
 
 		reviewProgress = false;
 
@@ -579,7 +600,7 @@ void *AutopilotThread(void *arg) {
 			else
 			{
 				//make pilot available
-				if (moveOK && !motorsInhibit && (pilotState == PILOT_STATE_INACTIVE) && MOTonline && MCPonline)
+				if ((moveOK || turnOK) && !motorsInhibit && (pilotState == PILOT_STATE_INACTIVE) && MOTonline && MCPonline)
 				{
 					pilotState = PILOT_STATE_IDLE;
 					DEBUGPRINT("Pilot Available\n");
@@ -601,10 +622,9 @@ void *AutopilotThread(void *arg) {
 				{
 					if (MOVE_XXX_SENT_time + motorsStartTimeout < time(NULL))
 					{
-						CancelPilotOperation(PILOT_STATE_FAILED);
-						lastLuaCallReason = "StartTO";
-						MOVE_XXX_SENT_time = 0;
-						LogWarning("Motors Start TO\n");
+						ResendMotorCommand();
+						MOVE_XXX_SENT_time = time(NULL);
+						LogError("Motors Start TO\n");
 					}
 				}
 				break;
@@ -623,7 +643,7 @@ void *AutopilotThread(void *arg) {
 						CancelPilotOperation(PILOT_STATE_FAILED);
 						lastLuaCallReason = "RunTO";
 						MOVE_XXX_time = 0;
-						LogWarning("Motors Run TO\n");
+						DEBUGPRINT("Motors Run TO\n");
 					}
 				}
 				break;
@@ -808,7 +828,7 @@ void *AutopilotThread(void *arg) {
 
 		//update notifications
 		if (priorPilotState != pilotState) {
-			DEBUGPRINT("New Pilot State: %s", pilotStateNames[pilotState]);
+			DEBUGPRINT("Pilot State = %s\n", pilotStateNames[pilotState]);
 
 			switch (priorPilotState) {
 			case PILOT_STATE_IDLE:
@@ -892,9 +912,13 @@ bool VerifyGPS()
 
 int ComputeBearing(Position_struct _position)
 {
-	return (int) RADIANSTODEGREES(
+	int bearing = fmod(RADIANSTODEGREES(
 			atan2(_position.longitude - pose.position.longitude,
-					_position.latitude - pose.position.latitude));
+					_position.latitude - pose.position.latitude)) + 360.0, 360.0);
+
+	DEBUGPRINT("Pilot: bearing = %i\n", bearing);
+
+	return bearing;
 }
 
 
@@ -902,7 +926,7 @@ bool PerformOrient()
 {
 	//initiate turn to 'desiredCompassHeading'
 	//calculate angle error
-	float angleError = (360 + desiredCompassHeading
+	int angleError = (360 + desiredCompassHeading
 			- pose.orientation.heading) % 360;
 	if (angleError > 180)
 		angleError -= 360;
@@ -914,14 +938,14 @@ bool PerformOrient()
 		pilotState = PILOT_STATE_DONE;
 		return true;
 	} else {
-		DEBUGPRINT("Pilot: angle error %f\n", angleError);
+		DEBUGPRINT("Pilot: heading = %i, error = %i\n", pose.orientation.heading, angleError);
 		//send turn command
-		float range = abs(angleError * FIDO_RADIUS * M_PI / 180.0);
+		int range = abs((angleError * FIDO_RADIUS * M_PI * 2) / 180);
 		//send turn command
-		if (angleError > 0) {
-			SendMotorCommand((int)range, (int)-range, SlowSpeed, pilotFlags);
+		if (angleError > 0 && turnOK) {
+			SendMotorCommand(range, -range, SlowSpeed, pilotFlags);
 		} else {
-			SendMotorCommand((int)-range, (int)range, SlowSpeed, pilotFlags);
+			SendMotorCommand(-range, range, SlowSpeed, pilotFlags);
 		}
 		motorsRunTimeout = range * timeoutPerCM + 5;
 		return false;
@@ -975,7 +999,7 @@ bool PerformMovement()
 			}
 			else
 			{
-				LogWarning("Pilot: Can't find next WP: %s\n\n", nextWaypointName);
+				ERRORPRINT("Pilot: Can't find next WP: %s\n\n", nextWaypointName);
 				pilotState = PILOT_STATE_FAILED;
 				lastLuaCallReason = "NextWP";
 				return true;
@@ -993,7 +1017,7 @@ bool PerformMovement()
 		//send move command
 		int motorRange = (rangeCM > motorMaxCM ? motorMaxCM : rangeCM);
 
-		SendMotorCommand(motorRange, motorRange, motorSpeed, pilotFlags);
+		if (moveOK) SendMotorCommand(motorRange, motorRange, motorSpeed, pilotFlags);
 		motorsRunTimeout = motorRange * timeoutPerCM + 5;
 
 		//TODO: Adjust port & starboard to correct residual heading error
@@ -1001,6 +1025,8 @@ bool PerformMovement()
 	return false;
 }
 
+int lastsent_port, lastsent_starboard, lastsent_speed;
+uint16_t lastsent_flags;
 
 void SendMotorCommand(int _port, int _starboard, int _speed, uint16_t _flags)
 {
@@ -1011,9 +1037,17 @@ void SendMotorCommand(int _port, int _starboard, int _speed, uint16_t _flags)
 	motorMessage.motorPayload.flags = _flags & 0xff;		//flags is uint8_t
 	motorMessage.motorPayload.speed = _speed;
 	RouteMessage(&motorMessage);
-//	gettimeofday(&latestMotorTime, NULL);
+
+	lastsent_port 		= _port;
+	lastsent_starboard 	= _starboard;
+	lastsent_speed 		= _speed;
+	lastsent_flags		= _flags;
 
 	DEBUGPRINT("Pilot: Motors %i, %i\n", _port, _starboard);
+}
+void ResendMotorCommand()
+{
+	SendMotorCommand(lastsent_port, lastsent_starboard, lastsent_speed, lastsent_flags);
 }
 
 //convenience routines

@@ -42,12 +42,12 @@
 FILE *scanDebugFile;
 
 #ifdef SCANNER_DEBUG
-#define DEBUGPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(scanDebugFile, __VA_ARGS__);fflush(scanDebugFile);
+#define DEBUGPRINT(...) tprintf( __VA_ARGS__);tfprintf(scanDebugFile, __VA_ARGS__);
 #else
 #define DEBUGPRINT(...) fprintf(scanDebugFile, __VA_ARGS__);fflush(scanDebugFile);
 #endif
 
-#define ERRORPRINT(...) LogError(__VA_ARGS__);fprintf(scanDebugFile, __VA_ARGS__);fflush(scanDebugFile);
+#define ERRORPRINT(...) tprintf( __VA_ARGS__);tfprintf(scanDebugFile, __VA_ARGS__);
 
 typedef uint8_t PROX_BITMAP;
 

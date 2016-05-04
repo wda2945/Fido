@@ -5,11 +5,11 @@
 #define I2C_SLAVE_LSM 0x1D
 #define DECLINATION (M_PI * (9.5f / 180.0f))
 
-    void LSM303_enableDefault(void);
+    int LSM303_enableDefault(void);
 
-    void LSM303_read(void);
-    void LSM303_readMag(void);
-    void LSM303_readAcc(void);
+    int LSM303_read(void);
+    int LSM303_readMag(void);
+    int LSM303_readAcc(void);
 
     float LSM303_heading(void);
     float LSM303_pitch(void);
