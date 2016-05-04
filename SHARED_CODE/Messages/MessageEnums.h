@@ -134,8 +134,8 @@ typedef enum {
 "shutdown"\
 }
 
-typedef enum {BEHAVIOR_INVALID, BEHAVIOR_ACTIVE, BEHAVIOR_FAIL, BEHAVIOR_RUNNING, BEHAVIOR_SUCCESS, BEHAVIOR_STATUS_COUNT} BehaviorStatus_enum;
-#define BEHAVIOR_STATUS_NAMES {"invalid", "active", "fail", "running", "success"}
+typedef enum {BEHAVIOR_INVALID, BEHAVIOR_ACTIVE, BEHAVIOR_FAIL, BEHAVIOR_RUNNING, BEHAVIOR_SUCCESS, BEHAVIOR_ERROR, BEHAVIOR_STATUS_COUNT} BehaviorStatus_enum;
+#define BEHAVIOR_STATUS_NAMES {"invalid", "active", "fail", "running", "success", "error"}
 
 //---------------------------------------------------------------------
 
