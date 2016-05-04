@@ -19,9 +19,6 @@
 #import "MapViewController.h"
 #import "WPTableViewController.h"
 #import "SubsystemViewController.h"
-#import "DataViewController.h"
-#import "OptionsViewController.h"
-#import "SettingsViewController.h"
 #import "CommsViewController.h"
 #import "BehaviorViewController.h"
 #import "PowerViewController.h"
@@ -41,13 +38,12 @@
 @property (strong, nonatomic) MapViewController         *mapController;
 @property (strong, nonatomic) WPTableViewController     *wpController;
 
-@property (strong, nonatomic) DataViewController        *dataController;
-@property (strong, nonatomic) OptionsViewController     *optionsController;
-@property (strong, nonatomic) SettingsViewController    *settingsController;
 @property (strong, nonatomic) CommsViewController       *commsViewController;
 @property (strong, nonatomic) BehaviorViewController    *behaviorViewController;
 @property (strong, nonatomic) PowerViewController       *powerViewController;
-@property (strong, nonatomic) ConditionsViewController  *conditionsViewController;
+@property (strong, nonatomic) ConditionsViewController  *conditionsViewController1;
+@property (strong, nonatomic) ConditionsViewController  *conditionsViewController2;
+@property (strong, nonatomic) ConditionsViewController  *conditionsViewController3;
 
 @property (strong, nonatomic) NSMutableDictionary *viewControllers;
 

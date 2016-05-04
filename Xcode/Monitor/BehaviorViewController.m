@@ -252,6 +252,16 @@ static long sentRow = -1;
     
             [(UITableView*)self.view reloadData];
             break;
+        case SS_ONLINE:
+            if (message.msg.header.source == OVERMIND)
+            {
+                currentActivity = @"unknown";
+                lastCallFail       = @"";
+                lastCallFailReason = @"";
+                activityStatus  = BEHAVIOR_INVALID;
+                sentRow = -1;
+                [(UITableView*)self.view reloadData];
+            }
         default:
             break;
     }

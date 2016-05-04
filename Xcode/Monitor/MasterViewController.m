@@ -28,7 +28,7 @@
 @end
 
 //pages of App - excluding subsystems
-enum { SYSTEM_PAGE, POWER_PAGE, CONDITIONS_PAGE, NAV_PAGE, MAP_PAGE, WP_PAGE, STATS_PAGE, COMMS_PAGE, /*OPTIONS_PAGE, SETTINGS_PAGE, DATA_PAGE, */ RC_PAGE, BEHAVIOR_PAGE, LOG_PAGE, PAGE_COUNT};
+enum { SYSTEM_PAGE, POWER_PAGE, CONDITIONS_PAGE1, CONDITIONS_PAGE2, CONDITIONS_PAGE3, NAV_PAGE, MAP_PAGE, WP_PAGE, STATS_PAGE, COMMS_PAGE, RC_PAGE, BEHAVIOR_PAGE, LOG_PAGE, PAGE_COUNT};
 
 static MasterViewController *me;
 
@@ -64,13 +64,12 @@ static MasterViewController *me;
     self.navController          = [[SensorViewController alloc] init];
     self.mapController          = [[MapViewController alloc] init];
     self.wpController           = [[WPTableViewController alloc] init];
-    self.dataController         = [[DataViewController alloc] init];
-    self.optionsController      = [[OptionsViewController alloc] init];
-    self.settingsController     = [[SettingsViewController alloc] init];
     self.commsViewController    = [[CommsViewController alloc] init];
     self.behaviorViewController   = [[BehaviorViewController alloc] init];
     self.powerViewController    = [[PowerViewController alloc] init];
-    self.conditionsViewController   = [[ConditionsViewController alloc] init];
+    self.conditionsViewController1   = [[ConditionsViewController alloc] initForList: CONDITIONS_STATUS];
+    self.conditionsViewController2   = [[ConditionsViewController alloc] initForList: CONDITIONS_PROXIMITY];
+    self.conditionsViewController3   = [[ConditionsViewController alloc] initForList: CONDITIONS_ERRORS];
     
     self.viewControllers = [NSMutableDictionary dictionaryWithObjectsAndKeys:
                             _systemViewController, @"System",
@@ -80,13 +79,12 @@ static MasterViewController *me;
                             _rcController,@"RC",
                             _mapController,@"Map",
                             _wpController,@"Markers",
-                            _dataController, @"Data",
-                            _optionsController, @"Options",
-                            _settingsController, @"Settings",
                             _commsViewController, @"Comms",
                             _behaviorViewController, @"Motion",
                             _powerViewController, @"Power",
-                            _conditionsViewController, @"Conditions",
+                            _conditionsViewController1, @"Conditions1",
+                            _conditionsViewController2, @"Conditions2",
+                            _conditionsViewController3, @"Conditions3",
                             nil];
     
     currentPage = SYSTEM_PAGE;
@@ -273,8 +271,16 @@ static char *subsystemFullNames[] = SUBSYSTEM_FULL_NAMES;
                     cell.textLabel.text = @"Power";
                     cell.imageView.image = [UIImage imageNamed:@"battery"];
                     break;
-                case CONDITIONS_PAGE:
-                    cell.textLabel.text = @"Notifications";
+                case CONDITIONS_PAGE1:
+                    cell.textLabel.text = @"Conditions: Status";
+                    cell.imageView.image = [UIImage imageNamed:@"conditions.png"];
+                    break;
+                case CONDITIONS_PAGE2:
+                    cell.textLabel.text = @"Conditions: Proximity";
+                    cell.imageView.image = [UIImage imageNamed:@"conditions.png"];
+                    break;
+                case CONDITIONS_PAGE3:
+                    cell.textLabel.text = @"Conditions: Errors";
                     cell.imageView.image = [UIImage imageNamed:@"conditions.png"];
                     break;
                 case LOG_PAGE:
@@ -301,18 +307,6 @@ static char *subsystemFullNames[] = SUBSYSTEM_FULL_NAMES;
                     cell.textLabel.text = @"Direct Control";
                     cell.imageView.image = [UIImage imageNamed:@"rc.png"];
                     break;
-//                case DATA_PAGE:
-//                    cell.textLabel.text = @"Data";
-//                    cell.imageView.image = [UIImage imageNamed:@"info.png"];
-//                    break;
-//                case OPTIONS_PAGE:
-//                    cell.textLabel.text = @"Options";
-//                    cell.imageView.image = [UIImage imageNamed:@"option.png"];
-//                    break;
-//                case SETTINGS_PAGE:
-//                    cell.textLabel.text = @"Settings";
-//                    cell.imageView.image = [UIImage imageNamed:@"setting.png"];
-//                    break;
                 case COMMS_PAGE:
                     cell.textLabel.text = @"Comms";
                     cell.imageView.image = [UIImage imageNamed:@"radio_tower.png"];
@@ -517,8 +511,14 @@ static char *subsystemFullNames[] = SUBSYSTEM_FULL_NAMES;
                 case POWER_PAGE:
                     if ([_collectionController presentView: @"Power"]) return indexPath;
                     break;
-                case CONDITIONS_PAGE:
-                    if ([_collectionController presentView: @"Conditions"]) return indexPath;
+                case CONDITIONS_PAGE1:
+                    if ([_collectionController presentView: @"Conditions1"]) return indexPath;
+                    break;
+                case CONDITIONS_PAGE2:
+                    if ([_collectionController presentView: @"Conditions2"]) return indexPath;
+                    break;
+                case CONDITIONS_PAGE3:
+                    if ([_collectionController presentView: @"Conditions3"]) return indexPath;
                     break;
                 case LOG_PAGE:
                     if ([_collectionController presentView: @"SysLog"]) return indexPath;
@@ -529,15 +529,6 @@ static char *subsystemFullNames[] = SUBSYSTEM_FULL_NAMES;
                 case STATS_PAGE:
                     if ([_collectionController presentView: @"Stats"]) return indexPath;
                     break;
-//                case DATA_PAGE:
-//                    if ([_collectionController presentView: @"Data"]) return indexPath;
-//                    break;
-//                case OPTIONS_PAGE:
-//                    if ([_collectionController presentView: @"Options"]) return indexPath;
-//                    break;
-//                case SETTINGS_PAGE:
-//                    if ([_collectionController presentView: @"Settings"]) return indexPath;
-//                    break;
                 case MAP_PAGE:
                     if ([_collectionController presentView: @"Map"]) return indexPath;
                     break;

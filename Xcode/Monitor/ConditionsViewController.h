@@ -10,7 +10,11 @@
 
 #import "MessageDelegateProtocol.h"
 
+typedef enum {CONDITIONS_ERRORS, CONDITIONS_PROXIMITY, CONDITIONS_STATUS} ConditionsList_enum;
+
 @interface ConditionsViewController : UITableViewController <MessageDelegate>
+
+- (ConditionsViewController*) initForList: (ConditionsList_enum) list;
 
 - (bool) isConditionSet: (Condition_enum) c;
 

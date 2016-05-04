@@ -106,6 +106,9 @@ char *powerstateNames[] = POWER_STATE_NAMES;
             if (_powerState >= POWER_STATE_COUNT) _powerState = 0;
             
             self.powerStateStr = [NSString stringWithFormat:@"%s", powerstateNames[_powerState]];
+            
+            self.systemStateCommand = -1;
+            
             [(UITableView*)self.view reloadData];
         }
             break;
@@ -140,7 +143,7 @@ char *powerstateNames[] = POWER_STATE_NAMES;
             return 5;
             break;
         case 1:             //robot state
-            return 2;
+            return 1;
             break;
         case 2:             //command power state
             return COMMAND_COUNT-1;
@@ -233,10 +236,10 @@ char *powerstateNames[] = POWER_STATE_NAMES;
             UITableViewCell   *cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue2 reuseIdentifier:@"xxy"];
             switch (indexPath.row)
             {
-                case 0:
-                    cell.textLabel.text = @"Requested";
-                    cell.detailTextLabel.text = [NSString stringWithFormat:@"%s", commandNames[_systemStateCommand] ];
-                    break;
+//                case 0:
+//                    cell.textLabel.text = @"Last Requested";
+//                    cell.detailTextLabel.text = [NSString stringWithFormat:@"%s", commandNames[_systemStateCommand] ];
+//                    break;
                 default:
                     cell.textLabel.text = @"Reported";
                     cell.detailTextLabel.text = self.powerStateStr;
@@ -247,7 +250,7 @@ char *powerstateNames[] = POWER_STATE_NAMES;
             break;
         case 2:
         {
-            UITableViewCell   *cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"xxz"];
+            UITableViewCell *cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"xxz"];
             
             cell.textLabel.text = [NSString stringWithFormat:@"%s", commandNames[(COMMAND_COUNT - indexPath.row - 1)]];
             
@@ -273,7 +276,6 @@ char *powerstateNames[] = POWER_STATE_NAMES;
 {
     if (indexPath.section == 2)
     {
-        
         self.systemStateCommand = (UserCommand_enum) (COMMAND_COUNT - indexPath.row - 1);
         [(UITableView*) self.view reloadData];
         

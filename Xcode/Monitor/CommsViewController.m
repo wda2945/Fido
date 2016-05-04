@@ -105,7 +105,7 @@
             return imgOffline;
         }
         else{
-            if ([[MasterViewController getMasterViewController].conditionsViewController isConditionSet: XBEE_MCP_ONLINE])
+            if ([[MasterViewController getMasterViewController].conditionsViewController1 isConditionSet: XBEE_MCP_ONLINE])
             {
                 return imgOnline;
             }

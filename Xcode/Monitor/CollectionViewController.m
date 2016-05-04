@@ -44,13 +44,12 @@
     [self addChildViewController:[MasterViewController getMasterViewController].mapController];
     [self addChildViewController:[MasterViewController getMasterViewController].wpController];
 
-    [self addChildViewController:[MasterViewController getMasterViewController].dataController];
-    [self addChildViewController:[MasterViewController getMasterViewController].optionsController];
-    [self addChildViewController:[MasterViewController getMasterViewController].settingsController];
     [self addChildViewController:[MasterViewController getMasterViewController].commsViewController];
     [self addChildViewController:[MasterViewController getMasterViewController].behaviorViewController];
     [self addChildViewController:[MasterViewController getMasterViewController].powerViewController];
-    [self addChildViewController:[MasterViewController getMasterViewController].conditionsViewController];
+    [self addChildViewController:[MasterViewController getMasterViewController].conditionsViewController1];
+    [self addChildViewController:[MasterViewController getMasterViewController].conditionsViewController2];
+    [self addChildViewController:[MasterViewController getMasterViewController].conditionsViewController3];
     startFrame = self.view.bounds;
     startFrame.origin.x += startFrame.size.width;
     

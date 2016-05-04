@@ -1,0 +1,32 @@
+/* 
+ * File: NotificationsConditionsList.h
+ * Author: martin
+ *
+ * Created on April 9, 2015, 8:46 PM
+ */
+
+
+//Notifications - conditions
+
+CONDITION( NULL_CONDITION, "Null")
+CONDITION( BATTERY_LOW, "Battery Low")
+CONDITION( BATTERY_CRITICAL, "Battery Critical")
+CONDITION( CHARGING, "Charging")
+CONDITION( CHARGE_COMPLETE, "Charge Complete")
+CONDITION( RAINING, "Raining")
+CONDITION( SLEEPING, "Sleeping")
+CONDITION( MOT_POWERED, "MOT Powered")
+CONDITION( OVM_POWERED, "OVM Powered")
+CONDITION( SONAR_POWERED, "Sonar Powered")
+CONDITION( IR_POWERED, "IR Powered")
+CONDITION( PIR_ENABLED, "PIR Powered")
+CONDITION( GPS_FIX, "GPS Fix")
+CONDITION( MOTORS_INHIBIT, "Motors Inhibit")
+CONDITION( MOTORS_BUSY, "Motors Busy")
+CONDITION( PILOT_ENGAGED, "Pilot Engaged")
+CONDITION( PILOT_IDLE, "Pilot Idle")
+CONDITION( PILOT_FAILED, "Pilot Failed")
+CONDITION( AGENT_CONNECTED, "UDP Agent Connected")
+CONDITION( WIFI_CONNECTED, "WiFi Connected")
+CONDITION( XBEE_MCP_ONLINE, "XBEE<>MCP Online")
+CONDITION( POWER_LED_ON, "Power Sw LED On")
