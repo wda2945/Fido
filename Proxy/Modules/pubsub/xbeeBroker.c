@@ -260,7 +260,7 @@ int XBeeBrokerInit()
 
 	if (uart_setup(PS_TX_PIN, PS_RX_PIN) < 0)
 	{
-		LogError("uart pinmux\n");
+		ERRORPRINT("uart pinmux\n");
 		return -1;
 	}
 
@@ -277,7 +277,7 @@ int XBeeBrokerInit()
 	}
 
 	if (tcgetattr(xbeeUartFD, &settings) != 0) {
-		LogError("tcgetattr: %s\n", strerror(errno));
+		ERRORPRINT("tcgetattr: %s\n", strerror(errno));
 		return -1;
 	}
 
@@ -292,67 +292,32 @@ int XBeeBrokerInit()
 	cfsetispeed(&settings, PS_UART_BAUDRATE);
 
 	if (tcsetattr(xbeeUartFD, TCSANOW, &settings) != 0) {
-		LogError("tcsetattr: %s\n", strerror(errno));
+		ERRORPRINT("tcsetattr: %s\n", strerror(errno));
 		return -1;
 	}
 
 	DEBUGPRINT("xbee uart configured\n");
 
-//	bool xbeeReady = false;
-//	int i;
-//
-//	while (1)
-//	{
-//		gpio_set_value(XBEE_RESET_OUT_GPIO, 1);
-//		usleep(500000);
-//		gpio_set_value(XBEE_RESET_OUT_GPIO, 0);		//reset XBee
-//		usleep(500000);
-//
-//		if (EnterCommandMode() != 0)
-//		{
-//			SetCondition(XBEE_MCP_COMMS_ERRORS);
-//			usleep(500000);
-//			continue;
-//		}
-//
-//		if (EnterAPIMode() != 0)
-//		{
-//			SetCondition(XBEE_MCP_COMMS_ERRORS);
-//			usleep(500000);
-//			continue;
-//		}
-//
-//		xbeeReady = true;
-//		break;
-//	}
-//
-//	if (xbeeReady)
-//	{
-		CancelCondition(XBEE_MCP_COMMS_ERRORS);
+	CancelCondition(XBEE_MCP_COMMS_ERRORS);
 
-		DEBUGPRINT("xbee ready\n");
+	DEBUGPRINT("xbee ready\n");
 
-		//start RX & TX threads
-		pthread_t thread;
+	//start RX & TX threads
+	pthread_t thread;
 
-		int s = pthread_create(&thread, NULL, RxThread, NULL);
-		if (s != 0)
-		{
-			LogError("Rx Thread: %s\n", strerror(s));
-			return -1;
-		}
-		s = pthread_create(&thread, NULL, TxThread, NULL);
-		if (s != 0)
-		{
-			LogError("Tx Thread: %s\n", strerror(s));
-			return -1;
-		}
-		return 0;
-//	}
-//	else {
-//		SetCondition(XBEE_MCP_COMMS_ERRORS);
-//		return -1;
-//	}
+	int s = pthread_create(&thread, NULL, RxThread, NULL);
+	if (s != 0)
+	{
+		LogError("Rx Thread: %s\n", strerror(s));
+		return -1;
+	}
+	s = pthread_create(&thread, NULL, TxThread, NULL);
+	if (s != 0)
+	{
+		LogError("Tx Thread: %s\n", strerror(s));
+		return -1;
+	}
+	return 0;
 }
 
 //called by the broker to see whether a message should be queued for the TX Thread
@@ -457,19 +422,19 @@ void *TxThread(void *a) {
 
 	DEBUGPRINT("XBee TX ready\n");
 
-//	while(1)
-//	{
-//		if (RemoteSetRegister16(SAMPLE_RATE, 10000) < 0)
-//		{
-//			SetCondition(XBEE_MCP_COMMS_ERRORS);
-//			ERRORPRINT("Failed to set Poll Interval\n");
-//			usleep(500000);
-//		}
-//		else
-//		{
-//			break;
-//		}
-//	}
+	//	while(1)
+	//	{
+	//		if (RemoteSetRegister16(SAMPLE_RATE, 10000) < 0)
+	//		{
+	//			SetCondition(XBEE_MCP_COMMS_ERRORS);
+	//			ERRORPRINT("Failed to set Poll Interval\n");
+	//			usleep(500000);
+	//		}
+	//		else
+	//		{
+	//			break;
+	//		}
+	//	}
 
 	for (;;) {
 		struct timespec wait_time;
@@ -482,39 +447,40 @@ void *TxThread(void *a) {
 		{
 			if (cyclicSleep)
 			{
-//				if (SetRegister8(COORDINATOR_ENABLE, 1) < 0)
-//				{
-//					ERRORPRINT("Coordinator Enable fail\n");
-//					SetCondition(XBEE_MCP_COMMS_ERRORS);
-//				}
-//
-//				else if ((RemoteSetRegister16(CYCLIC_SLEEP_PERIOD, (int)(cyclicSleepPeriodS * 100)) < 0) ||
-//						(SetRegister16(CYCLIC_SLEEP_PERIOD, (int)(cyclicSleepPeriodS * 100)) < 0))
-//				{
-//					ERRORPRINT("Failed to set Cyclic Sleep Period\n");
-//					SetCondition(XBEE_MCP_COMMS_ERRORS);
-//				}
-//
-//				else if ((RemoteSetRegister16(TIME_BEFORE_SLEEP, (int)(timeToSleepS * 1000)) < 0) ||
-//						(SetRegister16(TIME_BEFORE_SLEEP, (int)(timeToSleepS * 1000)) < 0))
-//				{
-//					ERRORPRINT("Failed to set Time Before Sleep\n");
-//					SetCondition(XBEE_MCP_COMMS_ERRORS);
-//				}
-//				else
+				//				if (SetRegister8(COORDINATOR_ENABLE, 1) < 0)
+				//				{
+				//					ERRORPRINT("Coordinator Enable fail\n");
+				//					SetCondition(XBEE_MCP_COMMS_ERRORS);
+				//				}
+				//
+				//				else if ((RemoteSetRegister16(CYCLIC_SLEEP_PERIOD, (int)(cyclicSleepPeriodS * 100)) < 0) ||
+				//						(SetRegister16(CYCLIC_SLEEP_PERIOD, (int)(cyclicSleepPeriodS * 100)) < 0))
+				//				{
+				//					ERRORPRINT("Failed to set Cyclic Sleep Period\n");
+				//					SetCondition(XBEE_MCP_COMMS_ERRORS);
+				//				}
+				//
+				//				else if ((RemoteSetRegister16(TIME_BEFORE_SLEEP, (int)(timeToSleepS * 1000)) < 0) ||
+				//						(SetRegister16(TIME_BEFORE_SLEEP, (int)(timeToSleepS * 1000)) < 0))
+				//				{
+				//					ERRORPRINT("Failed to set Time Before Sleep\n");
+				//					SetCondition(XBEE_MCP_COMMS_ERRORS);
+				//				}
+				//				else
 				if (RemoteSetRegister8(SLEEP_MODE, 4) < 0)
 				{
 					ERRORPRINT("Failed to set Sleep Mode 4\n");
 					SetCondition(XBEE_MCP_COMMS_ERRORS);
 				}
-//				else if (SetRegister8(SLEEP_OPTIONS, 0) < 0)
-//				{
-//					ERRORPRINT("Failed to set Sleep Options\n");
-//					SetCondition(XBEE_MCP_COMMS_ERRORS);
-//				}
+				//				else if (SetRegister8(SLEEP_OPTIONS, 0) < 0)
+				//				{
+				//					ERRORPRINT("Failed to set Sleep Options\n");
+				//					SetCondition(XBEE_MCP_COMMS_ERRORS);
+				//				}
 				else
 				{
 					LogInfo("Cyclic Sleep enabled");
+					DEBUGPRINT("Cyclic Sleep enabled");
 					currentCyclicSleep = cyclicSleep;
 				}
 			}
@@ -528,6 +494,7 @@ void *TxThread(void *a) {
 				else
 				{
 					LogInfo("Cyclic Sleep disabled");
+					DEBUGPRINT("Cyclic Sleep disabled");
 					currentCyclicSleep = cyclicSleep;
 				}
 			}
@@ -537,12 +504,12 @@ void *TxThread(void *a) {
 		{
 			if (monitorBattery)
 			{
-//				if (RemoteSetRegister16(SAMPLE_RATE, 10000) < 0)
-//				{
-//					SetCondition(XBEE_MCP_COMMS_ERRORS);
-//					ERRORPRINT("Failed to set Poll Interval\n");
-//				}
-//				else
+				//				if (RemoteSetRegister16(SAMPLE_RATE, 10000) < 0)
+				//				{
+				//					SetCondition(XBEE_MCP_COMMS_ERRORS);
+				//					ERRORPRINT("Failed to set Poll Interval\n");
+				//				}
+				//				else
 				if (RemoteSetRegister8(FIDO_XBEE_BATTERY, PIN_ADC) < 0)
 				{
 					SetCondition(XBEE_MCP_COMMS_ERRORS);
@@ -574,11 +541,11 @@ void *TxThread(void *a) {
 		{
 			if (monitorLED)
 			{
-//				if (RemoteSetRegister16(SAMPLE_RATE, (uint16_t) 10000) < 0)
-//				{
-//					ERRORPRINT("Failed to set Sample Rate\n");
-//				}
-//				else
+				//				if (RemoteSetRegister16(SAMPLE_RATE, (uint16_t) 10000) < 0)
+				//				{
+				//					ERRORPRINT("Failed to set Sample Rate\n");
+				//				}
+				//				else
 				if (RemoteSetRegister8(FIDO_XBEE_LED, PIN_INPUT) < 0)
 				{
 					ERRORPRINT("Failed to set LED pin to Input\n");
@@ -682,13 +649,11 @@ void *TxThread(void *a) {
 			{
 				ERRORPRINT("XBee TX %i Status: %s\n", txSequenceNumber, txStatusNames[latestTxStatus.status]);
 				SetCondition(XBEE_MCP_COMMS_ERRORS);
-				CancelCondition(XBEE_MCP_ONLINE);
 				sendErrors++;
 			}
 			else
 			{
 				messagesSent++;
-				CancelCondition(XBEE_MCP_COMMS_ERRORS);
 			}
 		} else {
 			ERRORPRINT("XBee SendFidoMessage() error\n ");

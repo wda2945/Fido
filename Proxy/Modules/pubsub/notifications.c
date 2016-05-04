@@ -65,7 +65,7 @@ int NotificationsInit() {
 	int s = pthread_create(&nthread, NULL, ConditionThread, NULL);
 	if (s != 0)
 	{
-		ERRORPRINT("Conditions Thread: %i\n", s);
+		LogError("Conditions Thread: %i\n", s);
 		return -1;
 	}
 

@@ -34,12 +34,12 @@
 FILE *agentDebugFile;
 
 #ifdef AGENT_DEBUG
-#define DEBUGPRINT(...) tprintf( __VA_ARGS__);fprintf(agentDebugFile, __VA_ARGS__);fflush(agentDebugFile);
+#define DEBUGPRINT(...) tprintf( __VA_ARGS__);tfprintf(agentDebugFile, __VA_ARGS__);
 #else
 #define DEBUGPRINT(...) fprintf(agentDebugFile, __VA_ARGS__);fflush(agentDebugFile);
 #endif
 
-#define ERRORPRINT(...) LogError(__VA_ARGS__);fprintf(agentDebugFile, __VA_ARGS__);fflush(agentDebugFile);
+#define ERRORPRINT(...) tprintf( __VA_ARGS__);tfprintf(agentDebugFile, __VA_ARGS__);
 
 #define MAX_AGENT_CONNECTIONS 10
 
