@@ -27,9 +27,6 @@
 #include "broker_debug.h"
 #include "pubsub/xbee.h"
 
-NotificationMask_t systemActiveConditions 	= 0;
-NotificationMask_t systemValidConditions	= 0;
-
 BrokerQueue_t responderQueue = BROKER_Q_INITIALIZER;
 
 void *ResponderMessageThread(void *arg);
@@ -45,7 +42,7 @@ int ResponderInit()
 	int s = pthread_create(&thread, NULL, ResponderMessageThread, NULL);
 	if (s != 0)
 	{
-		ERRORPRINT("Responder Thread: %i\n", s);
+		ERRORPRINT("responder: Thread error - %i\n", s);
 		return -1;
 	}
 	return 0;
@@ -61,7 +58,7 @@ void *ResponderMessageThread(void *arg)
 {
 	uint8_t requestor;
 
-	DEBUGPRINT("Responder message thread started\n");
+	DEBUGPRINT("responder: thread started\n");
 
 	while (1)
 	{
@@ -75,7 +72,7 @@ void *ResponderMessageThread(void *arg)
 			{
 				requestor = msg->configPayload.requestor;
 
-				DEBUGPRINT("Send Config msg\n");
+				DEBUGPRINT("responder: Send Config received\n");
 				configCount = 0;
 
 #define optionmacro(name, var, minV, maxV, def) sendOptionConfig(name, var, minV, maxV, requestor);
@@ -95,7 +92,7 @@ void *ResponderMessageThread(void *arg)
 					msg.configPayload.count = configCount;
 					RouteMessage(&msg);
 				}
-				DEBUGPRINT("Config Done\n");
+				DEBUGPRINT("responder: Config Done\n");
 			}
 			break;
 
@@ -103,7 +100,7 @@ void *ResponderMessageThread(void *arg)
 		{
 			if (msg->header.source != OVERMIND)
 			{
-				DEBUGPRINT("APP Ping msg\n");
+				DEBUGPRINT("responder: APP Ping received\n");
 				psMessage_t msg2;
 				psInitPublish(msg2, PING_RESPONSE);
 				strcpy(msg2.responsePayload.subsystem, "BEE");
@@ -113,12 +110,13 @@ void *ResponderMessageThread(void *arg)
 				RouteMessage(&msg2);
 
 				PublishConditions(true);
-				SendStats();
+				SendXBeeStats();
+				SendAgentStats();
 			}
 		}
 		break;
 		case NEW_SETTING:
-			DEBUGPRINT("Setting: %s = %f\n", msg->settingPayload.name, msg->settingPayload.value);
+			DEBUGPRINT("responder: New Setting: %s = %f\n", msg->settingPayload.name, msg->settingPayload.value);
 #define settingmacro(n, var, minV, maxV, def) if (strncmp(n,msg->settingPayload.name,PS_NAME_LENGTH) == 0)\
 		var = msg->settingPayload.value;\
 		sendSettingConfig(n, var, minV, maxV, 0);
@@ -130,7 +128,7 @@ void *ResponderMessageThread(void *arg)
 			break;
 
 		case SET_OPTION:
-			DEBUGPRINT("Option: %s = %i\n", msg->optionPayload.name, msg->optionPayload.value);
+			DEBUGPRINT("responder: Set Option: %s = %i\n", msg->optionPayload.name, msg->optionPayload.value);
 #define optionmacro(n, var, minV, maxV, def) if (strncmp(n,msg->optionPayload.name,PS_NAME_LENGTH) == 0)\
 		var = msg->optionPayload.value;\
 		sendOptionConfig(n, var, minV, maxV, 0);

@@ -41,7 +41,7 @@ int ResponderInit();
 
 //serial broker init
 int XBeeBrokerInit();
-void SendStats();
+void SendXBeeStats();
 
 void XBeeBrokerProcessMessage(psMessage_t *msg);	//consider candidate msg to send over the uart
 

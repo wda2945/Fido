@@ -100,7 +100,7 @@ static void I2C4_Task(void *pvParameters) {
     uint8_t strobeMask = 0;
     
     if (!I2C_Begin(GPIO_I2C)) {
-        LogError("I2C4_ Begin");
+        LogError("I2C4: I2C_Begin");
         SetCondition(I2C_BUS_ERROR);
         SetCondition(GPIO_ERROR);
         vTaskSuspend(NULL);
@@ -196,7 +196,7 @@ static void I2C4_Task(void *pvParameters) {
             if (PIRoperational == 0)
             {
                 PIRoperational = PIR_START_WAIT * 1000 / TASK_LOOP_MS;  //30 seconds
-                LogInfo("Start PIR Wait]n");
+                LogInfo("i2c4: Start PIR Wait]n");
             }
         }
         else
@@ -225,7 +225,7 @@ int GPIOinit() {
     I2C4_Result = I2C_WriteRegister(GPIO_I2C, GPIO_I2C_ADDRESS, GPIO_IODIR, LEFT_PIR | RIGHT_PIR);
     if (I2C4_Result != I2C_OK) {
         if (!GPIO_errorLogged) {
-            DebugPrint("GPIO IODIR error %s", I2C_errorMsg(I2C4_Result));
+            DebugPrint("i2c4: GPIO IODIR error %s", I2C_errorMsg(I2C4_Result));
             SetCondition(I2C_BUS_ERROR);
             SetCondition(GPIO_ERROR);
             GPIO_errorLogged = true;
@@ -242,7 +242,7 @@ int GPIOwrite(uint8_t _bits) {
     I2C4_Result = I2C_WriteRegister(GPIO_I2C, GPIO_I2C_ADDRESS, GPIO_PORT, _bits);
     if (I2C4_Result != I2C_OK) {
         if (!GPIO_errorLogged) {
-            DebugPrint("GPIO PORT error %s", I2C_errorMsg(I2C4_Result));
+            DebugPrint("i2c4: GPIO PORT error %s", I2C_errorMsg(I2C4_Result));
             SetCondition(I2C_BUS_ERROR);
             SetCondition(GPIO_ERROR);
             GPIO_errorLogged = true;
@@ -259,7 +259,7 @@ int GPIOread() {
     I2C4_Result = I2C_ReadRegister(GPIO_I2C, GPIO_I2C_ADDRESS, GPIO_PORT, &data);
     if (I2C4_Result != I2C_OK) {
         if (!GPIO_errorLogged) {
-            DebugPrint("GPIO PORT error %s", I2C_errorMsg(I2C4_Result));
+            DebugPrint("i2c4: GPIO PORT error %s", I2C_errorMsg(I2C4_Result));
             SetCondition(I2C_BUS_ERROR);
             SetCondition(GPIO_ERROR);
             GPIO_errorLogged = true;
@@ -310,7 +310,7 @@ int PMICWrite(PMICcommand_enum cmd) {
     if (I2C4_Result != I2C_OK) {
         if (!PMIC_errorLogged) {
             SetCondition(PMIC_ERROR);
-            DebugPrint("PMIC W: %s", I2C_errorMsg(I2C4_Result));
+            DebugPrint("i2c4: PMIC W: %s", I2C_errorMsg(I2C4_Result));
             PMIC_errorLogged = true;
             SetCondition(I2C_BUS_ERROR);
             SetCondition(PMIC_ERROR);

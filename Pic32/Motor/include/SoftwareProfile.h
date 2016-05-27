@@ -74,16 +74,9 @@
 #define UART_TASK_STACK_SIZE        500
 #define UART_TASK_PRIORITY          ( 4 )
 #define PS_UART_ADDRESS             0xAA    //message delimeter
-#define UART_QUEUE_LENGTH           300
-#define UART_QUEUE_LIMITS           {UART_QUEUE_LENGTH, UART_QUEUE_LENGTH / 2, UART_QUEUE_LENGTH / 4}
+#define UART_QUEUE_LENGTH           100
+#define UART_QUEUE_LIMITS           {UART_QUEUE_LENGTH, UART_QUEUE_LENGTH, UART_QUEUE_LENGTH / 2}
 #define UART_BROKER_BUFFER_SIZE     64
-
-
-//syslog queueing limits to avoid congestion
-#define UART_ROUTINE_MAX             0
-#define UART_INFO_MAX                10
-#define UART_WARNING_MAX             10
-#define UART_ERROR_MAX               10
 
 //Serial logger
 #define DEBUG_PRINT

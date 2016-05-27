@@ -12,7 +12,7 @@
 #import "MessageDelegateProtocol.h"
 #import "CollectionViewController.h"
 #import "LogViewController.h"
-#import "SensorViewController.h"
+#import "EnvironmentViewController.h"
 #import "StatsViewController.h"
 #import "RCViewController.h"
 #import "SystemViewController.h"
@@ -32,7 +32,7 @@
 @property (strong, nonatomic) SystemViewController      *systemViewController;
 @property (strong, nonatomic) StatsViewController       *statsController;
 @property (strong, nonatomic) LogViewController         *logViewController;
-@property (strong, nonatomic) SensorViewController      *navController;
+@property (strong, nonatomic) EnvironmentViewController      *navController;
 @property (strong, nonatomic) RCViewController          *rcController;
 @property (strong, nonatomic) SubsystemViewController   *statusController;
 @property (strong, nonatomic) MapViewController         *mapController;

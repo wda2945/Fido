@@ -92,7 +92,7 @@ static void I2C1_Task(void *pvParameters) {
 
     //initialize the I2C1_ module
     if (!I2C_Begin(SONAR_I2C)) {
-        LogError("I2C1_ Begin");
+        LogError("I2C1 I2C_Begin error");
         SetCondition(I2C_BUS_ERROR);
         SetCondition(SONAR_PROXIMITY_ERROR);
         vTaskSuspend(NULL);
@@ -105,7 +105,7 @@ static void I2C1_Task(void *pvParameters) {
 
     dataNextReportTime = xTaskGetTickCount() + envReport;
 
-    LogRoutine("I2C1 Task Up");
+    DebugPrint("I2C1: Task Up");
 
     for (;;) {
 
@@ -182,7 +182,7 @@ int SonarStart(uint8_t i2cAddress) {
     I2C1_Result = I2C_Write(SONAR_I2C, i2cAddress, writeData, 1);
     if (I2C1_Result != I2C_OK) {
         if (!I2C1_errorLogged) {
-            DebugPrint("SonarStart %2x: %s", i2cAddress, I2C_errorMsg(I2C1_Result));
+            DebugPrint("I2C1: SonarStart %2x: %s", i2cAddress, I2C_errorMsg(I2C1_Result));
             I2C1_errorLogged = true;
             SetCondition(I2C_BUS_ERROR);
             SetCondition(SONAR_PROXIMITY_ERROR);
@@ -201,7 +201,7 @@ int SonarRead(uint8_t i2cAddress) {
         return ((readData[0] << 8) | readData[1]);
     } else {
         if (!I2C1_errorLogged) {
-            DebugPrint("SonarRead %2x: %s", i2cAddress, I2C_errorMsg(I2C1_Result));
+            DebugPrint("I2C1: SonarRead %2x: %s", i2cAddress, I2C_errorMsg(I2C1_Result));
             I2C1_errorLogged = true;
             SetCondition(I2C_BUS_ERROR);
             SetCondition(SONAR_PROXIMITY_ERROR);
@@ -222,7 +222,7 @@ int RTCRead() {
     }
     else {
         if (!RTCerrorLogged) {
-            DebugPrint("RTC R: %s", I2C_errorMsg(I2C1_Result));
+            DebugPrint("I2C1: RTC R: %s", I2C_errorMsg(I2C1_Result));
             SetCondition(I2C_BUS_ERROR);
             RTCerrorLogged = true;
         }
@@ -238,7 +238,7 @@ int RTCWrite() {
         RTCerrorLogged = false;
     } else {
         if (!RTCerrorLogged) {
-            DebugPrint("RTC W: %s", I2C_errorMsg(I2C1_Result));
+            DebugPrint("I2C1: RTC W: %s", I2C_errorMsg(I2C1_Result));
             SetCondition(I2C_BUS_ERROR);
             RTCerrorLogged = true;
         }

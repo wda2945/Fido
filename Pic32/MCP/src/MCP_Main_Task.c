@@ -71,7 +71,7 @@ bool McpTaskProcessMessage(psMessage_t *msg, TickType_t wait) {
     //not filtered at present
     if (mcpQueue) {
         if (xQueueSendToBack(mcpQueue, msg, wait) != pdTRUE) {
-            DebugPrint("MCP discarded %s", psLongMsgNames[msg->header.messageType]);
+            DebugPrint("mcp: discarded %s", psLongMsgNames[msg->header.messageType]);
             return false;
         }
         else return true;
@@ -84,7 +84,8 @@ psMessage_t mcpTxMsg; //static sent message
 
 static void MCPtask(void *pvParameters) {
     int i;
-    int initReply = 0;
+    char *initFail = NULL;
+    
     bool picUnitialized = true;
 
     //LED pin
@@ -95,10 +96,126 @@ static void MCPtask(void *pvParameters) {
     SetPinOption(MOT_PWR_IOPORT, MOT_PWR_BIT, motPower);
     SetPinOption(OVM_PWR_IOPORT, OVM_PWR_BIT, ovmPower);
     
-    initReply += SysLogInit();
-    initReply += PubSubInit();
-    initReply += NotificationsInit();
-
+    if (SysLogInit() < 0)
+    {
+        initFail = "syslog";
+        DebugPrint("mcp: SysLogInit() fail");
+    }
+    else
+    {
+        DebugPrint("mcp: SysLogInit() OK");
+    }
+    if(PubSubInit() < 0)
+    {
+        initFail = "broker";
+        DebugPrint("mcp: PubSubInit() fail");
+    }
+    else
+    {
+        DebugPrint("mcp: PubSubInit() OK");
+    }    
+    
+    if(NotificationsInit() < 0)
+    {
+        initFail = "notifications";
+        DebugPrint("mcp: NotificationsInit() fail");
+    }
+    else
+    {
+        DebugPrint("mcp: NotificationsInit() OK");
+    } 
+    
+    if ((mcpQueue = psNewPubSubQueue(MCP_TASK_QUEUE_LENGTH)) == NULL) {
+        SetCondition(MCP_INIT_ERROR);
+        LogError("mcp: No MCP Task Q");
+        initReply += -1;
+    }
+    if (UARTBrokerInit() < 0)
+    {
+        initFail = "uart_broker";
+        DebugPrint("mcp: UARTBrokerInit() fail");
+    }
+    else
+    {
+        DebugPrint("mcp: UARTBrokerInit() OK");
+    }
+ #ifdef PS_BLE_BROKER
+    if (BLEBrokerInit() < 0)
+    {
+        initFail = "ble_broker";
+        DebugPrint("mcp: BLEBrokerInit() fail");
+    }
+    else
+    {
+        DebugPrint("mcp: BLEBrokerInit() OK");
+    }
+#endif
+#ifdef XBEE_BROKER
+    if (XBeeBrokerInit() < 0)
+    {
+        initFail = "xbee_broker";
+        DebugPrint("mcp: XBeeBrokerInit() fail");
+    }
+    else
+    {
+        DebugPrint("mcp: XBeeBrokerInit() OK");
+    }
+#endif
+    if (PowerControlInit(POWER_SLEEPING) < 0)
+    {
+        initFail = "power";
+        DebugPrint("mcp: PowerControlInit() fail");
+    }
+    else
+    {
+        DebugPrint("mcp: PowerControlInit() OK");
+    }
+    if (ProximityInit() < 0)
+    {
+        initFail = "proximity";
+        DebugPrint("mcp: ProximityInit() fail");
+    }
+    else
+    {
+        DebugPrint("mcp: ProximityInit() OK");
+    }
+    if (Analog_TaskInit() < 0)
+    {
+        initFail = "analog";
+        DebugPrint("mcp: Analog_TaskInit() fail");
+    }
+    else
+    {
+        DebugPrint("mcp: Analog_TaskInit() OK");
+    }
+    if (I2C1_TaskInit() < 0)
+    {
+        initFail = "i2C1";
+        DebugPrint("mcp: I2C1_TaskInit() fail");
+    }
+    else
+    {
+        DebugPrint("mcp: I2C1_TaskInit() OK");
+    }
+    if (Tick_TaskInit() < 0)
+    {
+        initFail = "tick";
+        DebugPrint("mcp: Tick_TaskInit() fail");
+    }
+    else
+    {
+        DebugPrint("mcp: Tick_TaskInit() OK");
+    }
+    if (I2C4_TaskInit() < 0)
+    {
+        initFail = "I2C4";
+        DebugPrint("mcp: I2C4_TaskInit() fail");
+    }
+    else
+    {
+        DebugPrint("mcp: I2C4_TaskInit() OK");
+    }
+   
     CancelCondition(BATTERY_LOW);
     CancelCondition(BATTERY_CRITICAL);
     CancelCondition(CHARGING);
@@ -141,54 +258,23 @@ static void MCPtask(void *pvParameters) {
     CancelCondition(MCP_MOT_COMMS_ERRORS);
     CancelCondition(MCP_OVM_COMMS_ERRORS);
 
-    if ((mcpQueue = psNewPubSubQueue(MCP_TASK_QUEUE_LENGTH)) == NULL) {
-        SetCondition(MCP_INIT_ERROR);
-        LogError("No MCP Task Q");
-        initReply += -1;
-    }
-    
-    initReply += UARTBrokerInit();
-    DebugPrint("UARTBrokerInit");
-#ifdef PS_BLE_BROKER
-    initReply += BLEBrokerInit();
-    DebugPrint("BLEBrokerInit");
-#endif
-#ifdef XBEE_BROKER
-    initReply += XBeeBrokerInit();
-    DebugPrint("XBeeBrokerInit");
-#endif
-
-    initReply += PowerControlInit(POWER_SLEEPING);
-    DebugPrint("PowerControlInit");
-    initReply += ProximityInit();
-    DebugPrint("ProximityInit");
-
-    initReply += Analog_TaskInit();
-    DebugPrint("Analog_TaskInit");
-    initReply += I2C1_TaskInit();        //sonar
-    DebugPrint("I2C1_TaskInit");
-    initReply += Tick_TaskInit();
-    DebugPrint("Tick_TaskInit");
-    initReply += I2C4_TaskInit();      //GPIO, RTC
-    DebugPrint("I2C4_TaskInit");
-
     psInitPublish(mcpTxMsg, SS_ONLINE);
     strcpy(mcpTxMsg.responsePayload.subsystem, "MCP");
-    mcpTxMsg.responsePayload.flags = (initReply < 0 ? RESPONSE_INIT_ERRORS : 0)
+    mcpTxMsg.responsePayload.flags = (initFail ? RESPONSE_INIT_ERRORS : 0)
             || RESPONSE_FIRST_TIME;
     psSendMessage(mcpTxMsg);
 
-    if (initReply < 0) {
+    if (initFail) {
         SetCondition(MCP_INIT_ERROR);
-        DebugPrint("MCP Init Error");
-        
+        DebugPrint("MCP Init Error: %s", initFail);
+        LogError("mcp: Init Fail: %s", initFail);
         while (1) {
             vTaskDelay(100);
             PORTToggleBits(USER_LED_IOPORT, USER_LED_BIT);
         }
     }
     
-    LogRoutine("MCP Up");
+    DebugPrint("MCP Up");
     
     vTaskDelay(1000);
     
@@ -199,11 +285,12 @@ static void MCPtask(void *pvParameters) {
         //wait for a message
         if (xQueueReceive(mcpQueue, &mcpTaskRxMsg, portMAX_DELAY) == pdTRUE) {
 
-            DebugPrint("MCP> message: %s", psLongMsgNames[mcpTaskRxMsg.header.messageType]);
+//            DebugPrint("mcp: message: %s", psLongMsgNames[mcpTaskRxMsg.header.messageType]);
     
             switch (mcpTaskRxMsg.header.messageType) {
 
                 case CONFIG:
+                    DebugPrint("mcp: Send Config message");
                     //send config vars
                     if (mcpTaskRxMsg.configPayload.responder == MCP_SUBSYSTEM) {
                          int requestor = mcpTaskRxMsg.configPayload.requestor;
@@ -226,11 +313,11 @@ static void MCPtask(void *pvParameters) {
 
                         PublishConditions(true);
                         
-                        LogRoutine("Config Sent");
+                        DebugPrint("mcp: Config Sent");
                     }
                     break;
                 case SET_OPTION:
-                    LogRoutine("New Option %s = %i", mcpTaskRxMsg.optionPayload.name, mcpTaskRxMsg.optionPayload.value);
+                    DebugPrint("mcp: New Option %s = %i", mcpTaskRxMsg.optionPayload.name, mcpTaskRxMsg.optionPayload.value);
                     
 #define optionmacro(n, var, minV, maxV, def) SetOption(&mcpTaskRxMsg, n, &var, minV, maxV);
 #include "Options.h"
@@ -241,7 +328,7 @@ static void MCPtask(void *pvParameters) {
                     if (strcmp(mcpTaskRxMsg.optionPayload.name, "Solar Panel") == 0) SetPinOption(SOLAR_IOPORT, SOLAR_BIT, solarEnable);
                     break;
                 case NEW_SETTING:
-                    LogRoutine("New Setting %s = %f", mcpTaskRxMsg.settingPayload.name, mcpTaskRxMsg.settingPayload.value);
+                    DebugPrint("mcp: New Setting %s = %f", mcpTaskRxMsg.settingPayload.name, mcpTaskRxMsg.settingPayload.value);
                     
 #define settingmacro(n, var, minV, maxV, def) NewSetting(&mcpTaskRxMsg, n, &var, minV, maxV);
 #include "Settings.h"
@@ -252,13 +339,12 @@ static void MCPtask(void *pvParameters) {
                     break;
                 case PING_MSG:
                 {
-                    LogRoutine("Ping Msg");
+                    DebugPrint("mcp: Ping Msg");
                     PORTToggleBits(USER_LED_IOPORT, USER_LED_BIT);
 
                     psInitPublish(mcpTxMsg, PING_RESPONSE)
                         strcpy(mcpTxMsg.responsePayload.subsystem, "MCP");
-                    mcpTxMsg.responsePayload.flags = (initReply < 0 ? RESPONSE_INIT_ERRORS : 0)
-                            || (picUnitialized ? RESPONSE_FIRST_TIME : 0);
+                    mcpTxMsg.responsePayload.flags = (picUnitialized ? RESPONSE_FIRST_TIME : 0);
                     mcpTxMsg.responsePayload.requestor = mcpTaskRxMsg.requestPayload.requestor;
 
                     psSendMessage(mcpTxMsg);
@@ -268,9 +354,9 @@ static void MCPtask(void *pvParameters) {
                     mcpTxMsg.bytePayload.value = (uint8_t) systemPowerState;
                     psSendMessage(mcpTxMsg);                    
                     
-                    PublishConditions(true);
+//                    PublishConditions(true);
                     
-                    SendProximityReport(true);
+//                    SendProximityReport(true);
                 }
                     break;
                 case COMMAND: //change commanded power state
@@ -279,6 +365,7 @@ static void MCPtask(void *pvParameters) {
                     break;
                     //Notifications that will wake the Overmind
                 case WAKE_MASK:
+                    LogInfo("mcp: Wake Mask Set");
                     WakeEventMask = mcpTaskRxMsg.maskPayload.value[0];
                     break;
                     //Notifications raised elsewhere

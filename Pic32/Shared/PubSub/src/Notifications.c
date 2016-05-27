@@ -139,7 +139,7 @@ void NotifyEvent(Event_enum e) {
 
     if (e <= 0 || e >= EVENT_COUNT) return;
 
-    LogRoutine("Notify: %s", eventNames[e]);
+    DebugPrint("Notify: %s", eventNames[e]);
 
     nq.event = e;
 
@@ -205,7 +205,7 @@ void SetCondition(Condition_enum e)
     SetMaskBit(VALID_MASK, e);
     xSemaphoreGive(conditionMutex);
     
-    if (!prior) LogRoutine("Set: %s", conditionNames[e]);
+    if (!prior) DebugPrint("Set: %s", conditionNames[e]);
 }
 
 void CancelCondition(Condition_enum e)
@@ -220,7 +220,7 @@ void CancelCondition(Condition_enum e)
     SetMaskBit(VALID_MASK, e);
     xSemaphoreGive(conditionMutex);
     
-    if (prior) LogRoutine("Cancel: %s", conditionNames[e]);
+    if (prior) DebugPrint("Cancel: %s", conditionNames[e]);
 }
 
 void PublishConditions(bool _force) {

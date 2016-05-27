@@ -19,12 +19,14 @@
 
 //direction (relative to chassis motion)
 typedef enum {MOTOR_FORWARD, MOTOR_REVERSE} MotorDirectionEnum_t;
+typedef enum {PORT_MOTORS, STARBOARD_MOTORS} MotorSideEnum_t;
 
 //motor data table struct
 typedef struct {
     //static data
     char                    *name;      // eg "Left Front"
-
+    int                     side;       // MotorSideEnum_t
+    
     //Encoder vars - interrupt updated
     volatile uint8_t        lastEncoderState; //used to decode quadrature encs
     volatile int64_t        encoderCount;   //inc/dec by interrupt
@@ -39,20 +41,19 @@ typedef struct {
     int                     encoderSampleIndex;
 
     //encoder derived output
-    float                   measuredSpeed;
+    float                   measuredSpeed;      //signed
 
     //current - not yet used
     volatile float          amps;
     float                   ampsZero;       //calibrated zero point
 
     //goals
-    float                   distanceToGo;
-    int                     desiredSpeed; 
+    float                   distanceToGo;       //signed
+    int                     desiredSpeed;       //signed
     
     //drive
     bool                    motorRunning;
-    MotorDirectionEnum_t    pwmCurrentDirection;
-    float                   pwmCurrentDutyRatio;
+    float                   currentDutyRatio;   //unsigned
 
     //PID weighted errors - not yet used
     float   pError, iError, dError;
@@ -64,6 +65,24 @@ typedef struct {
 
 //data for all motors
 extern MotorStruct_t    motors[NUM_MOTORS];
+
+//motor side table struct
+typedef struct {
+    //static data
+    char                    *name;      // eg "Left/Right"
+
+    //encoder derived output
+    float                   measuredSpeed;      //signed
+
+    //goals
+    float                   distanceToGo;       //signed
+    int                     desiredSpeed;       //signed
+    
+    //drive
+    MotorDirectionEnum_t    direction;
+} MotorSideStruct_t;
+
+extern MotorSideStruct_t motorSide[2];
 
 //count of motors running - for AllStopped message
 extern int motorsRunning;

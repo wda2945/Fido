@@ -25,15 +25,17 @@ typedef struct {
 //queue struct - allocated and kept by the owning subsystem
 //list head and tail, plus mutex and condition variable for signalling
 typedef struct {
-	BrokerQueueEntry_t *qHead, *qTail;
 	pthread_mutex_t mtx;	//access control
 	pthread_cond_t cond;	//signals item in previously empty queue
+	BrokerQueueEntry_t *qHead[QOS_COUNT], *qTail[QOS_COUNT];
+	int queueCount;
 } BrokerQueue_t;
-#define BROKER_Q_INITIALIZER {NULL, NULL, PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER}
+
+#define BROKER_Q_INITIALIZER {PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER, NULL, NULL, NULL, NULL, NULL, NULL}
 
 int BrokerQueueInit(int pre);							//one init to pre-allocate shared pool of queue entries
 
-int CopyMessageToQ(BrokerQueue_t *q, psMessage_t *msg);				//appends to queue
+int CopyMessageToQ(BrokerQueue_t *q, psMessage_t *msg);				//adds to queue
 
 void AppendQueueEntry(BrokerQueue_t *q, BrokerQueueEntry_t *e);		//appends an allocated message q entry
 

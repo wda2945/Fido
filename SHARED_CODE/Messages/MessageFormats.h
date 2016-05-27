@@ -268,7 +268,6 @@ typedef struct {
 //PS_COMMS_STATS_PAYLOAD
 
 typedef struct {
-    char destination[4];
     int messagesSent;
     int sendErrors;
     int addressDiscarded;
@@ -278,6 +277,8 @@ typedef struct {
     int receiveErrors;
     int addressIgnored;        //wrong address
     int parseErrors;
+    int queueLength;
+    char destination[4];
 } psCommsStatsPayload_t;
 
 //----------------------NAVIGATION & SENSORS------------------------------------------
@@ -372,14 +373,17 @@ typedef struct {
     uint16_t volts;			//times 10
     int16_t ampHours;		//times 10
     int16_t amps;			//times 10
+    int16_t maxAmps;        //times 10
     uint8_t percentage;
     uint8_t status;			//BatteryStatus_enum
+
 } psBatteryPayload_t;
 
 //PS_ENVIRONMENT - MCP
 typedef struct {
     uint16_t batteryVolts;   //times 10
     int16_t  batteryAmps;    //times 10
+    int16_t  maxAmps;        //times 10
     int16_t  batteryAh;      //times 10
     uint16_t solarVolts;     //times 10
     uint16_t chargeVolts;    //times 10
@@ -389,7 +393,7 @@ typedef struct {
     uint8_t  externalTemp;
     uint8_t  relativeHumidity;
     uint8_t  ambientLight;
-    uint8_t  isRaining;     //boolean
+    uint8_t  isRaining;      //boolean
 } psEnvironmentPayload_t;
 
 //PS_BEHAVIOR_STATUS

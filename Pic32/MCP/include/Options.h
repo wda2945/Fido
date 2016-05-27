@@ -36,10 +36,10 @@ optionmacro("OVM PwrBtn Stop", bbbPwrBtnStop, 0, 1, 1)  //use PWR_BTN to stop
 optionmacro("OVM Start T/O", bbbStartTO, 0, 1, 0)   //use startup Timeout
 
 //other
-optionmacro("Lights Nav", navLights, 0, 1, 0)
-optionmacro("Lights Front", frontLights, 0, 1, 0)
-optionmacro("Lights Rear", rearLights, 0, 1, 0)
-optionmacro("Lights Strobe", strobeLights, 0, 1, 1)
+optionmacro("Lights Nav", navLights, 0, 1, 0)           //name used in PowerControl
+optionmacro("Lights Front", frontLights, 0, 1, 0)       //name used in PowerControl
+optionmacro("Lights Rear", rearLights, 0, 1, 0)         //name used in PowerControl
+optionmacro("Lights Strobe", strobeLights, 0, 1, 1)     //name used in PowerControl
         
 //-----Individual Sonar enables
 //sonar sensors

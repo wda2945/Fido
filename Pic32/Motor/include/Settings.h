@@ -7,14 +7,13 @@
 //
 
 
-settingmacro("Duty Starting",startingDuty,0.1,0.5,0.3)
-settingmacro("Duty Increment",dutyIncrement,0.0,0.5,0.1)
+settingmacro("Duty Starting",startingDuty,0.1,1.0,0.25)
+settingmacro("Duty Increment",dutyIncrement,0.0,0.25,0.025)
 //settingmacro("PID Deadband",deadband,0,500,500)
 
-settingmacro("Duty Min",minDuty,0.1,0.5,0.3)
-settingmacro("Duty Max",maxDuty,0.3,1.0,0.75)
+settingmacro("Duty Max",maxDuty,0.3,1.0,1.0)
 
-settingmacro("PID P Coeff",pCoefficient,0,0.5,0.05)
+//settingmacro("PID P Coeff",pCoefficient,0,0.5,0.05)
 //settingmacro("PID I Coeff",iCoefficient,0,0.1,0.0005)
 //settingmacro("PID D Coeff",dCoefficient,0,0.1,0)
 settingmacro("PID Interval mS",pidInterval,10,500,200)

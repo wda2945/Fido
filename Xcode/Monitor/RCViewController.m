@@ -10,13 +10,14 @@
 #import "PubSubMsg.h"
 #import "AppDelegate.h"
 
-#define MOVE_INTERVAL 0.5f
+#define MOVE_INTERVAL 0.25f
 
 @interface RCViewController () {
-    CGPoint touchDown;
     
     NSTimer *moveTimer;
     CGPoint move, lastMove;
+    
+    bool fingerOn;
 }
 - (void) moveMsg: (NSTimer*) timer;
 - (void) slide: (UIPanGestureRecognizer*) gr;
@@ -40,6 +41,8 @@
     [super viewDidLoad];
     // Do any additional setup after loading the view.
     
+    fingerOn = false;
+    
     UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(slide:)];
     
     pan.minimumNumberOfTouches = 1;
@@ -61,12 +64,15 @@
         case UIGestureRecognizerStateEnded:
         case UIGestureRecognizerStateCancelled:
         case UIGestureRecognizerStateFailed:
-            [self sendCommandX: 0 andY: 0 ];
+            fingerOn = false;
             break;
         case UIGestureRecognizerStateChanged:
         {
+            fingerOn = true;
+            
             CGPoint pan = [gr translationInView:self.view];
-            [self sendCommandX: -pan.y / 10 andY: pan.x / 10];
+            move.x = -pan.y;
+            move.y = pan.x;
         }
             break;
         default:
@@ -74,32 +80,69 @@
     }
 }
 
-- (void) sendCommandX: (float) x andY: (float) y {
-    move.x = x;
-    move.y = y;
-}
+bool lastFingerOn = false;
+
 - (void) moveMsg: (NSTimer*) timer
 {
-    if (move.x == lastMove.x && move.y == lastMove.y) return;
-    
-    NSLog(@"Move %f, turn %f", move.x, move.y);
-    
     if ([(AppDelegate*)[[UIApplication sharedApplication] delegate] connected])
     {
+        int port, starboard, speed;
+        
+        if (fingerOn)
+        {
+            if (fabs(move.y) > fabs(move.x))
+            {
+                if (move.y > 0)
+                {
+                    port = 30;
+                    starboard = -30;
+                    speed = (int) fabs(move.y);
+                }
+                else
+                {
+                    port = -30;
+                    starboard = 30;
+                    speed = (int) fabs(move.y);
+                }
+            }
+            else
+            {
+                if (move.x > 0)
+                {
+                    port = starboard = 30;
+                    speed = (int) fabs(move.x);
+                }
+                else
+                {
+                    port = starboard = -30;
+                    speed = (int) fabs(move.x);
+                }
+            }
+        }
+        else
+        {
+            if (lastFingerOn) {
+                port = starboard = speed = 0;
+            }
+            else{
+                lastFingerOn = false;
+                return;
+            }
+        }
+        
         psMessage_t msg;
         msg.header.messageType = MOTORS;
-        msg.motorPayload.portMotors = (move.x + move.y) * 10;
-        msg.motorPayload.starboardMotors = (move.x - move.y) * 10;
-        float distance = sqrt(move.x*move.x + move.y*move.y);
-        msg.motorPayload.speed = (distance < 10 ? 10 : distance);
+        msg.motorPayload.portMotors = port;
+        msg.motorPayload.starboardMotors = starboard;
+        msg.motorPayload.speed = speed;
         msg.motorPayload.flags =
             (move.x>=0 ? ENABLE_FRONT_CONTACT_ABORT : 0) |
             (move.x<=0 ? ENABLE_REAR_CONTACT_ABORT : 0) |
             ENABLE_SYSTEM_ABORT;
         [PubSubMsg sendMessage:&msg];
         
-        lastMove.x = move.x;
-        lastMove.y = move.y;
+        NSLog(@"Motors: port %i, starboard %i, speed %i", port, starboard, speed);
+
     }
 }
 -(void) didConnect{

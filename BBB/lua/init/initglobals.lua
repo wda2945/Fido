@@ -34,13 +34,13 @@ update = function()
 		activityResult = (CurrentActivity):run(CurrentActivityName)
 		
 		if activityResult == 'success' or activityResult == 'fail' then
-			Print('Update - ' .. activityResult)
+--			Print('Update - ' .. activityResult)
 			activate('IdleTask', Idle)	
 		else
 			if activityResult == 'running' then 
-				Print('Update - running')
+--				Print('Update - running')
 			else
-				Print('Update invalid result: ' .. activityResult) 
+--				Print('Update invalid result: ' .. activityResult) 
 				return 'invalid'
 			end	
 		end

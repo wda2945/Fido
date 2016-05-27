@@ -42,7 +42,7 @@
 #include "PubSub/xbee.h"
 
 //Message Tx queue
-PubSubQueue_t xbeeTxQueue;
+PubSubQueue_t xbeeTxQueue[3];
 
 int xbeeQueueLimits[3] = XBEE_QUEUE_LIMITS; //by QoS
 
@@ -193,6 +193,7 @@ int EnterCommandMode();
 int EnterAPIMode();
 
 int XBeeBrokerInit() {
+    int i;
 
     XBeeMessagesSent = 0;
     XBeeAddressDiscarded = 0;
@@ -207,114 +208,87 @@ int XBeeBrokerInit() {
     //init log message counts
     XBeeRoutine = XBeeInfo = XBeeWarning = XBeeError = 0;
 
-    //create TX queue for the XBee
-    if ((xbeeTxQueue = psNewPubSubQueue(XBEE_QUEUE_LENGTH)) == NULL) {
-        LogError("XBee Q");
-        SetCondition(MCP_XBEE_COMMS_ERRORS);
-        return -1;
+    for (i = 0; i < 3; i++) {
+        if ((xbeeTxQueue[i] = psNewPubSubQueue(xbeeQueueLimits[i])) == NULL) {
+            LogError("xbee: Q create error");
+            SetCondition(MCP_XBEE_COMMS_ERRORS);
+            return -1;
+        }
     }
 
     if (!Serial_begin(XBEE_UART, XBEE_BAUDRATE,
             UART_DATA_SIZE_8_BITS | UART_PARITY_NONE | UART_STOP_BITS_1,
             XBEE_BROKER_BUFFER_SIZE, XBEE_BROKER_BUFFER_SIZE)) {
-        LogError("XBee begin");
+        LogError("xbee: serial begin error");
         SetCondition(MCP_XBEE_COMMS_ERRORS);
         return -1;
     }
 
-    DebugPrint("xbee uart configured");
+    DebugPrint("xbee: uart configured");
 
-//    bool xbeeReady = false;
-//    int i;
-//
-//    for (i = 0; i < 10; i++) {
-//
-//        if (EnterCommandMode() < 0) {
-//            LogError("EnterCommandMode() fail");
-//            continue;
-//        }
-//
-//        int power = GetPowerLevel();
-//        if (power < 0) {
-//            LogError("Read PowerLevel fail");
-//            continue;
-//        }
-//
-//        DebugPrint("xbee power level %i", power);
-//
-//        if (EnterAPIMode() < 0) {
-//            LogError("EnterAPIMode() fail");
-//            continue;
-//        }
-//        xbeeReady = true;
-//        break;
-//    }
-//
-//    if (xbeeReady) {
+    //create the semaphore to sync a Tx with a Tx Status
+    XBeeTxResponseSemaphore = xSemaphoreCreateBinary();
+    if (XBeeTxResponseSemaphore == NULL) {
+        LogError("xbee: Tx Semphr create error");
+        SetCondition(MCP_XBEE_COMMS_ERRORS);
+        return -1; //outa here
+    }
+    xSemaphoreTake(XBeeTxResponseSemaphore, 0); //make sure it's empty
 
-        //create the semaphore to sync a Tx with a Tx Status
-        XBeeTxResponseSemaphore = xSemaphoreCreateBinary();
-        if (XBeeTxResponseSemaphore == NULL) {
-            LogError("XBee Tx Semphr");
-            SetCondition(MCP_XBEE_COMMS_ERRORS);
-            return -1; //outa here
-        }
-        xSemaphoreTake(XBeeTxResponseSemaphore, 0); //make sure it's empty
+    //create the semaphore to sync an AT command with a responese
+    XBeeATResponseSemaphore = xSemaphoreCreateBinary();
+    if (XBeeATResponseSemaphore == NULL) {
+        LogError("xbee: AT Semphr create error");
+        SetCondition(MCP_XBEE_COMMS_ERRORS);
+        return -1; //outa here
+    }
+    xSemaphoreTake(XBeeATResponseSemaphore, 0); //make sure it's empty
 
-        //create the semaphore to sync an AT command with a responese
-        XBeeATResponseSemaphore = xSemaphoreCreateBinary();
-        if (XBeeATResponseSemaphore == NULL) {
-            LogError("XBee AT Semphr");
-            SetCondition(MCP_XBEE_COMMS_ERRORS);
-            return -1; //outa here
-        }
-        xSemaphoreTake(XBeeATResponseSemaphore, 0); //make sure it's empty
+    //create the Tx access mutex
+    XBeeTxMutex = xSemaphoreCreateMutex();
+    if (XBeeTxMutex == NULL) {
+        LogError("xbee: Mutex create error");
+        SetCondition(MCP_XBEE_COMMS_ERRORS);
+        return -1; //outa here
+    }
 
-        //create the Tx access mutex
-        XBeeTxMutex = xSemaphoreCreateMutex();
-        if (XBeeTxMutex == NULL) {
-            LogError("XBee Mutex");
-            SetCondition(MCP_XBEE_COMMS_ERRORS);
-            return -1; //outa here
-        }
+    //create the offline timer
+    xbeeTimeout = xTimerCreate("Offline", // Just a text name, not used by the kernel.
+            OFFLINE_TIMER_PERIOD, // The timer period in ticks.
+            pdFALSE, // The timer will not auto-reload itself when it expires.
+            (void *) 0,
+            xbeeOfflineTimerCallback
+            );
 
-        //create the offline timer
-        xbeeTimeout = xTimerCreate("Offline", // Just a text name, not used by the kernel.
-                OFFLINE_TIMER_PERIOD, // The timer period in ticks.
-                pdFALSE, // The timer will not auto-reload itself when it expires.
-                (void *) 0,
-                xbeeOfflineTimerCallback
-                );
+    /* Create the XBee Tx task */
+    if (xTaskCreate(XBeeTxTask, /* The function that implements the task. */
+            "XBee Tx", /* The text name assigned to the task - for debug only as it is not used by the kernel. */
+            XBEE_TASK_STACK_SIZE, /* The size of the stack to allocate to the task. */
+            (void *) 0, /* The parameter passed to the task. */
+            XBEE_TASK_PRIORITY, /* The priority assigned to the task. */
+            NULL) /* The task handle is not required, so NULL is passed. */
+            != pdPASS) {
+        LogError("xbee: Tx task");
+        SetCondition(MCP_XBEE_COMMS_ERRORS);
+        return -1;
+    }
 
-        /* Create the XBee Tx task */
-        if (xTaskCreate(XBeeTxTask, /* The function that implements the task. */
-                "XBee Tx", /* The text name assigned to the task - for debug only as it is not used by the kernel. */
-                XBEE_TASK_STACK_SIZE, /* The size of the stack to allocate to the task. */
-                (void *) 0, /* The parameter passed to the task. */
-                XBEE_TASK_PRIORITY, /* The priority assigned to the task. */
-                NULL) /* The task handle is not required, so NULL is passed. */
-                != pdPASS) {
-            LogError("XBee Tx");
-            SetCondition(MCP_XBEE_COMMS_ERRORS);
-            return -1;
-        }
+    /* Create the XBee Rx task */
+    if (xTaskCreate(XBeeRxTask, /* The function that implements the task. */
+            "XBee Rx", /* The text name assigned to the task - for debug only as it is not used by the kernel. */
+            XBEE_TASK_STACK_SIZE, /* The size of the stack to allocate to the task. */
+            (void *) 0, /* The parameter passed to the task. */
+            XBEE_TASK_PRIORITY, /* The priority assigned to the task. */
+            NULL) /* The task handle is not required, so NULL is passed. */
+            != pdPASS) {
+        LogError("xbee: Rx task");
+        SetCondition(MCP_XBEE_COMMS_ERRORS);
+        return -1;
+    }
 
-        /* Create the XBee Rx task */
-        if (xTaskCreate(XBeeRxTask, /* The function that implements the task. */
-                "XBee Rx", /* The text name assigned to the task - for debug only as it is not used by the kernel. */
-                XBEE_TASK_STACK_SIZE, /* The size of the stack to allocate to the task. */
-                (void *) 0, /* The parameter passed to the task. */
-                XBEE_TASK_PRIORITY, /* The priority assigned to the task. */
-                NULL) /* The task handle is not required, so NULL is passed. */
-                != pdPASS) {
-            LogError("XBee Rx");
-            SetCondition(MCP_XBEE_COMMS_ERRORS);
-            return -1;
-        }
-
-        xbeeOnline = false;
-        return 0;
-//    } else return -1;
+    xbeeOnline = false;
+    return 0;
+    //    } else return -1;
 }
 
 //called by the broker to see whether a message should be queued for the TX Thread
@@ -363,22 +337,22 @@ bool XBeeBrokerProcessMessage(psMessage_t *msg, TickType_t wait) {
                 break;
         }
     }
-    //check q space
-    int waiting = uxQueueMessagesWaiting(xbeeTxQueue);
-    if (waiting >= xbeeQueueLimits[psQOS[msg->header.messageType]]) {
+    //    //check q space
+    //    int waiting = uxQueueMessagesWaiting(xbeeTxQueue);
+    //    if (waiting >= xbeeQueueLimits[psQOS[msg->header.messageType]]) {
+    //        SetCondition(MCP_XBEE_COMMS_CONGESTION);
+    //        XBeeCongestionDiscarded++;
+    //        DebugPrint("xbee: discarded %s", psLongMsgNames[msg->header.messageType]);
+    //        return false;
+    //    } else {
+    //            DebugPrint("%s linkQ: %x", linkDestinations, linkQueues);            
+    if (xQueueSendToBack(xbeeTxQueue[psQOS[msg->header.messageType]], msg, wait) != pdTRUE) {
         SetCondition(MCP_XBEE_COMMS_CONGESTION);
         XBeeCongestionDiscarded++;
-        DebugPrint("XBee discarded %s", psLongMsgNames[msg->header.messageType]);
+        DebugPrint("xbee: lost %s", psLongMsgNames[msg->header.messageType]);
         return false;
-    } else {
-        //            DebugPrint("%s linkQ: %x", linkDestinations, linkQueues);            
-        if (xQueueSendToBack(xbeeTxQueue, msg, wait) != pdTRUE) {
-            SetCondition(MCP_XBEE_COMMS_CONGESTION);
-            XBeeCongestionDiscarded++;
-            DebugPrint("XBee lost %s", psLongMsgNames[msg->header.messageType]);
-            return false;
-        }
     }
+    //    }
 
     return true;
 }
@@ -442,52 +416,63 @@ void SendFidoMessage(psMessage_t *msg) {
 
 static void XBeeTxTask(void *pvParameters) {
     psMessage_t msg;
-
-    LogRoutine("TX ready");
+    int i;
+    int waitTime = 0;
+    
+    DebugPrint("xbee: TX ready");
 
     for (;;) {
 
-        //wait for a message
-        if (xQueueReceive(xbeeTxQueue, &msg, portMAX_DELAY) == pdTRUE) {
+        for (i = 0; i < QOS_COUNT; i++) {
+            //wait for a message
+            if (xQueueReceive(xbeeTxQueue[i], &msg, waitTime) == pdTRUE) {
+                
+                waitTime = 0;
+                
+                xSemaphoreTake(XBeeTxMutex, 5000);
 
-            xSemaphoreTake(XBeeTxMutex, 5000);
+                SendFidoMessage(&msg);
 
-            SendFidoMessage(&msg);
+                DebugPrint("xbee: TX: %s message", psLongMsgNames[msg.header.messageType]);
 
-            LogRoutine("XBee TX: %s", psLongMsgNames[msg.header.messageType]);
-
-            if (xSemaphoreTake(XBeeTxResponseSemaphore, 2000) == pdTRUE) {
-                if (latestTxStatus.status != 0) {
+                if (xSemaphoreTake(XBeeTxResponseSemaphore, 2000) == pdTRUE) {
+                    if (latestTxStatus.status != 0) {
+                        XBeeSendErrors++;
+                        SetCondition(MCP_XBEE_COMMS_ERRORS);
+                        DebugPrint("xbee: Tx Status : %s", txStatusNames[latestTxStatus.status]);
+                    } else {
+                        DebugPrint("xbee: Tx Status OK");
+                    }
+                } else {
                     XBeeSendErrors++;
                     SetCondition(MCP_XBEE_COMMS_ERRORS);
-                    DebugPrint("XBee Tx Status : %s", txStatusNames[latestTxStatus.status]);
-                } else {
-                    DebugPrint("XBee Tx Status OK");
+                    DebugPrint("xbee: Tx Timeout");
                 }
-            } else {
-                XBeeSendErrors++;
-                SetCondition(MCP_XBEE_COMMS_ERRORS);
-                DebugPrint("XBee Tx Timeout");
+
+                xSemaphoreGive(XBeeTxMutex);
+
+                if (msg.header.messageType == SYSLOG_MSG) {
+                    switch (msg.logPayload.severity) {
+                        case SYSLOG_ROUTINE:
+                            XBeeRoutine--;
+                            break;
+                        case SYSLOG_INFO:
+                            XBeeInfo--;
+                            break;
+                        case SYSLOG_WARNING:
+                            XBeeWarning--;
+                            break;
+                        case SYSLOG_ERROR:
+                            XBeeError--;
+                        default:
+                            break;
+                    }
+                }
+                break;
             }
-
-            xSemaphoreGive(XBeeTxMutex);
-
-            if (msg.header.messageType == SYSLOG_MSG) {
-                switch (msg.logPayload.severity) {
-                    case SYSLOG_ROUTINE:
-                        XBeeRoutine--;
-                        break;
-                    case SYSLOG_INFO:
-                        XBeeInfo--;
-                        break;
-                    case SYSLOG_WARNING:
-                        XBeeWarning--;
-                        break;
-                    case SYSLOG_ERROR:
-                        XBeeError--;
-                    default:
-                        break;
-                }
+            else
+            {
+                if (i == QOS_COUNT-1) waitTime = 10;
             }
         }
     }
@@ -553,14 +538,14 @@ int ReadApiPacket() {
 static void XBeeRxTask(void *pvParameters) {
     psMessage_t *msg;
 
-    LogRoutine("XBee RX ready");
+    DebugPrint("xbee: RX ready");
 
     for (;;) {
         if (ReadApiPacket() == 0) {
             switch (XBeeRxPacket.apiIdentifier) {
                 case MODEM_STATUS:
                     latestXBeeModemStatus = XBeeRxPacket.modemStatus.status;
-                    DebugPrint("XBee status : %i", latestXBeeModemStatus);
+                    DebugPrint("xbee: status : %i", latestXBeeModemStatus);
                     break;
                 case TRANSMIT_STATUS:
                     latestTxStatus.status = XBeeRxPacket.txStatus.status;
@@ -569,7 +554,7 @@ static void XBeeRxTask(void *pvParameters) {
                     xSemaphoreGive(XBeeTxResponseSemaphore);
                     break;
                 case AT_RESPONSE:
-                    DebugPrint("AT Response packet");
+                    DebugPrint("xbee: AT Response packet");
                     memcpy(&XBeeATResponse, &XBeeRxPacket, sizeof (XBeeATResponse));
                     xSemaphoreGive(XBeeATResponseSemaphore);
                     break;
@@ -579,7 +564,7 @@ static void XBeeRxTask(void *pvParameters) {
                     if (msg->header.messageType != SYSLOG_MSG //don't log log messages!!
                             && msg->header.messageType != TICK_1S) //& don't log ticks
                     {
-                        LogRoutine("XBee RX: %s", psLongMsgNames[msg->header.messageType]);
+                        DebugPrint("xbee: RX: %s message", psLongMsgNames[msg->header.messageType]);
                     }
 
 
@@ -587,10 +572,9 @@ static void XBeeRxTask(void *pvParameters) {
                         xQueueSendToBack(xbeeTxQueue, msg, 0);
                     } else {
                         if ((msg->header.source != XBEE) && (msg->header.source != APP_XBEE) && (msg->header.source != APP_OVM) && (msg->header.source != ROBO_APP)) {
-                            DebugPrint("XBee Ignored: %s", psLongMsgNames[msg->header.messageType]);
+                            DebugPrint("xbee: Ignored: %s message", psLongMsgNames[msg->header.messageType]);
                             XBeeAddressIgnored++;
                         } else {
-                            DebugPrint("XBee RX: %s", psLongMsgNames[msg->header.messageType]);
                             //route the message
                             psForwardMessage(msg, 0);
                             XBeeMessagesReceived++;
@@ -608,9 +592,9 @@ static void XBeeRxTask(void *pvParameters) {
                 default:
                     //ignore
                     break;
-            }
+                    }
         } else {
-            DebugPrint("XBee Rx Error");
+            DebugPrint("xbee: Rx Error");
             SetCondition(MCP_XBEE_COMMS_ERRORS);
         }
     }
@@ -648,7 +632,7 @@ int SetXBeeRegister(const char *atCommand, uint8_t value) {
     char cmdString[MAX_REPLY];
     char replyString[MAX_REPLY];
 
-    DebugPrint("XBee Set %s = %i", atCommand, value);
+    DebugPrint("xbee: Set %s = %i", atCommand, value);
 
     sprintf(cmdString, "AT%s%i\r", atCommand, value);
 
@@ -664,7 +648,7 @@ int GetXBeeRegister(const char *atCommand) {
     char cmdString[MAX_REPLY];
     char replyString[MAX_REPLY];
 
-    DebugPrint("XBee Get %s", atCommand);
+    DebugPrint("xbee: Get %s", atCommand);
 
     sprintf(cmdString, "AT%s\r", atCommand);
 
@@ -682,7 +666,7 @@ int GetXBeeRegister(const char *atCommand) {
 int APISetXBeeRegister1(const char *atCommand, uint8_t value) {
     uint8_t response;
 
-    LogRoutine("XBee Set %s = %i", atCommand, value);
+    DebugPrint("xbee: Set %s = %i", atCommand, value);
 
     xSemaphoreTake(XBeeTxMutex, 1000);
 
@@ -708,7 +692,7 @@ int APISetXBeeRegister1(const char *atCommand, uint8_t value) {
 int APIGetXBeeRegister1(const char *atCommand) {
     int response;
 
-    LogRoutine("XBee Get %s", atCommand);
+    DebugPrint("xbee: Get %s", atCommand);
 
     xSemaphoreTake(XBeeTxMutex, 1000);
 
@@ -723,7 +707,7 @@ int APIGetXBeeRegister1(const char *atCommand) {
         if (XBeeATResponse.status == 0) response = XBeeATResponse.byteData;
         else response = -1;
     } else {
-        LogError("GetXBReg timeout");
+        DebugPrint("xbee: Get Reg timeout");
         response = -1;
     }
     xSemaphoreGive(XBeeTxMutex);
@@ -751,7 +735,7 @@ int EnterCommandMode() {
     //check for OK
     int reply = SendATCommand("", replyString);
 
-    DebugPrint("Enter Command Mode: %s", replyString)
+    DebugPrint("xbee: Enter Command Mode: %s", replyString)
 
     if (reply < 0 || strncmp(replyString, "OK", 2) != 0)
         return -1;
@@ -764,6 +748,8 @@ int EnterAPIMode() {
 
 void XBeeSendStats() {
     psMessage_t msg;
+    int j, qCount;
+    
     psInitPublish(msg, COMMS_STATS);
 
     strncpy(msg.commsStatsPayload.destination, "BEE", 4);
@@ -778,6 +764,11 @@ void XBeeSendStats() {
     msg.commsStatsPayload.receiveErrors = XBeeReceiveErrors; //wrong address
     msg.commsStatsPayload.parseErrors = XBeeParseErrors;
 
+    for (j = 0; j < QOS_COUNT; j++) {
+        if (xbeeTxQueue[j]) qCount += uxQueueMessagesWaiting(xbeeTxQueue[j]);
+    }
+    msg.commsStatsPayload.queueLength = qCount;
+        
     psForwardMessage(&msg, 0);
 }
 

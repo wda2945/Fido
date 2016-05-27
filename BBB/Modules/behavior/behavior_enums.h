@@ -11,6 +11,9 @@
 #include "pubsubdata.h"
 
 typedef enum {ACTION_SUCCESS, ACTION_FAIL, ACTION_RUNNING} ActionResult_enum;
+#define ACTION_RESULT_NAMES {"Success", "Fail", "Running"}
+
+extern char *actionResultNames[];
 
 extern Position_struct heelPosition;
 extern bool	heelPositionValid;

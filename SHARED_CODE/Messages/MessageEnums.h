@@ -37,7 +37,8 @@ typedef enum {
 typedef enum {
     PS_QOS1,    //critical
     PS_QOS2,    //important
-    PS_QOS3     //discardable
+    PS_QOS3,     //discardable
+    QOS_COUNT
 } psQOS_enum;
 
 typedef enum {

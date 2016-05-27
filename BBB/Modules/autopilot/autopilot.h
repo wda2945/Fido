@@ -49,6 +49,29 @@ typedef enum {
 	PILOT_SLOW_SPEED
 } PilotAction_enum;
 
+#define PILOT_ACTION_NAMES {\
+		"Pilot_Reset",\
+		"Pilot_Orient",\
+		"Pilot_Engage",\
+		"Pilot_Turn_Left",\
+		"Pilot_Turn_Right",\
+		"Pilot_Turn_Left_90",\
+		"Pilot_Turn_Right_90",\
+		"Pilot_Turn_N",\
+		"Pilot_Turn_S",\
+		"Pilot_Turn_E",\
+		"Pilot_Turn_W",\
+		"Pilot_Move_Forward",\
+		"Pilot_Move_Backward",\
+		"Pilot_Move_Forward_10",\
+		"Pilot_Move_Backward_10",\
+		"Pilot_Fast_Speed",\
+		"Pilot_Medium_Speed",\
+		"Pilot_Slow_Speed"\
+		}
+
+extern char *pilotActionNames[];
+
 ActionResult_enum AutopilotAction(PilotAction_enum _action);
 
 ActionResult_enum AutopilotIsReadyToMove();

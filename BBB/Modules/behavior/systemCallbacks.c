@@ -254,13 +254,13 @@ static int SystemAction(lua_State *L)
 		return ChangeOption(L, "Nav Lights", 0);
 		break;
 	case isCharging:
-		if (conditionActive(CHARGING))
+		if (isConditionActive(CHARGING))
 			return success(L);
 		else
 			return fail(L);
 		break;
 	case isChargeComplete:
-		if (conditionActive(CHARGE_COMPLETE))
+		if (isConditionActive(CHARGE_COMPLETE))
 			return success(L);
 		else
 			return fail(L);
@@ -272,7 +272,7 @@ static int SystemAction(lua_State *L)
 			return fail(L);
 		break;
 	case isRaining:
-		if (conditionActive(RAINING))
+		if (isConditionActive(RAINING))
 			return success(L);
 		else
 			return fail(L);

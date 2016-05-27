@@ -16,7 +16,7 @@
 extern NotificationMask_t systemActiveConditions[MASK_PAYLOAD_COUNT];
 extern NotificationMask_t systemValidConditions[MASK_PAYLOAD_COUNT];
 
-bool conditionActive(Condition_enum e);
+bool isConditionActive(Condition_enum e);
 
 extern char *eventNames[];
 extern char *conditionNames[];

@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include "pthread.h"
 
-#include "pubsubdata.h"
+#include "PubSubData.h"
 
 //queue item struct
 //just a message and a next pointer
@@ -25,11 +25,13 @@ typedef struct {
 //queue struct - allocated and kept by the owning subsystem
 //list head and tail, plus mutex and condition variable for signalling
 typedef struct {
-	BrokerQueueEntry_t *qHead, *qTail;
 	pthread_mutex_t mtx;	//access control
 	pthread_cond_t cond;	//signals item in previously empty queue
+	BrokerQueueEntry_t *qHead[3], *qTail[3];
+	int queueCount;
 } BrokerQueue_t;
-#define BROKER_Q_INITIALIZER {NULL, NULL, PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER}
+
+#define BROKER_Q_INITIALIZER {PTHREAD_MUTEX_INITIALIZER, PTHREAD_COND_INITIALIZER, NULL, NULL, NULL, NULL, NULL, NULL, 0}
 
 int BrokerQueueInit(int pre);							//one init to pre-allocate shared pool of queue entries
 

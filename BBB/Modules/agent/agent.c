@@ -25,6 +25,7 @@
 #include "softwareprofile.h"
 #include "pubsub/pubsub.h"
 #include "pubsub/notifications.h"
+#include "pubsub/broker_debug.h"
 #include "syslog/syslog.h"
 #include "helpers.h"
 #include "pubsubparser.h"
@@ -33,13 +34,13 @@
 
 FILE *agentDebugFile;
 
-#ifdef AGENT_DEBUG
-#define DEBUGPRINT(...) tprintf( __VA_ARGS__);tfprintf(agentDebugFile, __VA_ARGS__);
-#else
-#define DEBUGPRINT(...) tfprintf(agentDebugFile, __VA_ARGS__);
-#endif
-
-#define ERRORPRINT(...) tprintf( __VA_ARGS__);tfprintf(agentDebugFile, __VA_ARGS__);
+//#ifdef AGENT_DEBUG
+//#define DEBUGPRINT(...) tprintf( __VA_ARGS__);tfprintf(agentDebugFile, __VA_ARGS__);
+//#else
+//#define DEBUGPRINT(...) tfprintf(agentDebugFile, __VA_ARGS__);
+//#endif
+//
+//#define ERRORPRINT(...) tprintf( __VA_ARGS__);tfprintf(agentDebugFile, __VA_ARGS__);
 
 #define MAX_AGENT_CONNECTIONS 5
 
@@ -66,10 +67,33 @@ void *AgentPingThread(void *arg);					//thread send ping to router
 
 #define LISTEN_PORT_NUMBER 50000
 
+//statistics collection
+//TX
+int AGENTmessagesSent;
+int AGENTaddressDiscarded;
+int AGENTcongestionDiscarded;      //congestion
+int AGENTlogMessagesDiscarded;
+int AGENTsendErrors;
+//RX
+int AGENTmessagesReceived;
+int AGENTaddressIgnored;        //wrong address
+int AGENTreceiveErrors;
+int AGENTparseErrors;
+
 int AgentInit()
 {
-	agentDebugFile = fopen("/root/logfiles/agent.log", "w");
-	DEBUGPRINT("Agent Logfile opened\n");
+//	agentDebugFile = fopen("/root/logfiles/agent.log", "w");
+//	DEBUGPRINT("Agent Logfile opened\n");
+
+	AGENTmessagesSent = 0;
+	AGENTaddressDiscarded = 0;
+	AGENTcongestionDiscarded = 0;      //congestion
+	AGENTlogMessagesDiscarded = 0;
+	AGENTsendErrors = 0;
+	AGENTmessagesReceived = 0;
+	AGENTaddressIgnored = 0;        //wrong address
+	AGENTreceiveErrors = 0;
+	AGENTparseErrors = 0;
 
 	//create agent Listen thread
 	int s = pthread_create(&listenThread, NULL, AgentListenThread, NULL);
@@ -114,20 +138,20 @@ void *AgentListenThread(void *arg)
 			connected[i] = false;
 		}
 	}
-	DEBUGPRINT("Agent Listen thread\n");
+	DEBUGPRINT("agent: listen thread ready\n");
 
 	//create listen socket
 	int listenSocket;
 
 	while ((listenSocket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
 	{
-		ERRORPRINT("socket() error: %s\n", strerror(errno));
+		ERRORPRINT("agent: listen socket() error: %s\n", strerror(errno));
 		sleep(1);
 	}
 	int optval = 1;
 	setsockopt(listenSocket, SOL_SOCKET, SO_REUSEADDR, &optval, 4);
 
-	DEBUGPRINT("Agent listen socket created\n");
+	DEBUGPRINT("agent: listen socket created\n");
 
 	//bind socket address
 	struct sockaddr_in my_address;
@@ -138,21 +162,21 @@ void *AgentListenThread(void *arg)
 
 	while (bind(listenSocket, (struct sockaddr*) &my_address, sizeof(my_address)) == -1)
 	{
-		ERRORPRINT("bind() error: %s\n", strerror(errno));
+		ERRORPRINT("agent: bind() error: %s\n", strerror(errno));
 
 		if (errno == EADDRINUSE) sleep(10);
 
 		sleep(1);
 	}
 
-	DEBUGPRINT("Agent listen socket ready\n");
+	DEBUGPRINT("agent: listen socket ready\n");
 
 	while(1)
 	{
 		//wait for connect
 		while(listen(listenSocket, 10) != 0)
 		{
-			ERRORPRINT("listen() error %s\n", strerror(errno));
+			ERRORPRINT("agent: listen() error %s\n", strerror(errno));
 			sleep(1);
 			//ignore errors, just retry
 		}
@@ -168,7 +192,7 @@ void *AgentListenThread(void *arg)
 			uint8_t addrBytes[4];
 			memcpy(addrBytes, &client_address_in->sin_addr.s_addr, 4);
 
-			DEBUGPRINT("Agent connect from %i.%i.%i.%i\n", addrBytes[0], addrBytes[1], addrBytes[2], addrBytes[3]);
+			DEBUGPRINT("agent: connect from %i.%i.%i.%i\n", addrBytes[0], addrBytes[1], addrBytes[2], addrBytes[3]);
 
 			//find a free thread
 			//critical section
@@ -191,7 +215,7 @@ void *AgentListenThread(void *arg)
 
 			if (channel < 0)
 			{
-				DEBUGPRINT("Agent listen: no available server context\n");
+				DEBUGPRINT("agent: no available server context\n");
 			}
 			else
 			{
@@ -209,7 +233,7 @@ void *AgentListenThread(void *arg)
 				while (s == EAGAIN);
 
 				if (s != 0) {
-					LogError("Agent %i Rx create failed - %s\n", channel, strerror(s));
+					LogError("agent: Rx %i create failed - %s\n", channel, strerror(s));
 
 					close(rxSocket[channel]);
 					close(txSocket[channel]);
@@ -217,13 +241,13 @@ void *AgentListenThread(void *arg)
 				}
 				else
 				{
-					DEBUGPRINT("Agent %i Rx thread created.\n", channel);
+					DEBUGPRINT("agent: Rx %i thread created.\n", channel);
 				}
 
 				s = pthread_mutex_unlock(&agentMtx);
 				if (s != 0)
 				{
-					ERRORPRINT("Agent: mutex unlock %i", s);
+					ERRORPRINT("agent: mutex unlock %i", s);
 				}
 				//end critical section
 
@@ -242,7 +266,7 @@ void *AgentRxThread(void *arg)
 	psMessage_t rxMessage;
 	status_t parseStatus;
 
-	DEBUGPRINT("Agent %i Rx thread: fd= %i\n",mychan, socket);
+	DEBUGPRINT("agent: Rx %i thread: fd= %i\n",mychan, socket);
 
     parseStatus.noCRC       = 0; ///< Do not expect a CRC, if > 0
     parseStatus.noSeq       = 0; ///< Do not check seq #s, if > 0
@@ -277,7 +301,8 @@ void *AgentRxThread(void *arg)
     		if (recv(socket, &readByte, 1, 0) <= 0)
     		{
     			//quit on failure, EOF, etc.
-    			ERRORPRINT("Agent Rx %i recv() fd=%i error: %s\n", mychan, socket, strerror(errno));
+    			ERRORPRINT("Agent: Rx %i recv(fd=%i) error: %s\n", mychan, socket, strerror(errno));
+    			AGENTreceiveErrors++;
     			close(socket);
 
     			//critical section
@@ -317,14 +342,14 @@ void *AgentRxThread(void *arg)
     	}
     	else
     	{
-			DEBUGPRINT("Agent %i. %s message received\n", mychan, psLongMsgNames[rxMessage.header.messageType]);
-
+			DEBUGPRINT("agent: Rx - %s message received\n", psLongMsgNames[rxMessage.header.messageType]);
+			AGENTmessagesReceived++;
 			rxMessage.header.source = APP_OVM;
 			RouteMessage(&rxMessage);
     	}
     }
     //Disconnected
-    DEBUGPRINT("Agent %i Rx fd=%i exiting.\n", mychan, socket);
+    DEBUGPRINT("agent: Rx %i exiting.\n", mychan);
     close(socket);
 
 	//critical section
@@ -358,9 +383,11 @@ bool AgentProcessMessage(psMessage_t *msg)
 {
 	if (!agentOnline) return false;
 
-	if ((msg->header.source == APP_OVM) || (msg->header.source == APP_XBEE) || (msg->header.source == ROBO_APP)) return false;
+	if ((msg->header.source == APP_OVM) || (msg->header.source == APP_XBEE) || (msg->header.source == ROBO_APP)) {
+		AGENTaddressDiscarded++;
+		return false;
+	}
 
-	//filter?
 	CopyMessageToQ(&agentQueue, msg);
 
 	return true;
@@ -442,14 +469,16 @@ void *AgentTxThread(void *arg)
 
 				if (errorReply != 0)
 				{
-					ERRORPRINT("Agent Tx (fd:%i) send error: %s\n", socket, strerror(errno));
+					ERRORPRINT("agent: Tx (fd:%i) send error: %s\n", socket, strerror(errno));
 					SetCondition(AGENT_ERRORS);
+					AGENTsendErrors++;
 					connected[i] = false;
 					close(socket);
 				}
 				else
 				{
-					DEBUGPRINT("Agent %s message sent\n", psLongMsgNames[txMessage->header.messageType]);
+					DEBUGPRINT("Agent: Tx - %s message sent\n", psLongMsgNames[txMessage->header.messageType]);
+					AGENTmessagesSent++;
 					CancelCondition(AGENT_ERRORS);
 
 				}
@@ -483,4 +512,24 @@ void *AgentPingThread(void *arg)
 		sleep(10);
 	}
 	return 0;
+}
+
+
+void SendAgentStats() {
+	psMessage_t msg;
+	psInitPublish(msg, COMMS_STATS);
+
+	strncpy(msg.commsStatsPayload.destination, "APP", 4);
+	msg.commsStatsPayload.messagesSent = AGENTmessagesSent;
+	msg.commsStatsPayload.sendErrors	= AGENTsendErrors;
+	msg.commsStatsPayload.addressDiscarded = AGENTaddressDiscarded;
+	msg.commsStatsPayload.congestionDiscarded = AGENTcongestionDiscarded; //congestion
+	msg.commsStatsPayload.logMessagesDiscarded = AGENTlogMessagesDiscarded;
+	msg.commsStatsPayload.messagesReceived = AGENTmessagesReceived;
+	msg.commsStatsPayload.addressIgnored = AGENTaddressIgnored; //wrong address
+	msg.commsStatsPayload.receiveErrors = AGENTreceiveErrors;
+	msg.commsStatsPayload.parseErrors = AGENTparseErrors;
+	msg.commsStatsPayload.queueLength = agentQueue.queueCount;
+
+	NewBrokerMessage(&msg);
 }

@@ -33,14 +33,20 @@
 #include "Drivers/Config/Config.h"
 
 //main motor data struct
-MotorStruct_t motors[NUM_MOTORS];
-int motorsRunning = 0;
-bool motorsInhibit = true;
-
-//current goal
 SemaphoreHandle_t motorStructMutex; //access control
-float setSpeed, portSpeed, starboardSpeed;
-uint8_t moveFlags = 0; //from the command - eg stop on contact
+MotorStruct_t motors[NUM_MOTORS];
+MotorSideStruct_t motorSide[2];
+
+MotorSideStruct_t *portMotors       = &motorSide[PORT_MOTORS];
+MotorSideStruct_t *starboardMotors  = &motorSide[STARBOARD_MOTORS];
+
+int motorsRunning           = 0;
+bool motorsInhibit          = true;
+
+float maxDistanceToGo       = 0.0;
+float setSpeed              = 0.0;
+
+uint8_t moveFlags           = 0;    //from the command - MotorFlags_enum
 
 unsigned int timerPeriod;
 TickType_t currentPidTimerInterval;
@@ -51,10 +57,10 @@ struct {
     float range;
     float factor; //0.0 - 1.0
 } decelerationCurve[DECELERATION_STEPS] = {
-    {10, 0.0},
-    {50, 0.1},
-    {100, 0.25},
-    {200, 0.5},
+    {5, 0.0},
+    {50, 0.75},
+    {100, 1.0},
+    {200, 1.0},
 };
 
 //list of connectors in motor order
@@ -86,10 +92,14 @@ int PidInit() {
     }
 
     //init motor struct
-    motors[FRONT_LEFT_MOTOR].name = "FL";
-    motors[FRONT_RIGHT_MOTOR].name = "FR";
-    motors[REAR_LEFT_MOTOR].name = "RL";
-    motors[REAR_RIGHT_MOTOR].name = "RR";
+    motors[FRONT_LEFT_MOTOR].name   = "FL";
+    motors[FRONT_RIGHT_MOTOR].name  = "FR";
+    motors[REAR_LEFT_MOTOR].name    = "RL";
+    motors[REAR_RIGHT_MOTOR].name   = "RR";
+    motors[FRONT_LEFT_MOTOR].side   = PORT_MOTORS;
+    motors[FRONT_RIGHT_MOTOR].side  = STARBOARD_MOTORS;
+    motors[REAR_LEFT_MOTOR].side    = PORT_MOTORS;
+    motors[REAR_RIGHT_MOTOR].side   = STARBOARD_MOTORS;
 
     for (i = 0; i < 4; i++) {
         motors[i].encoderCount = 0UL;
@@ -100,8 +110,7 @@ int PidInit() {
         motors[i].measuredSpeed = 0;
 
         motors[i].motorRunning = false;
-        motors[i].pwmCurrentDirection = MOTOR_FORWARD;
-        motors[i].pwmCurrentDutyRatio = 0.0f;
+        motors[i].currentDutyRatio = 0.0f;
 
         motors[i].pError = motors[i].iError = motors[i].dError = 0.0f;
         motors[i].lastError = 0;
@@ -109,6 +118,16 @@ int PidInit() {
         setDirection(i, MOTOR_FORWARD);
     }
 
+    for (i = 0; i < 2; i++)
+    {
+        motorSide[i].desiredSpeed   = 0;
+        motorSide[i].direction      = 0;
+        motorSide[i].distanceToGo   = 0.0;
+        motorSide[i].measuredSpeed  = 0.0;
+    }
+    portMotors->name        = "port";
+    starboardMotors->name   = "starboard";
+    
     //initialise timer 2 for PWM - not running for now
     timerPeriod = GetPeripheralClock() / PWM_FREQUENCY; //count using 1:1 prescaler frequency
     OpenTimer2(T2_OFF | T2_IDLE_CON | T2_PS_1_1 | T2_SOURCE_INT, timerPeriod);
@@ -148,20 +167,27 @@ int PidInit() {
 
 //emergency stop
 
-void AbortMotors(TickType_t wait) {
+void AbortMotors() {
     if (motorsRunning) {
-        CancelCondition(MOTORS_BUSY);
+//        CancelCondition(MOTORS_BUSY);
 
-        xSemaphoreTake(motorStructMutex, wait);
         int i;
         for (i = 0; i < 4; i++) {
             setDutyCycle(i, 0.0);
             motors[i].distanceToGo = 0;
             motors[i].desiredSpeed = 0;
-            motors[i].motorRunning = false;
+//            motors[i].motorRunning = false;
         }
-        motorsRunning = 0;
-        xSemaphoreGive(motorStructMutex);
+ //       motorsRunning                   = 0;
+        
+        portMotors->distanceToGo        = 0.0;
+        starboardMotors->distanceToGo   = 0.0;
+        maxDistanceToGo                 = 0.0;
+        setSpeed                        = 0.0;
+        portMotors->desiredSpeed        = 0.0;
+        starboardMotors->desiredSpeed   = 0.0;
+        
+        DebugPrint("Abort Motors");
     }
 }
 
@@ -169,13 +195,16 @@ void AbortMotors(TickType_t wait) {
 
 bool PidProcessMessage(psMessage_t *msg, TickType_t wait) {
 
+    int semHeld = xSemaphoreTake(motorStructMutex, 50);
+    
     switch (msg->header.messageType) {
         case MOTORS:
         {
-            LogRoutine("MOTORS Msg: %i, %i", msg->motorPayload.portMotors, msg->motorPayload.starboardMotors);
+            DebugPrint("MOTORS Msg: %i, %i, speed=%i", msg->motorPayload.portMotors, 
+                    msg->motorPayload.starboardMotors,
+                    msg->motorPayload.speed);
             
             //motor messages from Overmind
-            xSemaphoreTake(motorStructMutex, wait);
 
             moveFlags = msg->motorPayload.flags;
 
@@ -191,26 +220,26 @@ bool PidProcessMessage(psMessage_t *msg, TickType_t wait) {
                 motors[REAR_LEFT_MOTOR].distanceToGo = (float) msg->motorPayload.portMotors;
                 motors[REAR_RIGHT_MOTOR].distanceToGo = (float) msg->motorPayload.starboardMotors;
             }
-            setSpeed = msg->motorPayload.speed;
+            setSpeed = msg->motorPayload.speed * 50.0;     //unsigned
 
-            float portDistanceToGo = (motors[FRONT_LEFT_MOTOR].distanceToGo
-                    + motors[REAR_LEFT_MOTOR].distanceToGo) / 2;
-            float starboardDistanceToGo = (motors[FRONT_RIGHT_MOTOR].distanceToGo
-                    + motors[REAR_RIGHT_MOTOR].distanceToGo) / 2;
-            float maxDistance = max((abs(portDistanceToGo)), abs(starboardDistanceToGo)); //..+ve
+            portMotors->distanceToGo    = (motors[FRONT_LEFT_MOTOR].distanceToGo
+                                + motors[REAR_LEFT_MOTOR].distanceToGo) / 2;        //signed
+            starboardMotors->distanceToGo = (motors[FRONT_RIGHT_MOTOR].distanceToGo
+                                    + motors[REAR_RIGHT_MOTOR].distanceToGo) / 2;
+            maxDistanceToGo     = max((abs(portMotors->distanceToGo)), abs(starboardMotors->distanceToGo)); //..+ve
 
-            if (maxDistance > 0) {
-                portSpeed = setSpeed * portDistanceToGo / maxDistance;
-                starboardSpeed = setSpeed * starboardDistanceToGo / maxDistance;
+            if (maxDistanceToGo > 0 && setSpeed > 0) {
+                portMotors->desiredSpeed = setSpeed * portMotors->distanceToGo / maxDistanceToGo;   //signed
+                starboardMotors->desiredSpeed = setSpeed * starboardMotors->distanceToGo / maxDistanceToGo;
+                
+                if (portMotors->desiredSpeed >= 0) portMotors->direction = MOTOR_FORWARD;
+                    else portMotors->direction = MOTOR_REVERSE;
+                if (starboardMotors->desiredSpeed >= 0) starboardMotors->direction = MOTOR_FORWARD;
+                    else starboardMotors->direction = MOTOR_REVERSE;
             } else {
-                portSpeed = starboardSpeed = 0;
+                   DebugPrint("Stopping\n");
+                   AbortMotors();
             }
-            motors[FRONT_LEFT_MOTOR].desiredSpeed = portSpeed;
-            motors[FRONT_RIGHT_MOTOR].desiredSpeed = starboardSpeed;
-            motors[REAR_LEFT_MOTOR].desiredSpeed = portSpeed;
-            motors[REAR_RIGHT_MOTOR].desiredSpeed = starboardSpeed;
-
-            xSemaphoreGive(motorStructMutex);
         }
         break;
         case CONDITIONS:
@@ -219,19 +248,21 @@ bool PidProcessMessage(psMessage_t *msg, TickType_t wait) {
                 if (msg->maskPayload.value[0] & NOTIFICATION_MASK(MOTORS_INHIBIT)) {
                     if (!motorsInhibit) {
                         motorsInhibit = true;
-                        LogRoutine("Setting MOTORS_INHIBIT\n");
-                        AbortMotors(wait);
+                        DebugPrint("Setting MOTORS_INHIBIT\n");
+                        AbortMotors();
                     }
                 } else {
                     if (motorsInhibit) {
                         motorsInhibit = false;
-                        LogRoutine("Canceling MOTORS_INHIBIT\n");
+                        DebugPrint("Canceling MOTORS_INHIBIT\n");
                     }
                 }
             }
             if ((msg->maskPayload.valid[0] & msg->maskPayload.value[0] & NOTIFICATION_MASK(BATTERY_CRITICAL)) //assuming BATERY_CRITICAL < 64
                     && (moveFlags & ENABLE_SYSTEM_ABORT)) {
-                AbortMotors(wait);
+                motorsInhibit = true;
+                AbortMotors();
+                LogInfo("Battery Halt");
             }
             break;
         case NOTIFY:
@@ -239,41 +270,45 @@ bool PidProcessMessage(psMessage_t *msg, TickType_t wait) {
             switch (msg->intPayload.value) {
                 case BATTERY_SHUTDOWN_EVENT:
                     motorsInhibit = true;
-                    AbortMotors(wait);
-                    LogRoutine("Battery Halt");
+                    AbortMotors();
+                    LogInfo("Battery Halt");
                     break;
                 case SLEEPING_EVENT:
                     motorsInhibit = true;
-                    AbortMotors(wait);
-                    LogRoutine("Sleeping Halt");
+                    AbortMotors();
+                    LogInfo("Sleeping Halt");
                     break;
                 case FRONT_CONTACT_EVENT:
                     DebugPrint("Notification: %s\n", eventNames[msg->intPayload.value]);
                     if (moveFlags & ENABLE_FRONT_CONTACT_ABORT) {
-                        AbortMotors(wait);
-                        LogRoutine("Front Contact Halt");
+                        AbortMotors();
+                        LogInfo("Front Contact Halt");
                     }
                     break;
                 case REAR_CONTACT_EVENT:
                     DebugPrint("Notification: %s\n", eventNames[msg->intPayload.value]);
                     if (moveFlags & ENABLE_REAR_CONTACT_ABORT) {
-                        AbortMotors(wait);
-                        LogRoutine("Rear Contact Halt");
+                        AbortMotors();
+                        LogInfo("Rear Contact Halt");
                     }
                     break;
                 default:
                     break;
             }
-
             break;
-
     }
+    if (semHeld == pdTRUE) xSemaphoreGive(motorStructMutex);
 
     return true;
 }
 
 #define MOTOR_TRACE(x,y) if (motorsRunning && i==0) {\
-            DebugPrint("%s: %s = %0.1f, speed = %0.1f",thisMotor->name, x, y, thisMotor->measuredSpeed);\
+            DebugPrint("%s: %s = %0.1f, speed = %0.0f",thisMotor->name, x, y, thisMotor->measuredSpeed);\
+        }
+#define TRACE0(m) if (thisMotor->motorRunning && m==0) {\
+            DebugPrint("%s: D=%0.0f, meas=%0.0f, desrd=%i, pwm=%0.2f",thisMotor->name,\
+            thisMotor->distanceToGo, thisMotor->measuredSpeed,\
+             thisMotor->desiredSpeed, thisMotor->currentDutyRatio);\
         }
 
 //PID Task
@@ -307,8 +342,9 @@ static void PIDTask(void *pvParameters) {
     for (;;) {
 
         int sample; //index into averaging array - not currently used
-        int totalChange; //average = totalChange / count
+        int64_t totalChange; //average = totalChange / count
 
+        //init vars for this loop
         //distance
         int64_t portEncoders = 0;
         int64_t starboardEncoders = 0; //totals for each side
@@ -320,23 +356,20 @@ static void PIDTask(void *pvParameters) {
 
         xSemaphoreTake(motorStructMutex, 50);
 
-        float portDistanceToGo = motors[FRONT_LEFT_MOTOR].distanceToGo
-                                    + motors[REAR_LEFT_MOTOR].distanceToGo;
-        float starboardDistanceToGo = motors[FRONT_RIGHT_MOTOR].distanceToGo
-                                    + motors[REAR_RIGHT_MOTOR].distanceToGo;
-
         //deceleration curve
         int j;
+        maxDistanceToGo     = max((abs(portMotors->distanceToGo)), abs(starboardMotors->distanceToGo)); //..+ve
         decelerationFactor = 1.0;
         for (j = 0; j < DECELERATION_STEPS; j++) {
-            if ((abs(portDistanceToGo) + abs(starboardDistanceToGo)) <= decelerationCurve[j].range) {
+            if (maxDistanceToGo <= decelerationCurve[j].range) {
                 decelerationFactor = decelerationCurve[j].factor;
                 break;
             }
         }
         
         for (i = 0; i < 4; i++) {
-
+            //for each motor
+            
             thisMotor = &motors[i];
 
             //measure speed & distance, since last time, for this motor
@@ -349,6 +382,11 @@ static void PIDTask(void *pvParameters) {
                     = (int64_t) (thisMotor->encoderCount - thisMotor->lastEncoderCount);
             thisMotor->lastEncoderCount = thisMotor->encoderCount;
 
+            //time interval
+            now = xTaskGetTickCount();
+            interval = (int) (now - thisMotor->lastCountTime); //in mS
+            thisMotor->lastCountTime = now;
+            
             //average the speed (not in use)
             thisMotor->encoderSampleIndex = (sample + 1) % SAMPLE_COUNT;
 
@@ -358,97 +396,110 @@ static void PIDTask(void *pvParameters) {
                 totalChange += thisMotor->encoderChange[j];
             }
 
-            //time interval
-            now = xTaskGetTickCount();
-            interval = (int) (now - thisMotor->lastCountTime); //in mS
-            thisMotor->lastCountTime = now;
-
             //average speed
             if (interval > 0) {
                 thisMotor->measuredSpeed = (totalChange * 1000) / (SAMPLE_COUNT * interval); //counts per second
             } else {
                 thisMotor->measuredSpeed = 0;
             }
-
-            thisMotor->distanceToGo -= (float) MOVE_PER_COUNT * totalChange / SAMPLE_COUNT;
+            float travel = MOVE_PER_COUNT * totalChange / SAMPLE_COUNT;
+            thisMotor->distanceToGo -= travel;
 
             switch (i) {
                 case FRONT_LEFT_MOTOR:
                 case REAR_LEFT_MOTOR:
                     //averaging port motors
                     portEncoders += encoderChange;
+                    portMotors->distanceToGo -= travel / 2;
                     portSumSpeeds += thisMotor->measuredSpeed;
-                    thisMotor->desiredSpeed = portSpeed * decelerationFactor;
                     break;
                 case FRONT_RIGHT_MOTOR:
                 case REAR_RIGHT_MOTOR:
                     //averaging starboard motors
                     starboardEncoders += encoderChange;
+                    starboardMotors->distanceToGo -= travel / 2;
                     starboardSumSpeeds += thisMotor->measuredSpeed;
-                    thisMotor->desiredSpeed = starboardSpeed * decelerationFactor;
                     break;
             }
 
-            if (thisMotor->desiredSpeed * thisMotor->distanceToGo < 0)
-            {
-                thisMotor->desiredSpeed = 0; //passed goal
-//                DebugPrint("Reached Goal");
+            portMotors->measuredSpeed = (portSumSpeeds / 2);
+            starboardMotors->measuredSpeed = (starboardSumSpeeds / 2);
+
+            TRACE0(i);
+
+            if (
+                    ((motorSide[thisMotor->side].direction == MOTOR_FORWARD) && (thisMotor->distanceToGo <= 0))
+                    || ((motorSide[thisMotor->side].direction == MOTOR_REVERSE) && (thisMotor->distanceToGo >= 0))
+                    || (abs(thisMotor->distanceToGo) < 5)) {
+                thisMotor->desiredSpeed = 0; //reached or passed goal
+                thisMotor->distanceToGo = 0;
+                if (thisMotor->motorRunning) {
+                    DebugPrint("%s motor reached goal", thisMotor->name);
+                    float result = setDutyCycle(i, 0);
+                    MOTOR_TRACE("E Duty", result);
+                    if (fabs(thisMotor->measuredSpeed) < 10) {
+                        thisMotor->motorRunning = false;
+                        //now stopped
+                        if (--motorsRunning == 0) {
+                            CancelCondition(MOTORS_BUSY);
+                        }
+                    }
+                }
+            } else {
+                switch (i) {
+                    case FRONT_LEFT_MOTOR:
+                    case REAR_LEFT_MOTOR:
+                        thisMotor->desiredSpeed = portMotors->desiredSpeed * decelerationFactor;
+                        break;
+                    case FRONT_RIGHT_MOTOR:
+                    case REAR_RIGHT_MOTOR:
+                        thisMotor->desiredSpeed = starboardMotors->desiredSpeed * decelerationFactor;
+                        break;
+                }
             }
 
             //calculate new duty cycle
-            if (thisMotor->desiredSpeed == 0) { //stopping
-                //need to stop
-                float result = setDutyCycle(i, 0);
-                MOTOR_TRACE("E Duty", result);
+            if (fabs(thisMotor->desiredSpeed) > 1) {
+                if (!thisMotor->motorRunning) {
+                        //starting
+                        float result;
+                        //need to start
+                        if (motorsRunning++ == 0) {
+                            SetCondition(MOTORS_BUSY);
+                        }
+                        //apply starting power
+                        result = setDutyCycle(i, startingDuty);
 
-                if (thisMotor->measuredSpeed == 0 && thisMotor->motorRunning) {
-                    thisMotor->motorRunning = false;
-                    //stopped
-                    if (--motorsRunning == 0) {
-                        CancelCondition(MOTORS_BUSY);
-                    }
-                }
-            } else if (!thisMotor->motorRunning) { 
-                //starting
-                float result;
-                //need to start
-                if (motorsRunning++ == 0) {
-                    SetCondition(MOTORS_BUSY);
-                }
-                //apply starting power
-                if (thisMotor->desiredSpeed > 0) {
-                    result = setDutyCycle(i, startingDuty);
-                } else {
-                    result = setDutyCycle(i, -startingDuty);
-                }
-                MOTOR_TRACE("S Duty", result);
-                //               thisMotor->errorIntegral = 0;
-                thisMotor->motorRunning = true;
-            } else { 
-                //running
-                float result;
-                //                if (thisMotor->desiredSpeed * thisMotor->measuredSpeed >= 0) {
-                //no change in direction
-                int speedError = abs(thisMotor->desiredSpeed - thisMotor->measuredSpeed);
+                        MOTOR_TRACE("S Duty", result);
+                        //               thisMotor->errorIntegral = 0;
+                        thisMotor->motorRunning = true;
 
-//                if (speedError > deadband) {
-                    //need to change duty cycle
-                    float dutyChange = pCoefficient;// * (speedError - deadband) / speedError;
-
-                    if ((thisMotor->desiredSpeed) > (thisMotor->measuredSpeed)) {
-                        result = setDutyCycle(i, thisMotor->pwmCurrentDutyRatio + dutyChange);
                     } else {
-                        result = setDutyCycle(i, thisMotor->pwmCurrentDutyRatio - dutyChange);
+                        //running
+                        float result;
+                        float speedError;
+
+                        if (motorSide[thisMotor->side].direction == MOTOR_FORWARD) {
+                            speedError = (thisMotor->desiredSpeed - thisMotor->measuredSpeed);
+                        } else {
+                            speedError = -(thisMotor->desiredSpeed - thisMotor->measuredSpeed);
+                        }
+                        //need to change duty cycle
+                        if (speedError > 0) {
+                            result = setDutyCycle(i, thisMotor->currentDutyRatio + dutyIncrement);
+                        } else {
+                            result = setDutyCycle(i, thisMotor->currentDutyRatio - dutyIncrement);
+                        }
+
+                        MOTOR_TRACE("R Duty", result);
                     }
-//                }
-                MOTOR_TRACE("R Duty", result);
+                }
             }
-        }
 
         xSemaphoreGive(motorStructMutex);
 
         if (motorsRunning) {
-            DebugPrint("MOT: %.0f, %.0f to go", portDistanceToGo, starboardDistanceToGo);
+            DebugPrint("MOT: %.0f, %.0f to go", portMotors->distanceToGo, starboardMotors->distanceToGo);
         }
 
         if ((lastOdoReport + odoInterval < xTaskGetTickCount()) &&
@@ -461,11 +512,11 @@ static void PIDTask(void *pvParameters) {
             odoMsg.odometryPayload.portMovement = (float) MOVE_PER_COUNT * portEncoders / 2; //in cm;         // cm
             odoMsg.odometryPayload.starboardMovement = (float) MOVE_PER_COUNT * starboardEncoders / 2; //in cm;
             //current speed
-            odoMsg.odometryPayload.portSpeed = (int16_t) MOVE_PER_COUNT * portSumSpeeds / 2; //cm per sec
-            odoMsg.odometryPayload.starboardSpeed = (int16_t) MOVE_PER_COUNT * starboardSumSpeeds / 2; //cm per sec
+            odoMsg.odometryPayload.portSpeed = (int16_t) portMotors->measuredSpeed; //cm per sec
+            odoMsg.odometryPayload.starboardSpeed = (int16_t) starboardMotors->measuredSpeed; //cm per sec
             //current goal
-            odoMsg.odometryPayload.portMotorsToGo = (int16_t) portDistanceToGo / 2; //cm to go
-            odoMsg.odometryPayload.starboardMotorsToGo = (int16_t) starboardDistanceToGo / 2; //cm
+            odoMsg.odometryPayload.portMotorsToGo = (int16_t) portMotors->distanceToGo; //cm to go
+            odoMsg.odometryPayload.starboardMotorsToGo = (int16_t) starboardMotors->distanceToGo; //cm
 
             odoMsg.odometryPayload.motorsRunning = motorsRunning;
 
@@ -484,17 +535,12 @@ static void PIDTask(void *pvParameters) {
 //load the Pwm register
 
 float setDutyCycle(int motor, float _duty) {
-    float duty = _duty;
-    float currentDuty = motors[motor].pwmCurrentDutyRatio;
-//    if (currentDuty == duty) return duty;
+    float duty;
 
-    if (duty < 0) {
-        setDirection(motor, MOTOR_REVERSE);
-        duty = (duty > -minDuty ? -minDuty : (duty < -maxDuty ? -maxDuty : duty));
-    } else if (duty > 0) {
-        duty = (duty < minDuty ? minDuty : (duty > maxDuty ? maxDuty : duty));
-        setDirection(motor, MOTOR_FORWARD);
-    }
+    setDirection(motor, (motorSide[motors[motor].side].direction));
+    
+    duty = (_duty > maxDuty ? maxDuty : _duty);
+
 
     unsigned int regValue = (1 - fabs(duty)) * (timerPeriod);
 
@@ -512,7 +558,7 @@ float setDutyCycle(int motor, float _duty) {
             SetDCOC5PWM(regValue);
             break;
     }
-    motors[motor].pwmCurrentDutyRatio = duty;
+    motors[motor].currentDutyRatio = duty;
 
     return duty;
 }
@@ -559,6 +605,4 @@ void setDirection(int motor, MotorDirectionEnum_t direction) {
     } else {
         PORTClearBits(dirPortId, dirBit);
     }
-
-    motors[motor].pwmCurrentDirection = direction;
 }

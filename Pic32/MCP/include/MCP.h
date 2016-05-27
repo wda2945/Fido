@@ -66,7 +66,7 @@ extern BatteryStatus_enum batteryStatus;
 
 //environmental measurements
 extern float ext_temp, int_temp, humidity, ambientLight,
-        batteryVolts, batteryAmps, batteryAh, solarVolts, solarAmps, chargeVolts, chargeAmps;
+        batteryVolts, batteryAmps, maxAmps, batteryAh, solarVolts, solarAmps, chargeVolts, chargeAmps;
 extern bool motorInhibit;
 extern bool isRaining;
 #define RAIN_DELAY 10000        //wait to declare "it's raining"

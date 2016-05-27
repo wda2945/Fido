@@ -14,6 +14,7 @@
     BatteryStatus_enum batteryStatus;   //battery state reported by robot
     float volts;                        //battery voltage
     float amps;
+    float maxAmps;
     int percentage;
     float amphours;
     
@@ -35,6 +36,7 @@ char *powerstateNames[] = POWER_STATE_NAMES;
     batteryStatus = 0;
     volts = 0.0;
     amps = 0.0;
+    maxAmps = 0.0;
     percentage = 0.0;
     amphours = 0.0;
 }
@@ -94,9 +96,10 @@ char *powerstateNames[] = POWER_STATE_NAMES;
         case BATTERY:
             volts = message.msg.batteryPayload.volts / 10.0;
             batteryStatus = message.msg.batteryPayload.status;
-            amphours = message.msg.batteryPayload.ampHours / 10.0;
-            percentage = message.msg.batteryPayload.percentage;
+            amphours    = message.msg.batteryPayload.ampHours / 10.0;
+            percentage  = message.msg.batteryPayload.percentage;
             amps        = message.msg.batteryPayload.amps / 10.0;
+            maxAmps     = message.msg.batteryPayload.maxAmps / 10.0;
             [(UITableView*)self.view reloadData];
             break;
         case POWER_STATE:
@@ -140,7 +143,7 @@ char *powerstateNames[] = POWER_STATE_NAMES;
     switch(section)
     {
         case 0:             //battery
-            return 5;
+            return 6;
             break;
         case 1:             //robot state
             return 1;
@@ -194,10 +197,14 @@ char *powerstateNames[] = POWER_STATE_NAMES;
                     cell.detailTextLabel.text = [NSString stringWithFormat:@"%.1f A", amps];
                     break;
                 case 2:
+                    cell.textLabel.text = @"Max Amps";
+                    cell.detailTextLabel.text = [NSString stringWithFormat:@"%.1f A", maxAmps];
+                    break;
+                case 3:
                     cell.textLabel.text = @"AmpHours";
                     cell.detailTextLabel.text = [NSString stringWithFormat:@"%.1f Ah", amphours];
                     break;
-                case 3:
+                case 4:
                     cell.textLabel.text = @"Percentage";
                     cell.detailTextLabel.text = [NSString stringWithFormat:@"%i%%", percentage];
                     break;

@@ -19,6 +19,7 @@
 #include "syslog/syslog.h"
 #include "broker_debug.h"
 
+
 BrokerQueueEntry_t *freelist = NULL;					//common free list
 pthread_mutex_t	freeMtx = PTHREAD_MUTEX_INITIALIZER;	//freelist mutex
 
@@ -56,6 +57,9 @@ int CopyMessageToQ(BrokerQueue_t *q, psMessage_t *msg)
 //append an existing messageQ entry to a queue
 void AppendQueueEntry(BrokerQueue_t *q, BrokerQueueEntry_t *e)
 {
+
+	int QOS = psQOS[e->msg.header.messageType];
+
 	e->next = NULL;
 
 	//critical section
@@ -66,17 +70,19 @@ void AppendQueueEntry(BrokerQueue_t *q, BrokerQueueEntry_t *e)
 	}
 
 	int wake = 0;
-	if (q->qHead == NULL)
+	if (q->qHead[QOS] == NULL)
 	{
 		//Q empty
-		q->qHead = q->qTail = e;
+		q->qHead[QOS] = q->qTail[QOS] = e;
 		wake = 1;
 	}
 	else
 	{
-		q->qTail->next = e;
-		q->qTail = e;
+		q->qTail[QOS]->next = e;
+		q->qTail[QOS] = e;
 	}
+	q->queueCount++;
+
 	s = pthread_mutex_unlock(&q->mtx);
 	if (s != 0)
 	{
@@ -85,16 +91,18 @@ void AppendQueueEntry(BrokerQueue_t *q, BrokerQueueEntry_t *e)
 	//end critical section
 
 	if (wake) pthread_cond_signal(&q->cond);
+
 }
 bool isQueueEmpty(BrokerQueue_t *q)
 {
-	return (q->qHead == NULL);
+	return (q->queueCount == 0);
 }
 
 //get the first message or wait
 //returns a reference to the message
 psMessage_t *GetNextMessage(BrokerQueue_t *q)
 {
+	int i;
 	BrokerQueueEntry_t *e;
 
 	//critical section
@@ -104,16 +112,23 @@ psMessage_t *GetNextMessage(BrokerQueue_t *q)
 		ERRORPRINT("brokerQ: mutex lock %i", s);
 	}
 	//empty wait case
-	while (q->qHead == NULL) pthread_cond_wait(&q->cond, &q->mtx);
+	while (q->queueCount == 0) pthread_cond_wait(&q->cond, &q->mtx);
 
-	e = q->qHead;
-	q->qHead = e->next;
-	e->next = NULL;
-	if (q->qHead == NULL)
+	for (i=0; i < 3; i++)
 	{
-		//end of queue
-		q->qTail = NULL;
+		if (q->qHead[i] == NULL) continue;
+
+		e = q->qHead[i];
+		q->qHead[i] = e->next;
+		e->next = NULL;
+		if (q->qHead[i] == NULL)
+		{
+			//end of queue
+			q->qTail[i] = NULL;
+		}
+		break;
 	}
+	q->queueCount--;
 
 	s = pthread_mutex_unlock(&q->mtx);
 	if (s != 0)

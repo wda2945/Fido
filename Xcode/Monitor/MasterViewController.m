@@ -61,7 +61,7 @@ static MasterViewController *me;
     self.systemViewController   = [[SystemViewController alloc] init];
     self.logViewController      = [[LogViewController alloc] init];
     self.statsController        = [[StatsViewController alloc] init];
-    self.navController          = [[SensorViewController alloc] init];
+    self.navController          = [[EnvironmentViewController alloc] init];
     self.mapController          = [[MapViewController alloc] init];
     self.wpController           = [[WPTableViewController alloc] init];
     self.commsViewController    = [[CommsViewController alloc] init];

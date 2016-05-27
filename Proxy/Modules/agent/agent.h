@@ -12,6 +12,7 @@
 #include "pubsubdata.h"
 
 int AgentInit();
+void SendAgentStats();
 
 bool AgentProcessMessage(psMessage_t *msg);
 

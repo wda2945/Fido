@@ -90,91 +90,84 @@ void *LoggingThread(void *arg)
 		switch (msg->header.messageType)
 		{
 		case BBBLOG_MSG:
-			//check whether we need to forward a copy to PIC/APP
-			switch (msg->bbbLogPayload.severity) {
-			case SYSLOG_ERROR:
-			case SYSLOG_FAILURE:
-			{
-				//make a SYSLOG_MSG
-				psMessage_t newMsg;
-				psInitPublish(newMsg, SYSLOG_MSG);
-				newMsg.header.source = OVERMIND;
-				newMsg.logPayload.severity = msg->bbbLogPayload.severity;
-				snprintf(newMsg.logPayload.text, PS_MAX_LOG_TEXT-1, "%s: %s",
-						msg->bbbLogPayload.file, msg->bbbLogPayload.text);
-				RouteMessage(&newMsg);
-			}
-			break;
-			default:
-				break;
-			}
+			//forward a copy to PIC/APP
+		{
+			//make a SYSLOG_MSG
+			psMessage_t newMsg;
+			psInitPublish(newMsg, SYSLOG_MSG);
+			newMsg.header.source = OVERMIND;
+			newMsg.logPayload.severity = msg->bbbLogPayload.severity;
+			snprintf(newMsg.logPayload.text, PS_MAX_LOG_TEXT-1, "%s: %s",
+					msg->bbbLogPayload.file, msg->bbbLogPayload.text);
+			RouteMessage(&newMsg);
+		}
 			PrintLogMessage(msg);
 			DoneWithMessage(msg);
 			break;
-			case SYSLOG_MSG:
-				PrintLogMessage(msg);
-				DoneWithMessage(msg);
-				break;
-			case NOTIFY:
+		case SYSLOG_MSG:
+			PrintLogMessage(msg);
+			DoneWithMessage(msg);
+			break;
+		case NOTIFY:
+		{
+			psMessage_t logMsg;
+			psInitPublish(logMsg, BBBLOG_MSG);
+			strncpy(logMsg.bbbLogPayload.file, subsystemNames[msg->header.source], 4);
+			logMsg.bbbLogPayload.severity = SYSLOG_ROUTINE;
+			snprintf(logMsg.bbbLogPayload.text, BBB_MAX_LOG_TEXT, "Event: %s",
+					eventNames[msg->intPayload.value]);
+			PrintLogMessage(&logMsg);
+		}
+		DoneWithMessage(msg);
+		break;
+		case CONDITIONS:
+		{
+			int j;
+			psMessage_t logMsg;
+
+			psInitPublish(logMsg, BBBLOG_MSG);
+			strncpy(logMsg.bbbLogPayload.file, subsystemNames[msg->header.source], 4);
+			logMsg.bbbLogPayload.severity = SYSLOG_ROUTINE;
+
+			for (j=0; j<MASK_PAYLOAD_COUNT; j++)
 			{
-				psMessage_t logMsg;
-				psInitPublish(logMsg, BBBLOG_MSG);
-				strncpy(logMsg.bbbLogPayload.file, subsystemNames[msg->header.source], 4);
-				logMsg.bbbLogPayload.severity = SYSLOG_ROUTINE;
-				snprintf(logMsg.bbbLogPayload.text, BBB_MAX_LOG_TEXT, "Event: %s",
-						eventNames[msg->intPayload.value]);
-				PrintLogMessage(&logMsg);
+				NotificationMask_t valid = msg->maskPayload.valid[j];
+				NotificationMask_t value = msg->maskPayload.value[j];
+
+				NotificationMask_t newSets = (value & valid) & ~(currentActiveConditions[j] & currentValidConditions[j]);
+				NotificationMask_t newClears = (valid & ~value) & ~(currentValidConditions[j] & ~currentActiveConditions[j]);
+
+				if ((newSets != 0) || (newClears != 0))
+				{
+					for (int i=0; i<CONDITION_COUNT; i++)
+					{
+
+						NotificationMask_t m = NOTIFICATION_MASK(i);
+
+						if (m & newSets)
+						{
+							snprintf(logMsg.bbbLogPayload.text, BBB_MAX_LOG_TEXT, "Set Condition: %s",
+									conditionNames[i + 64 * j]);
+							PrintLogMessage(&logMsg);
+						}
+						if (m & newClears)
+						{
+							snprintf(logMsg.bbbLogPayload.text, BBB_MAX_LOG_TEXT, "Clear Condition: %s",
+									conditionNames[i + 64 * j]);
+							PrintLogMessage(&logMsg);
+						}
+					}
+				}
+				currentActiveConditions[j] |= (valid & value);
+				currentActiveConditions[j] &= ~(valid & ~value);
+				currentValidConditions[j] |= valid;
 			}
 			DoneWithMessage(msg);
 			break;
-			case CONDITIONS:
-			{
-				int j;
-				psMessage_t logMsg;
-
-				psInitPublish(logMsg, BBBLOG_MSG);
-				strncpy(logMsg.bbbLogPayload.file, subsystemNames[msg->header.source], 4);
-				logMsg.bbbLogPayload.severity = SYSLOG_ROUTINE;
-
-				for (j=0; j<MASK_PAYLOAD_COUNT; j++)
-				{
-					NotificationMask_t valid = msg->maskPayload.valid[j];
-					NotificationMask_t value = msg->maskPayload.value[j];
-
-					NotificationMask_t newSets = (value & valid) & ~(currentActiveConditions[j] & currentValidConditions[j]);
-					NotificationMask_t newClears = (valid & ~value) & ~(currentValidConditions[j] & ~currentActiveConditions[j]);
-
-					if ((newSets != 0) || (newClears != 0))
-					{
-						for (int i=0; i<CONDITION_COUNT; i++)
-						{
-
-							NotificationMask_t m = NOTIFICATION_MASK(i);
-
-							if (m & newSets)
-							{
-								snprintf(logMsg.bbbLogPayload.text, BBB_MAX_LOG_TEXT, "Set Condition: %s",
-										conditionNames[i + 64 * j]);
-								PrintLogMessage(&logMsg);
-							}
-							if (m & newClears)
-							{
-								snprintf(logMsg.bbbLogPayload.text, BBB_MAX_LOG_TEXT, "Clear Condition: %s",
-										conditionNames[i + 64 * j]);
-								PrintLogMessage(&logMsg);
-							}
-						}
-					}
-					currentActiveConditions[j] |= (valid & value);
-					currentActiveConditions[j] &= ~(valid & ~value);
-					currentValidConditions[j] |= valid;
-				}
-				DoneWithMessage(msg);
-				break;
-			}
-			default:
-				DoneWithMessage(msg);
-				break;
+		}
+		default:
+			DoneWithMessage(msg);
+			break;
 		}
 	}
 }

@@ -85,7 +85,7 @@ int PowerControlInit(PowerState_enum initialState) {
             powerupTimerCallback
             );
     if (overmindPowerupTimer == NULL) {
-        LogError("No Powerup Timer");
+        LogError("power: No Powerup Timer");
         SetCondition(POWER_CONTROL_ERROR);
         return -1;
     }
@@ -96,7 +96,7 @@ int PowerControlInit(PowerState_enum initialState) {
             poweroffTimerCallback
             );
     if (overmindPoweroffTimer == NULL) {
-        LogError("No Poweroff Timer");
+        LogError("power: No Poweroff Timer");
         SetCondition(POWER_CONTROL_ERROR);
         return -1;
      }
@@ -119,19 +119,19 @@ psMessage_t mcpTxMsg;
 void ProcessUserCommand(UserCommand_enum userCommand) {
 
     if (userCommand < 0 || userCommand >= COMMAND_COUNT) {
-        LogError("Bad App Cmd: %i", userCommand);
+        LogError("power: Bad App Cmd: %i", userCommand);
         SetCondition(POWER_CONTROL_ERROR);
         return;
     }
 
-    LogRoutine("App Cmd: %s", appCmdnames[userCommand]);
+    DebugPrint("power: App Cmd: %s", appCmdnames[userCommand]);
 
     switch (userCommand) {
         case COMMAND_SYSTEM_OFF: //to minimum power
             if (systemPowerState >= POWER_OVM_STARTING) {
                 //give the BBB a chance to stop
                 if (StartOvermindPoweroff(POWER_SHUTDOWN)) //start timer to kill the BBB if it doesn't power off
-                    LogInfo("Poweroff - App Shutdown");
+                    LogInfo("power: Poweroff - App Shutdown");
             } else {
                 SetPowerState(POWER_SHUTDOWN);
             }
@@ -140,7 +140,7 @@ void ProcessUserCommand(UserCommand_enum userCommand) {
             if (systemPowerState >= POWER_OVM_STARTING) {
                 //give the BBB a chance to stop
                 if (StartOvermindPoweroff(POWER_SLEEPING)) //start timer to kill the BBB if it doesn't power off
-                    LogInfo("Poweroff - App Sleep");
+                    LogInfo("power: Poweroff - App Sleep");
             } else {
                 SetPowerState(POWER_SLEEPING);
             }
@@ -148,19 +148,28 @@ void ProcessUserCommand(UserCommand_enum userCommand) {
         case COMMAND_REST: //OVM + minimum power
             if (systemPowerState < POWER_OVM_STARTING) {
                 if (StartOvermindPowerup(POWER_RESTING)) //start timer to kick the BBB if it doesn't power up
-                    LogInfo("Powerup timer -> Rest");
+                    LogInfo("power: Powerup timer -> Rest");
+            }
+            else {
+                SetPowerState(POWER_RESTING);
             }
             break;
         case COMMAND_STANDBY: //ready to move
             if (systemPowerState < POWER_OVM_STARTING) {
                 if (StartOvermindPowerup(POWER_STANDBY)) //start timer to kick the BBB if it doesn't power up
-                    LogInfo("Powerup timer -> Stby");
+                    LogInfo("power: Powerup timer -> Stby");
+            }
+            else {
+                SetPowerState(POWER_STANDBY);
             }
             break;
         case COMMAND_ACTIVE:
             if (systemPowerState < POWER_OVM_STARTING) {
                 if (StartOvermindPowerup(POWER_ACTIVE)) //start timer to kick the BBB if it doesn't power up
-                    LogInfo("Powerup timer -> Act");
+                    LogInfo("power: Powerup timer -> Act");
+            }
+            else {
+                SetPowerState(POWER_ACTIVE);
             }
             break;
     }
@@ -171,11 +180,11 @@ void ProcessUserCommand(UserCommand_enum userCommand) {
 void ProcessOvermindCommand(OvermindPowerCommand_enum overmindCommand) {
 
     if (overmindCommand < 0 || overmindCommand >= OVERMIND_ACTION_COUNT) {
-        LogError("Bad Ovm Cmd: %i", overmindCommand);
+        LogError("power: Bad Ovm Cmd: %i", overmindCommand);
         return;
     }
 
-    LogRoutine("OVM Cmd: %s", ovmCmdNames[overmindCommand]);
+    DebugPrint("power: OVM Cmd: %s", ovmCmdNames[overmindCommand]);
 
     //check context
     switch (systemPowerState) {
@@ -196,7 +205,7 @@ void ProcessOvermindCommand(OvermindPowerCommand_enum overmindCommand) {
         case POWER_WAKE_ON_EVENT: //wake if Prox or other criteria met
         case POWER_SLEEPING:    //minimum power state with comms
         case POWER_SHUTDOWN:    //eg low battery shutdown
-            LogError("%s in MCP-only state", ovmCmdNames[overmindCommand]);
+            LogError("power: %s in MCP-only state", ovmCmdNames[overmindCommand]);
             return;
             break;
     }
@@ -206,15 +215,15 @@ void ProcessOvermindCommand(OvermindPowerCommand_enum overmindCommand) {
             break;
         case OVERMIND_POWEROFF: //poweroff totally
             if (StartOvermindPoweroff(POWER_SHUTDOWN)) //start timer to kill the BBB if it doesn't power off
-                LogInfo("Poweroff - Shutdown");
+                LogInfo("power: Poweroff - Shutdown");
             break;
         case OVERMIND_SLEEP: //keep MCP plus comms up
             if (StartOvermindPoweroff(POWER_SLEEPING)) //start timer to kill the BBB if it doesn't power off
-                LogInfo("Poweroff - Sleeping");
+                LogInfo("power: Poweroff - Sleeping");
             break;
         case OVERMIND_WAKE_ON_EVENT: //wake on bumper contact
             if (StartOvermindPoweroff(POWER_WAKE_ON_EVENT)) //start timer to kill the BBB if it doesn't power off
-                LogInfo("Poweroff - Waiting");
+                LogInfo("power: Poweroff - Waiting");
             break;
         case OVERMIND_REQUEST_RESTING:
             switch (systemPowerState) {
@@ -242,35 +251,42 @@ void ProcessOvermindCommand(OvermindPowerCommand_enum overmindCommand) {
 
 void SetPowerState(PowerState_enum state) {
 
-    xSemaphoreTake(powerStateMutex, portMAX_DELAY);
 
     if (systemPowerState != state) {
+        xSemaphoreTake(powerStateMutex, portMAX_DELAY);
+
         systemPowerState = state;
 
-        //action power state
-        bool OVMon, MOTon, PROXon, SONARon;
+        //current power state
         bool MOTinhibit = true;
         bool shutdown = false;
         bool lightsOff = false;
-        OVMon = ovmPower;
-        MOTon = motPower;
-        PROXon = irProxEnable;
-        SONARon = sonarProxEnable;
+        bool OVMon = ovmPower;
+        bool MOTon = motPower;
+        bool PROXon = irProxEnable;
+        bool SONARon = sonarProxEnable;
 
         switch (state) {
             case POWER_OVM_STARTING:
-                OVMon = true;
+                MOTinhibit = true;
+                SONARon = false;
+                OVMon = MOTon = PROXon = true;
                 break;
             case POWER_OVM_STOPPING:
                 //timers running
                 break;
             case POWER_ACTIVE:
                 MOTinhibit = false;
+                SONARon = false;
+                OVMon = MOTon = PROXon = true;
+                break;
             case POWER_STANDBY: // == system STANDBY
+                MOTinhibit = true;
                 SONARon = false;
                 OVMon = MOTon = PROXon = true;
                 break;
             case POWER_RESTING: // BBB plus minimum power
+                MOTinhibit = true;
                 OVMon = true;
                 SONARon = MOTon = PROXon = false;
                 break;
@@ -283,15 +299,18 @@ void SetPowerState(PowerState_enum state) {
                     PROXon = false;
                 }
                 SONARon = MOTon = OVMon = false;
+                MOTinhibit = true;
                 lightsOff = true;
                 break;
             case POWER_SLEEPING: //minimum power state with comms
                 SONARon = OVMon = MOTon = PROXon = false;
+                MOTinhibit = true;
                 lightsOff = true;
                 break;
             case POWER_SHUTDOWN: //eg low battery shutdown
                 SONARon = OVMon = MOTon = PROXon = false;
                 shutdown = true;
+                MOTinhibit = true;
                 lightsOff = true;
                 break;
         }
@@ -321,7 +340,7 @@ void SetPowerState(PowerState_enum state) {
         mcpTxMsg.bytePayload.value = state;
         psSendMessage(mcpTxMsg);
 
-        LogInfo("Pwr State = %s", stateNames[state]);
+        LogInfo("power: Pwr State = %s", stateNames[state]);
 
         if (shutdown) {
             vTaskDelay(5000); //let messages propagate
@@ -329,11 +348,6 @@ void SetPowerState(PowerState_enum state) {
             taskDISABLE_INTERRUPTS();
             picShutdown();
         }
-    }
-    else
-    {
-        xSemaphoreGive(powerStateMutex);
-
     }
 }
 
@@ -357,7 +371,7 @@ bool StartOvermindPoweroff(PowerState_enum nextState) {
         xTimerStart(overmindPoweroffTimer, portMAX_DELAY);
         
         if (bbbPwrBtnStop) {
-            LogInfo("PwrBtn for poweroff");
+            LogInfo("power: PwrBtn for poweroff");
             pushPwrButton();
         }
         SetPowerState(POWER_OVM_STOPPING);
@@ -382,7 +396,7 @@ bool StartOvermindPowerup(PowerState_enum nextState) {
         xTimerStart(overmindPowerupTimer, portMAX_DELAY);
         powerupTimerNextState = nextState;
         if (bbbPwrBtnStart && !isOvermindAwake()) {
-            LogInfo("PwrBtn for powerup");
+            LogInfo("power: PwrBtn for powerup");
             pushPwrButton();
         }
         SetPowerState(POWER_OVM_STARTING);
@@ -407,15 +421,15 @@ void picShutdown() {
 }
 
 void powerupTimerCallback(TimerHandle_t xTimer) {
-    LogInfo("Powerup timer fired");
+    LogInfo("power: Powerup timer fired");
     if (isOvermindAwake()) {
         SetPowerState(powerupTimerNextState);
         powerupTimerNextState = 0;
     } else {
-        LogError("Overmind failed to start");
+        LogError("power: Overmind failed to start");
         //retry
         if (powerupCycleCount++ < POWERUP_RETRIES) {
-            LogInfo("PwrBtn powerup retry");
+            LogInfo("power: PwrBtn powerup retry");
             pushPwrButton();
             xTimerStart(overmindPowerupTimer, 0);
         } else {
@@ -425,7 +439,7 @@ void powerupTimerCallback(TimerHandle_t xTimer) {
 }
 
 void poweroffTimerCallback(TimerHandle_t xTimer) {
-    LogInfo("Power off timer fired");
+    LogInfo("power: Power off timer fired");
     SetPowerState(poweroffTimerNextState);
     poweroffTimerNextState = 0;
 }

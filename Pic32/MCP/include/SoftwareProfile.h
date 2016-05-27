@@ -40,7 +40,7 @@
 //task to respond to App messages
 #define MCP_TASK_PRIORITY           ( 3 )
 #define MCP_TASK_STACK_SIZE         (700)
-#define MCP_TASK_QUEUE_LENGTH       20
+#define MCP_TASK_QUEUE_LENGTH       100
 
 #define POWERUP_TIMER_PERIOD        5000
 #define POWEROFF_TIMER_PERIOD       5000
@@ -84,7 +84,7 @@
 //*******************PUBSUB Subsystem
 
 //PubSub broker
-#define PS_QUEUE_LENGTH             30
+#define PS_QUEUE_LENGTH             200
 #define PS_TASK_PRIORITY            5
 #define PS_TASK_STACK_SIZE          300
 #define QOS_WAIT_TIMES              {1000, 250, 0}
@@ -115,11 +115,11 @@
 #define PROXY_ADDRESS               0x1A
 #define XBEE_UART				UART2B
 #define XBEE_BAUDRATE       	115200
-#define XBEE_QUEUE_LENGTH           50
+#define XBEE_QUEUE_LENGTH           100
 #define USING_UART_2B                1
 #define XBEE_TASK_STACK_SIZE       300
 #define XBEE_TASK_PRIORITY         ( 4 )
-#define XBEE_QUEUE_LIMITS           {XBEE_QUEUE_LENGTH, XBEE_QUEUE_LENGTH * 0.8, XBEE_QUEUE_LENGTH * 0.5}
+#define XBEE_QUEUE_LIMITS           {XBEE_QUEUE_LENGTH, XBEE_QUEUE_LENGTH, XBEE_QUEUE_LENGTH * 0.5}
 #define XBEE_BROKER_BUFFER_SIZE     100
 
 //UART Broker
@@ -140,7 +140,7 @@
 #define UART_TASK_STACK_SIZE       300
 #define UART_TASK_PRIORITY         ( 4 )
 #define PS_UART_ADDRESS             0xAA    //message delimiter
-#define UART_QUEUE_LIMITS           {UART_QUEUE_LENGTH, UART_QUEUE_LENGTH * 0.8, UART_QUEUE_LENGTH * 0.5}
+#define UART_QUEUE_LIMITS           {UART_QUEUE_LENGTH, UART_QUEUE_LENGTH, UART_QUEUE_LENGTH * 0.5}
 #define UART_BROKER_BUFFER_SIZE     64
 //*******************
 

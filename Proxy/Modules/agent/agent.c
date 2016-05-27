@@ -25,21 +25,22 @@
 #include "softwareProfile.h"
 #include "pubsubdata.h"
 #include "pubsub/pubsub.h"
+#include "pubsub/broker_debug.h"
 #include "syslog/syslog.h"
 #include "helpers.h"
 #include "pubsubparser.h"
 
 #include "agent/agent.h"
 
-FILE *agentDebugFile;
-
-#ifdef AGENT_DEBUG
-#define DEBUGPRINT(...) tprintf( __VA_ARGS__);tfprintf(agentDebugFile, __VA_ARGS__);
-#else
-#define DEBUGPRINT(...) fprintf(agentDebugFile, __VA_ARGS__);fflush(agentDebugFile);
-#endif
-
-#define ERRORPRINT(...) tprintf( __VA_ARGS__);tfprintf(agentDebugFile, __VA_ARGS__);
+//FILE *agentDebugFile;
+//
+//#ifdef AGENT_DEBUG
+//#define DEBUGPRINT(...) tprintf( __VA_ARGS__);tfprintf(agentDebugFile, __VA_ARGS__);
+//#else
+//#define DEBUGPRINT(...) fprintf(agentDebugFile, __VA_ARGS__);fflush(agentDebugFile);
+//#endif
+//
+//#define ERRORPRINT(...) tprintf( __VA_ARGS__);tfprintf(agentDebugFile, __VA_ARGS__);
 
 #define MAX_AGENT_CONNECTIONS 10
 
@@ -53,6 +54,19 @@ pthread_mutex_t	agentMtx = PTHREAD_MUTEX_INITIALIZER;
 
 //queue for outgoing messages
 BrokerQueue_t agentQueue = BROKER_Q_INITIALIZER;	//queue for messages to be sent
+
+//statistics collection
+//TX
+int AGENTmessagesSent;
+int AGENTaddressDiscarded;
+int AGENTcongestionDiscarded;      //congestion
+int AGENTlogMessagesDiscarded;
+int AGENTsendErrors;
+//RX
+int AGENTmessagesReceived;
+int AGENTaddressIgnored;        //wrong address
+int AGENTreceiveErrors;
+int AGENTparseErrors;
 
 //counts for throttling logging messages
 int agentRoutine = 0;
@@ -74,32 +88,42 @@ void *AgentPingThread(void *arg);					//thread send ping to router
 int AgentInit()
 {
     
-	char buff[100];
-	sprintf(buff, "%s%s", LOGFILE_FOLDER, "agent.log");
+//	char buff[100];
+//	sprintf(buff, "%s%s", LOGFILE_FOLDER, "agent.log");
+//
+//	agentDebugFile = fopen(buff, "w");
+//
+//
+//	DEBUGPRINT("agent Logfile opened\n");
 
-	agentDebugFile = fopen(buff, "w");
-
-
-	DEBUGPRINT("agent Logfile opened\n");
+	AGENTmessagesSent = 0;
+	AGENTaddressDiscarded = 0;
+	AGENTcongestionDiscarded = 0;      //congestion
+	AGENTlogMessagesDiscarded = 0;
+	AGENTsendErrors = 0;
+	AGENTmessagesReceived = 0;
+	AGENTaddressIgnored = 0;        //wrong address
+	AGENTreceiveErrors = 0;
+	AGENTparseErrors = 0;
 
 	//create agent Listen thread
 	int s = pthread_create(&listenThread, NULL, AgentListenThread, NULL);
 	if (s != 0) {
-		LogError("agent Listen thread create failed. %i\n", s);
+		LogError("agent: Listen thread create failed. %i\n", s);
 		return -1;
 	}
 
 	//create agent Tx thread
 	s = pthread_create(&txThread, NULL, AgentTxThread, NULL);
 	if (s != 0) {
-		LogError("agent Tx create failed. %s\n", strerror(s));
+		LogError("agent: Tx create failed. %s\n", strerror(s));
 		return -1;
 	}
 
 	//create agent Ping thread
 	s = pthread_create(&pingThread, NULL, AgentPingThread, NULL);
 	if (s != 0) {
-		LogError("Agent PingThread create failed. %i\n", strerror(s));
+		LogError("Agent: Ping Thread create failed. %i\n", strerror(s));
 		return -1;
 	}
 
@@ -124,20 +148,20 @@ void *AgentListenThread(void *arg)
 			connected[i] = false;
 		}
 	}
-	DEBUGPRINT("agent Listen thread\n");
+	DEBUGPRINT("agent: Listen thread\n");
 
 	//create listen socket
 	int listenSocket;
 
 	while ((listenSocket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
 	{
-		ERRORPRINT("socket() error: %s\n", strerror(errno));
+		ERRORPRINT("agent: socket() error: %s\n", strerror(errno));
 		sleep(1);
 	}
 	int optval = 1;
 	setsockopt(listenSocket, SOL_SOCKET, SO_REUSEADDR, &optval, 4);
 
-	DEBUGPRINT("agent listen socket created\n");
+	DEBUGPRINT("agent: listen socket created\n");
 
 	//bind socket address
 	struct sockaddr_in my_address;
@@ -148,21 +172,21 @@ void *AgentListenThread(void *arg)
 
 	while (bind(listenSocket, (struct sockaddr*) &my_address, sizeof(my_address)) == -1)
 	{
-		ERRORPRINT("bind() error: %s\n", strerror(errno));
+		ERRORPRINT("agent: bind() error: %s\n", strerror(errno));
 
 		if (errno == EADDRINUSE) sleep(10);
 
 		sleep(1);
 	}
 
-	DEBUGPRINT("agent listen socket ready\n");
+	DEBUGPRINT("agent: listen socket ready\n");
 
 	while(1)
 	{
 		//wait for connect
 		while(listen(listenSocket, 2) != 0)
 		{
-			ERRORPRINT("listen() error %s\n", strerror(errno));
+			ERRORPRINT("agent: listen() error %s\n", strerror(errno));
 			sleep(1);
 			//ignore errors, just retry
 		}
@@ -178,7 +202,7 @@ void *AgentListenThread(void *arg)
 			uint8_t addrBytes[4];
 			memcpy(addrBytes, &client_address_in->sin_addr.s_addr, 4);
 
-			DEBUGPRINT("agent connect from %i.%i.%i.%i\n", addrBytes[0], addrBytes[1], addrBytes[2], addrBytes[3]);
+			DEBUGPRINT("agent: connect from %i.%i.%i.%i\n", addrBytes[0], addrBytes[1], addrBytes[2], addrBytes[3]);
 
 			//find a free thread
 
@@ -197,7 +221,7 @@ void *AgentListenThread(void *arg)
 			{
     			pthread_mutex_unlock(&agentMtx);
 
-				DEBUGPRINT("agent listen: no available server context\n");
+				DEBUGPRINT("agent: no available server context\n");
 			}
 			else
 			{
@@ -213,14 +237,14 @@ void *AgentListenThread(void *arg)
 				}
 				while (s == EAGAIN);
 				if (s != 0) {
-					LogError("agent %i Rx create failed - %s\n", channel, strerror(s));
+					LogError("agent: Rx %i create failed - %s\n", channel, strerror(s));
 
 					close(rxSocket[channel]);
 					close(txSocket[channel]);
 				}
 				else
 				{
-					DEBUGPRINT("agent %i Rx thread created.\n", channel);
+					DEBUGPRINT("agent: Rx %i thread created.\n", channel);
 				}
 
 			}
@@ -238,7 +262,7 @@ void *AgentRxThread(void *arg)
 	psMessage_t rxMessage;
 	status_t parseStatus;
 
-	DEBUGPRINT("agent %i Rx thread: fd= %i\n",mychan, socket);
+	DEBUGPRINT("agent: Rx %i thread: fd=%i\n",mychan, socket);
 
     parseStatus.noCRC       = 0; ///< Do not expect a CRC, if > 0
     parseStatus.noSeq       = 0; ///< Do not check seq #s, if > 0
@@ -259,8 +283,8 @@ void *AgentRxThread(void *arg)
     		if (recv(socket, &readByte, 1, 0) <= 0)
     		{
     			//quit on failure, EOF, etc.
-    			ERRORPRINT("agent Rx %i recv() fd=%i error: %s\n", mychan, socket, strerror(errno));
-
+    			ERRORPRINT("agent: Rx %i recv(fd=%i) error: %s\n", mychan, socket, strerror(errno));
+    			AGENTreceiveErrors++;
     			pthread_mutex_lock(&agentMtx);
 
     			close(socket);
@@ -290,19 +314,20 @@ void *AgentRxThread(void *arg)
     		}
     		else
     		{
+    			rxMessage.header.source = APP_XBEE;
     			XBeeBrokerProcessMessage(&rxMessage);
     		}
     	}
     	else
     	{
-			DEBUGPRINT("agent %i. %s received from App\n", mychan, psLongMsgNames[rxMessage.header.messageType]);
-
+			DEBUGPRINT("agent: Rx %i. %s message received\n", mychan, psLongMsgNames[rxMessage.header.messageType]);
+			AGENTmessagesReceived++;
 			rxMessage.header.source = APP_XBEE;
 			RouteMessage(&rxMessage);
     	}
     }
     //Tx disconnected
-    DEBUGPRINT("agent %i Rx fd=%i exiting.\n", mychan, socket);
+    DEBUGPRINT("agent: Rx %i exiting.\n", mychan);
 
 	pthread_mutex_lock(&agentMtx);
 
@@ -333,21 +358,21 @@ bool AgentProcessMessage(psMessage_t *msg)
 			break;
         case SYSLOG_INFO:
             if (agentInfo > (int)maxAgentInfo) {
- //               logMessagesDiscarded++;
+               AGENTlogMessagesDiscarded++;
                 return false;
             }
             ++agentInfo;
             break;
         case SYSLOG_WARNING:
             if (agentWarning > (int)maxAgentWarning) {
-//                logMessagesDiscarded++;
+                AGENTlogMessagesDiscarded++;
                 return false;
             }
             ++agentWarning;
             break;
         case SYSLOG_ERROR:
             if (agentError > (int)maxAgentError) {
-//                logMessagesDiscarded++;
+                AGENTlogMessagesDiscarded++;
                 return false;
             }
             ++agentError;
@@ -436,15 +461,16 @@ void *AgentTxThread(void *arg)
 
 				if (errorReply != 0)
 				{
-					ERRORPRINT("agent Tx (fd:%i) send error: %s\n", socket, strerror(errno));
+					ERRORPRINT("agent: Tx send error: %s\n", strerror(errno));
+					AGENTsendErrors;
 					close(socket);
 					txSocket[i] = -1;
 					connected[i] = false;
 				}
 				else
 				{
-					DEBUGPRINT("agent: %s sent to App\n", psLongMsgNames[txMessage->header.messageType]);
-
+					DEBUGPRINT("agent: %s message sent\n", psLongMsgNames[txMessage->header.messageType]);
+					AGENTmessagesSent++;
 					if (psDefaultTopics[txMessage->header.messageType] == LOG_TOPIC)
 					{
 						switch (txMessage->logPayload.severity)
@@ -481,4 +507,23 @@ void *AgentPingThread(void *arg)
 		sleep(10);
 	}
 	return 0;
+}
+
+void SendAgentStats() {
+	psMessage_t msg;
+	psInitPublish(msg, COMMS_STATS);
+
+	strncpy(msg.commsStatsPayload.destination, "APP", 4);
+	msg.commsStatsPayload.messagesSent = AGENTmessagesSent;
+	msg.commsStatsPayload.sendErrors	= AGENTsendErrors;
+	msg.commsStatsPayload.addressDiscarded = AGENTaddressDiscarded;
+	msg.commsStatsPayload.congestionDiscarded = AGENTcongestionDiscarded; //congestion
+	msg.commsStatsPayload.logMessagesDiscarded = AGENTlogMessagesDiscarded;
+	msg.commsStatsPayload.messagesReceived = AGENTmessagesReceived;
+	msg.commsStatsPayload.addressIgnored = AGENTaddressIgnored; //wrong address
+	msg.commsStatsPayload.receiveErrors = AGENTreceiveErrors;
+	msg.commsStatsPayload.parseErrors = AGENTparseErrors;
+	msg.commsStatsPayload.queueLength = agentQueue.queueCount;
+
+	NewBrokerMessage(&msg);
 }

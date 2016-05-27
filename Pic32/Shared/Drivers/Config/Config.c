@@ -83,11 +83,13 @@ void SendSetOption(char *name, int var, int minV, int maxV)
 
 void SetOptionByName(char *name, int value) {
     bool optionFound = false;
+    bool optionChanged = false;
     
 #define optionmacro(n, var, minV, maxV, def) if (strncmp(n,name,PS_NAME_LENGTH)==0) {\
+                                                    if (var != value) optionChanged = true;\
                                                     var = value;\
                                                     optionFound = true;\
-                                                    SendSetOption(name, var, minV, maxV);\
+                                                    if (optionChanged) SendSetOption(name, var, minV, maxV);\
                                                     }
 #include "Options.h"
 #undef optionmacro

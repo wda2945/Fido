@@ -22,12 +22,12 @@
 
 
 #ifdef NOTIFICATIONS_DEBUG
-#define DEBUGPRINT(...) fprintf(stdout, __VA_ARGS__);fprintf(psDebugFile, __VA_ARGS__);fflush(psDebugFile);
+#define DEBUGPRINT(...) tfprintf(stdout, __VA_ARGS__);tfprintf(psDebugFile, __VA_ARGS__);
 #else
-#define DEBUGPRINT(...) fprintf(psDebugFile, __VA_ARGS__);fflush(psDebugFile);
+#define DEBUGPRINT(...) tfprintf(psDebugFile, __VA_ARGS__);
 #endif
 
-#define ERRORPRINT(...) LogError(__VA_ARGS__);fprintf(psDebugFile, __VA_ARGS__);fflush(psDebugFile);
+#define ERRORPRINT(...) tprintf(__VA_ARGS__);fprintf(psDebugFile, __VA_ARGS__);
 
 //-------------------------------Events - triggered by changes
 NotificationMask_t NotifiedEvents;
@@ -94,7 +94,7 @@ void NotifyEvent(Event_enum e) {
 		NotifiedEvents |= notifyBit;
 	}
 
-	LogRoutine("Notify: %s\n", eventNames[e]);
+	DEBUGPRINT("Notify: %s\n", eventNames[e]);
 }
 
 //reset ~ 1/sec to permit a notification to be resent
@@ -103,39 +103,29 @@ void ResetNotifications() {
 }
 
 //--------------------Conditions
-void SetMaskBit(Mask_enum m, Condition_enum e)
+bool SetMaskBit(Condition_enum e)
 {
 	int bit 	= e % 64;
 	int index 	= e / 64;
-
-	switch(m)
-	{
-	case ACTIVE_MASK:
-		active[index] |= NOTIFICATION_MASK(bit);
-		break;
-	case VALID_MASK:
-		valid[index] |= NOTIFICATION_MASK(bit);
-		break;
-	}
+	NotificationMask_t mask = NOTIFICATION_MASK(bit);
+	bool prior = (active[index] & valid[index] & mask);
+	active[index] |= mask;
+	valid[index] |= mask;
+	return prior;
 }
 
-void ClearMaskBit(Mask_enum m, Condition_enum e)
+bool ClearMaskBit(Condition_enum e)
 {
 	int bit 	= e % 64;
 	int index 	= e / 64;
-
-	switch(m)
-	{
-	case ACTIVE_MASK:
-		active[index] &= ~NOTIFICATION_MASK(bit);
-		break;
-	case VALID_MASK:
-		valid[index] &= ~NOTIFICATION_MASK(bit);
-		break;
-	}
+	NotificationMask_t mask = NOTIFICATION_MASK(bit);
+	bool prior = (active[index] & valid[index] & mask);
+	active[index] &= ~mask;
+	valid[index] |= mask;
+	return prior;
 }
 
-bool isActive(Condition_enum e)
+bool isConditionActive(Condition_enum e)
 {
 	int bit 	= e % 64;
 	int index 	= e / 64;
@@ -143,25 +133,15 @@ bool isActive(Condition_enum e)
 	return (active[index] & NOTIFICATION_MASK(bit));
 }
 
-bool conditionActive(Condition_enum e)
-{
-	int bit 	= e % 64;
-	int index 	= e / 64;
-
-	return (systemActiveConditions[index] & systemValidConditions[index] & NOTIFICATION_MASK(e));
-}
-
 void SetCondition(Condition_enum e)
 {
     if (e <= 0 || e >= CONDITION_COUNT) return;
     bool prior;
     pthread_mutex_lock(&conditionMutex);
-    prior = isActive(e);
-    SetMaskBit(ACTIVE_MASK, e);
-    SetMaskBit(VALID_MASK, e);
+    prior = SetMaskBit(e);
     pthread_mutex_unlock(&conditionMutex);
 
-    if (!prior) LogRoutine("Set: %s\n", conditionNames[e]);
+    if (!prior) DEBUGPRINT("conditions: Set: %s\n", conditionNames[e]);
 }
 
 void CancelCondition(Condition_enum e)
@@ -170,12 +150,10 @@ void CancelCondition(Condition_enum e)
     bool prior;
     
     pthread_mutex_lock(&conditionMutex);
-    prior = isActive(e);
-    ClearMaskBit(ACTIVE_MASK, e);
-    SetMaskBit(VALID_MASK, e);
+    prior = ClearMaskBit(e);
     pthread_mutex_unlock(&conditionMutex);
 
-    if (prior) LogRoutine("Cancel: %s\n", conditionNames[e]);
+    if (prior) DEBUGPRINT("conditions: Cancel: %s\n", conditionNames[e]);
 }
 
 //publish conditions if changed, or if forced

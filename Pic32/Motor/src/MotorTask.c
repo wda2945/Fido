@@ -61,6 +61,7 @@ void MOTtaskInit() {
     //make sure the motors are disabled
     PORTSetPinsDigitalOut(MOT_RST_IOPORT, MOT_RST_BIT);
     PORTSetBits(MOT_RST_IOPORT, MOT_RST_BIT);
+    //set all PWM ports high
     PORTSetPinsDigitalOut(PWM_1_IOPORT, PWM_1_BIT);
     PORTSetBits(PWM_1_IOPORT, PWM_1_BIT);
     PORTSetPinsDigitalOut(PWM_2_IOPORT, PWM_2_BIT);
@@ -93,28 +94,18 @@ static void MOTtask(void *pvParameters) {
     //start subsystem tasks
     initReply += SysLogInit();
     initReply += PubSubInit();
-
     initReply += NotificationsInit();
     initReply += UARTBrokerInit();
-
-    CancelCondition(MOT_INIT_ERROR);
-    CancelCondition(MOTORS_INHIBIT);
-    CancelCondition(MOTORS_BUSY);
-    CancelCondition(MOT_ANALOG_ERROR);
-    CancelCondition(MOTORS_ERRORS);
-    CancelCondition(MOT_MCP_COMMS_ERRORS);
-    CancelCondition(MOT_MCP_COMMS_CONGESTION);
+    initReply += PidInit();      //Controls the motor PWM
+    initReply += EncoderInit();  //Measures motor speed
+    //initReply += AmpsInit();   //Measures motor current
 
     while ((motQueue = psNewPubSubQueue(MOT_TASK_QUEUE_LENGTH)) == NULL) {
         SetCondition(MOT_INIT_ERROR);
         LogError( "Motor Task Q");
         initReply = -1;
     }
-
-    initReply += PidInit();      //Controls the motor PWM
-    initReply += EncoderInit();  //Measures motor speed
-    //initReply += AmpsInit();   //Measures motor current
-
+    
     if (initReply < 0) {
         SetCondition(MOT_INIT_ERROR);
         DebugPrint("MOT Init Error");
@@ -125,16 +116,23 @@ static void MOTtask(void *pvParameters) {
         }
     }
     
+    CancelCondition(MOT_INIT_ERROR);
+    CancelCondition(MOTORS_INHIBIT);
+    CancelCondition(MOTORS_BUSY);
+    CancelCondition(MOT_ANALOG_ERROR);
+    CancelCondition(MOTORS_ERRORS);
+    CancelCondition(MOT_MCP_COMMS_ERRORS);
+    CancelCondition(MOT_MCP_COMMS_CONGESTION);
+
     {
         psMessage_t msg;
         psInitPublish(msg, SS_ONLINE);
         strcpy(msg.responsePayload.subsystem, "MOT");
-        msg.responsePayload.flags = (initReply < 0 ? RESPONSE_INIT_ERRORS : 0)
-                || RESPONSE_FIRST_TIME;
+        msg.responsePayload.flags = RESPONSE_FIRST_TIME;
         psSendMessage(msg);
     }
     
-    LogRoutine("MOT Up");
+    DebugPrint("MOT Up");
 
     for (;;) {
         
@@ -157,7 +155,7 @@ static void MOTtask(void *pvParameters) {
                     break;
                 case CONFIG:
                     if (motRxMsg.configPayload.responder == MOTOR_SUBSYSTEM) {
-                        
+                        DebugPrint("Config message received");
                         int requestor = motRxMsg.configPayload.requestor;
 
                        configCount = 0;
@@ -175,18 +173,18 @@ static void MOTtask(void *pvParameters) {
                         motRxMsg.configPayload.count = configCount;
                         psSendMessage(motRxMsg);
 
-                        LogRoutine("Config sent\n");
+                        DebugPrint("Config sent");
                     }
                     break;
                 case SET_OPTION: //option change
-                    LogRoutine("New Option %s = %i", motRxMsg.optionPayload.name, motRxMsg.optionPayload.value);
+                    DebugPrint("New Option %s = %i", motRxMsg.optionPayload.name, motRxMsg.optionPayload.value);
 
 #define optionmacro(n, var, minV, maxV, def) SetOption(&motRxMsg, n, &var, minV, maxV);
 #include "Options.h"
 #undef optionmacro
                     break;
                 case NEW_SETTING: //setting change
-                    LogRoutine("New Setting %s = %f", motRxMsg.settingPayload.name, motRxMsg.settingPayload.value);
+                    DebugPrint("New Setting %s = %f", motRxMsg.settingPayload.name, motRxMsg.settingPayload.value);
 
 #define settingmacro(n, var, minV, maxV, def) NewSetting(&motRxMsg, n, &var, minV, maxV);
 #include "Settings.h"
@@ -196,7 +194,7 @@ static void MOTtask(void *pvParameters) {
                 {
                     psMessage_t msg2;
 
-                    LogRoutine("Ping Msg");
+                    DebugPrint("Ping Msg");
 
 //                    PORTToggleBits(USER_LED_IOPORT, USER_LED_BIT);
 

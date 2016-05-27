@@ -33,10 +33,7 @@
 
 
 //Serial Tx queue
-BrokerQueue_t uartTxQueue = {NULL, NULL,
-		PTHREAD_MUTEX_INITIALIZER,
-		PTHREAD_COND_INITIALIZER
-};
+BrokerQueue_t uartTxQueue = BROKER_Q_INITIALIZER;
 
 //RX and TX UART threads
 void *RxThread(void *a);
@@ -80,11 +77,11 @@ int SerialBrokerInit()
 
 	if (uart_setup(PS_TX_PIN, PS_RX_PIN) < 0)
 	{
-		ERRORPRINT("uart pinmux fail");
+		ERRORPRINT("uart: pinmux fail");
 		return -1;
 	}
 	else {
-		DEBUGPRINT("broker uart pinmux OK\n");
+		DEBUGPRINT("uart: pinmux OK\n");
 	}
 
 	sleep(1);
@@ -94,7 +91,7 @@ int SerialBrokerInit()
 	int retryCount = 10;
 
 	while (picUartFD < 0 && retryCount-- > 0) {
-		ERRORPRINT("Open %s: %s\n",PS_UART_DEVICE, strerror(errno));
+		ERRORPRINT("uart: open(%s) error - %s\n",PS_UART_DEVICE, strerror(errno));
 		sleep(1);
 		picUartFD = open(PS_UART_DEVICE, O_RDWR | O_NOCTTY);
 	}
@@ -103,7 +100,7 @@ int SerialBrokerInit()
 		return -1;
 	}
 	else {
-		DEBUGPRINT("%s opened\n", PS_UART_DEVICE);
+		DEBUGPRINT("uart: %s opened\n", PS_UART_DEVICE);
 	}
 
 
@@ -123,7 +120,7 @@ int SerialBrokerInit()
 	cfsetispeed(&settings, PS_UART_BAUDRATE);
 
 	if (tcsetattr(picUartFD, TCSANOW, &settings) != 0) {
-		ERRORPRINT("tcsetattr: %s\n", strerror(errno));
+		ERRORPRINT("uart: tcsetattr error - %s\n", strerror(errno));
 		return -1;
 	}
 
@@ -135,13 +132,13 @@ int SerialBrokerInit()
 	int s = pthread_create(&thread, NULL, RxThread, NULL);
 	if (s != 0)
 	{
-		ERRORPRINT("Rx Thread: %s\n", strerror(s));
+		ERRORPRINT("uart: Rx Thread error: %s \n", strerror(s));
 		return -1;
 	}
 	s = pthread_create(&thread, NULL, TxThread, NULL);
 	if (s != 0)
 	{
-		ERRORPRINT("Tx Thread: %s\n", strerror(s));
+		ERRORPRINT("uart: Tx Thread error: %s\n", strerror(s));
 		return -1;
 	}
 
@@ -153,8 +150,6 @@ int SerialBrokerInit()
 void SerialBrokerProcessMessage(psMessage_t *msg)
 {
 	if ((msg->header.source != OVERMIND ) && (msg->header.source != APP_OVM)) return;	//don't echo messages
-
-//	DEBUGPRINT("Serial: %s\n", psLongMsgNames[msg->header.messageType]);
 
 	//check for log messages to send to MCP
     if (msg->header.messageType == SYSLOG_MSG) {
@@ -209,7 +204,7 @@ void *TxThread(void *a) {
 	int checksum;
 	unsigned char sequenceNumber = 0;
 
-	DEBUGPRINT("TX ready\n");
+	DEBUGPRINT("uart: TX ready\n");
 
 	for (;;) {
 
@@ -241,9 +236,9 @@ void *TxThread(void *a) {
 
 		if (written == length)
 		{
-			DEBUGPRINT("uart TX: %s\n", psLongMsgNames[msg->header.messageType]);
+			DEBUGPRINT("uart: Tx: %s message sent\n", psLongMsgNames[msg->header.messageType]);
 		} else {
-			ERRORPRINT("uart TX:. %s\n", strerror(errno));
+			ERRORPRINT("uart: Tx error - %s\n", strerror(errno));
 			SetCondition(OVM_MCP_COMMS_ERRORS);
 		}
 
@@ -288,7 +283,7 @@ void *RxThread(void *a) {
 	parseStatus.noTopic		= 0;	///< Do not check for topic ID, if > 0
 	ResetParseStatus(&parseStatus);
 
-	DEBUGPRINT("RX ready\n");
+	DEBUGPRINT("uart: Rx ready\n");
 
 	for (;;) {
 		do {
@@ -307,7 +302,7 @@ void *RxThread(void *a) {
 					if (messagesReceived > 1)	//ignore first sequence error
 					{
 						receiveErrors++;
-						ERRORPRINT("Parse: %s\n", parseErrorsText[result]);
+						ERRORPRINT("uart: parse error : %s\n", parseErrorsText[result]);
 						SetCondition(OVM_MCP_COMMS_ERRORS);
 					}
 					result = PARSE_OK;
@@ -315,7 +310,7 @@ void *RxThread(void *a) {
 
 				default:
 					//error
-					ERRORPRINT("Parse: %s\n", parseErrorsText[result]);
+					ERRORPRINT("uart: parse error: %s\n", parseErrorsText[result]);
 					parseErrors++;
 					SetCondition(OVM_MCP_COMMS_ERRORS);
 					result = PARSE_OK;
@@ -324,7 +319,7 @@ void *RxThread(void *a) {
 			}
 			else if (count < 0)
 			{
-				ERRORPRINT("uart RX: %s\n", strerror(errno));
+				ERRORPRINT("uart: Rx error : %s\n", strerror(errno));
 				SetCondition(OVM_MCP_COMMS_ERRORS);
 				result = PARSE_OK;
 			}
@@ -335,7 +330,7 @@ void *RxThread(void *a) {
 		if (msg.header.source != OVERMIND) {
 			if (msg.header.messageType != TICK_1S)
 			{
-				DEBUGPRINT("uart RX: %s\n", psLongMsgNames[msg.header.messageType]);
+				DEBUGPRINT("uart: Rx: %s message received\n", psLongMsgNames[msg.header.messageType]);
 			}
 			//route the message
 			NewBrokerMessage(&msg);
@@ -363,6 +358,7 @@ void SendStats() {
     msg.commsStatsPayload.addressIgnored 		= addressIgnored; //wrong address
     msg.commsStatsPayload.parseErrors 			= parseErrors; //wrong address
     msg.commsStatsPayload.receiveErrors 		= receiveErrors;
+    msg.commsStatsPayload.queueLength			= uartTxQueue.queueCount;
 
     NewBrokerMessage(&msg);
 }

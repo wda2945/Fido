@@ -214,7 +214,7 @@ static void AnalogTask(void *pvParameters) {
 
     AD1CON1bits.SAMP = 1; //start Sampling
 
-    LogRoutine("Analog Task Up");
+    DebugPrint("analog: Task Up");
 
     //get initial voltages
     vTaskDelay(100);
@@ -300,35 +300,38 @@ static void AnalogTask(void *pvParameters) {
 
             psInitPublish(RawMsg, ENVIRONMENT);
             RawMsg.environmentPayload.batteryVolts = (uint16_t) batteryVolts * 10; //times 10
-            RawMsg.environmentPayload.batteryAmps = (int16_t) batteryAmps * 10; //times 10
-            RawMsg.environmentPayload.batteryAh = (int16_t) batteryAh * 10; //times 10
-            RawMsg.environmentPayload.solarVolts = (uint16_t) solarVolts * 10; //times 10
-            RawMsg.environmentPayload.chargeVolts = (uint16_t) chargeVolts * 10; //times 10
-            RawMsg.environmentPayload.solarAmps = (uint8_t) solarAmps * 10; //times 10
-            RawMsg.environmentPayload.chargeAmps = (uint8_t) chargeAmps * 10; //times 10
-            RawMsg.environmentPayload.internalTemp = (uint8_t) int_temp;
-            RawMsg.environmentPayload.externalTemp = (uint8_t) ext_temp;
+            RawMsg.environmentPayload.batteryAmps   = (int16_t) batteryAmps * 10; //times 10
+            RawMsg.environmentPayload.maxAmps       = (int16_t) maxAmps * 10;   //times 10
+            RawMsg.environmentPayload.batteryAh     = (int16_t) batteryAh * 10; //times 10
+            RawMsg.environmentPayload.solarVolts    = (uint16_t) solarVolts * 10; //times 10
+            RawMsg.environmentPayload.chargeVolts   = (uint16_t) chargeVolts * 10; //times 10
+            RawMsg.environmentPayload.solarAmps     = (uint8_t) solarAmps * 10; //times 10
+            RawMsg.environmentPayload.chargeAmps    = (uint8_t) chargeAmps * 10; //times 10
+            RawMsg.environmentPayload.internalTemp  = (uint8_t) int_temp;
+            RawMsg.environmentPayload.externalTemp  = (uint8_t) ext_temp;
             RawMsg.environmentPayload.relativeHumidity = (uint8_t) humidity;
-            RawMsg.environmentPayload.ambientLight = (uint8_t) ambientLight;
-            RawMsg.environmentPayload.isRaining = (uint8_t) isRaining; //boolean
+            RawMsg.environmentPayload.ambientLight  = (uint8_t) ambientLight;
+            RawMsg.environmentPayload.isRaining     = (uint8_t) isRaining; //boolean
             psSendMessage(RawMsg);
 
             //additional reports
 
             //battery state check
-            if (batteryVolts < shutdown) {
+            float motorAdj = (isConditionActive(MOTORS_BUSY) ? motorOffsetV : 0.0);
+            
+            if (batteryVolts < (shutdownV - motorAdj) || batteryAh < -shutdownAh ) {
                 if (batteryStatus != BATTERY_SHUTDOWN_STATUS)
                 {
                     NotifyEvent(BATTERY_SHUTDOWN_EVENT);
                     batteryStatus = BATTERY_SHUTDOWN_STATUS;
                 }
-            } else if (batteryVolts < battCritical) {
+            } else if (batteryVolts < (battCriticalV - motorAdj) || batteryAh < -battCriticalAh ) {
                 if (batteryStatus != BATTERY_CRITICAL_STATUS)
                 {
                     NotifyEvent(BATTERY_CRITICAL_EVENT);
                     batteryStatus = BATTERY_CRITICAL_STATUS;
                 }
-            } else if (batteryVolts < battLow) {
+            } else if (batteryVolts < (battLowV - motorAdj) || batteryAh < -battLowAh ) {
                  if (batteryStatus != BATTERY_LOW_STATUS)
                 {
                     NotifyEvent(BATTERY_LOW_EVENT);
@@ -344,11 +347,14 @@ static void AnalogTask(void *pvParameters) {
             psInitPublish(RawMsg, BATTERY);
             RawMsg.batteryPayload.volts = (uint16_t) batteryVolts * 10;
             RawMsg.batteryPayload.amps  = (int16_t) batteryAmps * 10;
+            RawMsg.batteryPayload.maxAmps = (int16_t) maxAmps * 10;
             RawMsg.batteryPayload.status = batteryStatus;
             RawMsg.batteryPayload.ampHours = (int16_t) batteryAh * 10;
-            RawMsg.batteryPayload.percentage = 100;
+            RawMsg.batteryPayload.percentage = (uint8_t)(battCapacity - batteryAh) * 100.0 / battCapacity;
             psSendMessage(RawMsg);
 
+            maxAmps = 0;
+            
             //Raw analog reports for debug
             if (rawProxReport) {
                 //raw prox channels
@@ -511,8 +517,9 @@ void Evaluate(int source, float volts) {
                 break;
             case BATTERY_AMPS:
                 batteryAmps = (volts - initialSourceVoltages[source]) / 0.083f;
+                if (batteryAmps > maxAmps) maxAmps = batteryAmps;
                 if (batteryAmps < 0 && batteryAh > 0) batteryAh = 0;
-                batteryAh += batteryAmps * ANALOG_TASK_FRQUENCY / (60 * 60 * 1000);
+                batteryAh += batteryAmps * ANALOG_TASK_FRQUENCY / (60.0 * 60.0 * 1000.0);
                 break;
             case AMBIENT_LIGHT:
                 ambientLight = volts * 10;
@@ -602,5 +609,5 @@ void ADC_ISR_Handler() {
 
 //environmental measurements, declared extern in MCP.h
 float ext_temp, int_temp, humidity, ambientLight, rainDetectorAnalog,
-batteryVolts, batteryAmps, batteryAh, solarVolts, solarAmps, chargeVolts, chargeAmps;
+batteryVolts, batteryAmps, maxAmps, batteryAh, solarVolts, solarAmps, chargeVolts, chargeAmps;
 bool motorInhibit, isRaining;

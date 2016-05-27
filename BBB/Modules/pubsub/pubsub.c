@@ -56,7 +56,7 @@ int PubSubInit()
 	int s = pthread_create(&inputThread, NULL, BrokerInputThread, NULL);
 	if (s != 0)
 	{
-		ERRORPRINT("Input Thread: %n", s);
+		ERRORPRINT("broker: Input Thread error - %n", s);
 		return -1;
 	}
 	return 0;
@@ -72,9 +72,9 @@ void *BrokerInputThread(void *args)
 		//process messages off the broker queue
 		psMessage_t *msg = GetNextMessage(&brokerQueue);
 
-		if (msg->header.messageType != SYSLOG_MSG && msg->header.messageType != TICK_1S &&
-				msg->header.messageType != BBBLOG_MSG)
-			DEBUGPRINT("Broker: %s\n", psLongMsgNames[msg->header.messageType]);
+//		if (msg->header.messageType != SYSLOG_MSG && msg->header.messageType != TICK_1S &&
+//				msg->header.messageType != BBBLOG_MSG)
+//			DEBUGPRINT("Broker: %s\n", psLongMsgNames[msg->header.messageType]);
 
 		RouteMessage(msg);
 
@@ -96,12 +96,6 @@ void RouteMessage(psMessage_t *msg)
     	msg->header.messageTopic = topicId = psDefaultTopics[msgType];
         //fix variable length payloads
         AdjustMessageLength(msg);
-
-//      DebugPrint("Forward: %s", psLongMsgNames[msgType]);
-    }
-    else
-    {
-//    DebugPrint("Forward: %i in %s", msgType, psTopicNames[topicId]);
     }
 
 	switch(topicId)
@@ -112,7 +106,6 @@ void RouteMessage(psMessage_t *msg)
 		LogProcessMessage(msg);
 		SerialBrokerProcessMessage(msg);
 		AgentProcessMessage(msg);
-		SerialBrokerProcessMessage(msg);
 		break;
 	case OVM_LOG_TOPIC:
 		LogProcessMessage(msg);
@@ -120,13 +113,13 @@ void RouteMessage(psMessage_t *msg)
 	case ANNOUNCEMENTS_TOPIC:    //Common channel
 		BehaviorProcessMessage(msg);
 		SerialBrokerProcessMessage(msg);
-		AgentProcessMessage(msg);
 		ResponderProcessMessage(msg);
+		AgentProcessMessage(msg);
 		break;
 	case RESPONSE_TOPIC:
 		BehaviorProcessMessage(msg);
-		AgentProcessMessage(msg);
 		SerialBrokerProcessMessage(msg);
+		AgentProcessMessage(msg);
 		break;
 	case EVENTS_TOPIC:
 		SerialBrokerProcessMessage(msg);
@@ -137,15 +130,15 @@ void RouteMessage(psMessage_t *msg)
 		break;
 	case CONDITIONS_TOPIC:
 		SerialBrokerProcessMessage(msg);
-		AgentProcessMessage(msg);
 		BehaviorProcessMessage(msg);
 		AutopilotProcessMessage(msg);
 		ResponderProcessMessage(msg);
 		LogProcessMessage(msg);
+		AgentProcessMessage(msg);
 		break;
 	case APP_REPORT_TOPIC:       //To send data to APP
-		AgentProcessMessage(msg);
 		SerialBrokerProcessMessage(msg);
+		AgentProcessMessage(msg);
 		break;
 	case MOT_ACTION_TOPIC:		 //To send commands to the motors
 	case MCP_ACTION_TOPIC:		 //To send commands to MCP
@@ -153,7 +146,6 @@ void RouteMessage(psMessage_t *msg)
 		break;
 	case NAV_REPORT_TOPIC:       //Fused Odometry & Prox Reports
 		AutopilotProcessMessage(msg);
-//		BehaviorProcessMessage(msg);
 		break;
 	case OVM_ACTION_TOPIC:
 		BehaviorProcessMessage(msg);

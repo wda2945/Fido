@@ -17,6 +17,8 @@ bool AgentProcessMessage(psMessage_t *msg);
 
 int pingServer(char *target);
 
+void SendAgentStats();
+
 extern bool agentOnline;
 
 #endif /* AGENT_AGENT_H_ */

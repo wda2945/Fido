@@ -28,11 +28,14 @@
 		5B0ADABF1C3B632D008FA1DB /* MessageToText.c in Sources */ = {isa = PBXBuildFile; fileRef = 5B0ADABA1C3B632D008FA1DB /* MessageToText.c */; };
 		5B0ADAC01C3B632D008FA1DB /* PubSubParser.c in Sources */ = {isa = PBXBuildFile; fileRef = 5B0ADABB1C3B632D008FA1DB /* PubSubParser.c */; };
 		5B0ADAC11C3B632D008FA1DB /* Waypoints.c in Sources */ = {isa = PBXBuildFile; fileRef = 5B0ADABC1C3B632D008FA1DB /* Waypoints.c */; };
+		5B11869D1A80A840008CD1E5 /* OptionsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5B11869C1A80A840008CD1E5 /* OptionsViewController.m */; };
+		5B1186A01A80A857008CD1E5 /* SettingsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5B11869F1A80A857008CD1E5 /* SettingsViewController.m */; };
 		5B1632951A2805D700F6F23B /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5B1632941A2805D700F6F23B /* CoreLocation.framework */; };
 		5B1632991A28330700F6F23B /* WPEditController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5B1632971A28330700F6F23B /* WPEditController.m */; };
 		5B16329A1A28330700F6F23B /* WPEditController.xib in Resources */ = {isa = PBXBuildFile; fileRef = 5B1632981A28330700F6F23B /* WPEditController.xib */; };
 		5B16329D1A2836DC00F6F23B /* WPTableViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5B16329C1A2836DC00F6F23B /* WPTableViewController.m */; };
 		5B16329F1A28385200F6F23B /* map-marker.png in Resources */ = {isa = PBXBuildFile; fileRef = 5B16329E1A28385200F6F23B /* map-marker.png */; };
+		5B23ED7C1A761F5000812BA7 /* DataViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5B23ED7B1A761F5000812BA7 /* DataViewController.m */; };
 		5B34A7071AFDD632001D7F2A /* Media.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5B34A7061AFDD632001D7F2A /* Media.xcassets */; };
 		5B3E0AF01A27EFD200A510E3 /* MapViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5B3E0AEF1A27EFD200A510E3 /* MapViewController.m */; };
 		5B3E0AF21A27FFFD00A510E3 /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5B3E0AF11A27FFFD00A510E3 /* MapKit.framework */; };
@@ -79,7 +82,7 @@
 		5BB2BE1A197C9BC100699D20 /* right-128.png in Resources */ = {isa = PBXBuildFile; fileRef = 5BB2BBDA197C9BC000699D20 /* right-128.png */; };
 		5BB2BE1B197C9BC100699D20 /* up-128.png in Resources */ = {isa = PBXBuildFile; fileRef = 5BB2BBDB197C9BC000699D20 /* up-128.png */; };
 		5BB2BE1D197C9BC100699D20 /* setting.png in Resources */ = {isa = PBXBuildFile; fileRef = 5BB2BBDD197C9BC000699D20 /* setting.png */; };
-		5BB2BE1F197C9BC100699D20 /* disabled.png in Resources */ = {isa = PBXBuildFile; fileRef = 5BB2BBE0197C9BC000699D20 /* disabled.png */; };
+		5BB2BE1F197C9BC100699D20 /* error.png in Resources */ = {isa = PBXBuildFile; fileRef = 5BB2BBE0197C9BC000699D20 /* error.png */; };
 		5BB2BE20197C9BC100699D20 /* fail.png in Resources */ = {isa = PBXBuildFile; fileRef = 5BB2BBE1197C9BC000699D20 /* fail.png */; };
 		5BB2BE21197C9BC100699D20 /* offline.png in Resources */ = {isa = PBXBuildFile; fileRef = 5BB2BBE2197C9BC000699D20 /* offline.png */; };
 		5BB2BE22197C9BC100699D20 /* online.png in Resources */ = {isa = PBXBuildFile; fileRef = 5BB2BBE3197C9BC000699D20 /* online.png */; };
@@ -89,7 +92,7 @@
 		5BB2BFD0197C9BC100699D20 /* MasterViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5BB2BDCD197C9BC100699D20 /* MasterViewController.m */; };
 		5BB2BFD1197C9BC100699D20 /* PubSubMsg.m in Sources */ = {isa = PBXBuildFile; fileRef = 5BB2BDCF197C9BC100699D20 /* PubSubMsg.m */; };
 		5BB2BFD2197C9BC100699D20 /* RCViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5BB2BDD1197C9BC100699D20 /* RCViewController.m */; };
-		5BB2BFD4197C9BC100699D20 /* EnvironmentViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5BB2BDD6197C9BC100699D20 /* EnvironmentViewController.m */; };
+		5BB2BFD4197C9BC100699D20 /* SensorViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5BB2BDD6197C9BC100699D20 /* SensorViewController.m */; };
 		5BB2BFD5197C9BC100699D20 /* SettingsDetail-iPad.xib in Resources */ = {isa = PBXBuildFile; fileRef = 5BB2BDD7197C9BC100699D20 /* SettingsDetail-iPad.xib */; };
 		5BB2BFD6197C9BC100699D20 /* SettingsDetail-iPhone.xib in Resources */ = {isa = PBXBuildFile; fileRef = 5BB2BDD8197C9BC100699D20 /* SettingsDetail-iPhone.xib */; };
 		5BB2BFD7197C9BC100699D20 /* SettingsDetailViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 5BB2BDDA197C9BC100699D20 /* SettingsDetailViewController.m */; };
@@ -160,6 +163,10 @@
 		5B0CCFF51C140A9D008896BA /* MessageList.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MessageList.h; path = ../SHARED_CODE/Messages/MessageList.h; sourceTree = "<group>"; };
 		5B0CCFF61C140A9D008896BA /* MsgFormatList.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MsgFormatList.h; path = ../SHARED_CODE/Messages/MsgFormatList.h; sourceTree = "<group>"; };
 		5B0CCFF81C140A9D008896BA /* Topics.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Topics.h; path = ../SHARED_CODE/Messages/Topics.h; sourceTree = "<group>"; };
+		5B11869B1A80A840008CD1E5 /* OptionsViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OptionsViewController.h; sourceTree = "<group>"; };
+		5B11869C1A80A840008CD1E5 /* OptionsViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = OptionsViewController.m; sourceTree = "<group>"; };
+		5B11869E1A80A857008CD1E5 /* SettingsViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SettingsViewController.h; sourceTree = "<group>"; };
+		5B11869F1A80A857008CD1E5 /* SettingsViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SettingsViewController.m; sourceTree = "<group>"; };
 		5B1632941A2805D700F6F23B /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
 		5B1632961A28330700F6F23B /* WPEditController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WPEditController.h; sourceTree = "<group>"; };
 		5B1632971A28330700F6F23B /* WPEditController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = WPEditController.m; sourceTree = "<group>"; };
@@ -167,9 +174,8 @@
 		5B16329B1A2836DC00F6F23B /* WPTableViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WPTableViewController.h; sourceTree = "<group>"; };
 		5B16329C1A2836DC00F6F23B /* WPTableViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = WPTableViewController.m; sourceTree = "<group>"; };
 		5B16329E1A28385200F6F23B /* map-marker.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "map-marker.png"; sourceTree = "<group>"; };
-		5B2650971CD87FD3005465EE /* notificationconditionslistErrors.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = notificationconditionslistErrors.h; path = ../../Fido/shared_code/messages/notificationconditionslistErrors.h; sourceTree = "<group>"; };
-		5B2650981CD87FD3005465EE /* notificationconditionslistProximity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = notificationconditionslistProximity.h; path = ../../Fido/shared_code/messages/notificationconditionslistProximity.h; sourceTree = "<group>"; };
-		5B2650991CD87FD3005465EE /* notificationconditionslistStatus.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = notificationconditionslistStatus.h; path = ../../Fido/shared_code/messages/notificationconditionslistStatus.h; sourceTree = "<group>"; };
+		5B23ED7A1A761F5000812BA7 /* DataViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DataViewController.h; sourceTree = "<group>"; };
+		5B23ED7B1A761F5000812BA7 /* DataViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DataViewController.m; sourceTree = "<group>"; };
 		5B34A7061AFDD632001D7F2A /* Media.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Media.xcassets; path = statusIcons/Media.xcassets; sourceTree = "<group>"; };
 		5B3E0AEE1A27EFD200A510E3 /* MapViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MapViewController.h; sourceTree = "<group>"; };
 		5B3E0AEF1A27EFD200A510E3 /* MapViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = MapViewController.m; sourceTree = "<group>"; };
@@ -228,7 +234,7 @@
 		5BB2BBDA197C9BC000699D20 /* right-128.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "right-128.png"; sourceTree = "<group>"; };
 		5BB2BBDB197C9BC000699D20 /* up-128.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "up-128.png"; sourceTree = "<group>"; };
 		5BB2BBDD197C9BC000699D20 /* setting.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = setting.png; sourceTree = "<group>"; };
-		5BB2BBE0197C9BC000699D20 /* disabled.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = disabled.png; sourceTree = "<group>"; };
+		5BB2BBE0197C9BC000699D20 /* error.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = error.png; sourceTree = "<group>"; };
 		5BB2BBE1197C9BC000699D20 /* fail.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = fail.png; sourceTree = "<group>"; };
 		5BB2BBE2197C9BC000699D20 /* offline.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = offline.png; sourceTree = "<group>"; };
 		5BB2BBE3197C9BC000699D20 /* online.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = online.png; sourceTree = "<group>"; };
@@ -244,8 +250,8 @@
 		5BB2BDD1197C9BC100699D20 /* RCViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = RCViewController.m; sourceTree = "<group>"; };
 		5BB2BDD2197C9BC100699D20 /* FidoMonitor-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "FidoMonitor-Info.plist"; sourceTree = "<group>"; };
 		5BB2BDD3197C9BC100699D20 /* FidoMonitor-Prefix.pch */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "FidoMonitor-Prefix.pch"; sourceTree = "<group>"; };
-		5BB2BDD5197C9BC100699D20 /* EnvironmentViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EnvironmentViewController.h; sourceTree = "<group>"; };
-		5BB2BDD6197C9BC100699D20 /* EnvironmentViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = EnvironmentViewController.m; sourceTree = "<group>"; };
+		5BB2BDD5197C9BC100699D20 /* SensorViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SensorViewController.h; sourceTree = "<group>"; };
+		5BB2BDD6197C9BC100699D20 /* SensorViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SensorViewController.m; sourceTree = "<group>"; };
 		5BB2BDD7197C9BC100699D20 /* SettingsDetail-iPad.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = "SettingsDetail-iPad.xib"; sourceTree = "<group>"; };
 		5BB2BDD8197C9BC100699D20 /* SettingsDetail-iPhone.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = "SettingsDetail-iPhone.xib"; sourceTree = "<group>"; };
 		5BB2BDD9197C9BC100699D20 /* SettingsDetailViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SettingsDetailViewController.h; sourceTree = "<group>"; };
@@ -334,9 +340,6 @@
 		5B0CCFF21C140A8C008896BA /* Messages */ = {
 			isa = PBXGroup;
 			children = (
-				5B2650971CD87FD3005465EE /* notificationconditionslistErrors.h */,
-				5B2650981CD87FD3005465EE /* notificationconditionslistProximity.h */,
-				5B2650991CD87FD3005465EE /* notificationconditionslistStatus.h */,
 				5B77EEDE1C5C0513009086A0 /* NotificationConditionsList.h */,
 				5B77EEDF1C5C0513009086A0 /* NotificationEnums.h */,
 				5B77EEE01C5C0513009086A0 /* NotificationEventsList.h */,
@@ -372,8 +375,8 @@
 				5B06DEA21C479AE400EEEF37 /* PowerViewController.m */,
 				5B06DE9E1C47995300EEEF37 /* ConditionsViewController.h */,
 				5B06DE9F1C47995300EEEF37 /* ConditionsViewController.m */,
-				5BB2BDD5197C9BC100699D20 /* EnvironmentViewController.h */,
-				5BB2BDD6197C9BC100699D20 /* EnvironmentViewController.m */,
+				5BB2BDD5197C9BC100699D20 /* SensorViewController.h */,
+				5BB2BDD6197C9BC100699D20 /* SensorViewController.m */,
 				5B464C391A8ED1CB0086B297 /* CommsViewController.h */,
 				5B464C3A1A8ED1CB0086B297 /* CommsViewController.m */,
 				5B3E0AEE1A27EFD200A510E3 /* MapViewController.h */,
@@ -385,8 +388,14 @@
 				5B16329C1A2836DC00F6F23B /* WPTableViewController.m */,
 				5BB2BDDB197C9BC100699D20 /* StatsViewController.h */,
 				5BB2BDDC197C9BC100699D20 /* StatsViewController.m */,
+				5B11869B1A80A840008CD1E5 /* OptionsViewController.h */,
+				5B11869C1A80A840008CD1E5 /* OptionsViewController.m */,
+				5B11869E1A80A857008CD1E5 /* SettingsViewController.h */,
+				5B11869F1A80A857008CD1E5 /* SettingsViewController.m */,
 				5BB2BDD9197C9BC100699D20 /* SettingsDetailViewController.h */,
 				5BB2BDDA197C9BC100699D20 /* SettingsDetailViewController.m */,
+				5B23ED7A1A761F5000812BA7 /* DataViewController.h */,
+				5B23ED7B1A761F5000812BA7 /* DataViewController.m */,
 				5BB2BDDD197C9BC100699D20 /* SubsystemViewController.h */,
 				5BB2BDDE197C9BC100699D20 /* SubsystemViewController.m */,
 				5BB2BDD0197C9BC100699D20 /* RCViewController.h */,
@@ -533,7 +542,7 @@
 			isa = PBXGroup;
 			children = (
 				5BB10DD11C6C6847005DA88E /* connected.png */,
-				5BB2BBE0197C9BC000699D20 /* disabled.png */,
+				5BB2BBE0197C9BC000699D20 /* error.png */,
 				5BB2BBE1197C9BC000699D20 /* fail.png */,
 				5BB2BBE2197C9BC000699D20 /* offline.png */,
 				5BB2BBE3197C9BC000699D20 /* online.png */,
@@ -722,7 +731,7 @@
 				5BB56CB21A8ADC6F000A591D /* flag_blue.png in Resources */,
 				5B16329A1A28330700F6F23B /* WPEditController.xib in Resources */,
 				5BB2BDEF197C9BC100699D20 /* fido.png in Resources */,
-				5BB2BE1F197C9BC100699D20 /* disabled.png in Resources */,
+				5BB2BE1F197C9BC100699D20 /* error.png in Resources */,
 				5BB2BE1D197C9BC100699D20 /* setting.png in Resources */,
 				5BCBB5D31A88A46900586051 /* define_location.png in Resources */,
 				5BB2BDE4197C9BC100699D20 /* Main_iPhone.storyboard in Resources */,
@@ -782,14 +791,16 @@
 				5B06DEA31C479AE400EEEF37 /* PowerViewController.m in Sources */,
 				5B0ADAB31C3B1957008FA1DB /* mxml-string.c in Sources */,
 				5B0ADAAA1C3B1957008FA1DB /* mxml-attr.c in Sources */,
+				5B1186A01A80A857008CD1E5 /* SettingsViewController.m in Sources */,
 				5B0ADAB01C3B1957008FA1DB /* mxml-private.c in Sources */,
 				5B0ADAAD1C3B1957008FA1DB /* mxml-get.c in Sources */,
 				5B0ADAAC1C3B1957008FA1DB /* mxml-file.c in Sources */,
+				5B11869D1A80A840008CD1E5 /* OptionsViewController.m in Sources */,
 				5B16329D1A2836DC00F6F23B /* WPTableViewController.m in Sources */,
 				5BB2BDE2197C9BC100699D20 /* AppDelegate.m in Sources */,
 				5B464C3B1A8ED1CB0086B297 /* CommsViewController.m in Sources */,
 				5BB2BDE1197C9BC100699D20 /* BLE.m in Sources */,
-				5BB2BFD4197C9BC100699D20 /* EnvironmentViewController.m in Sources */,
+				5BB2BFD4197C9BC100699D20 /* SensorViewController.m in Sources */,
 				5B0ADAC11C3B632D008FA1DB /* Waypoints.c in Sources */,
 				5BB2BFCF197C9BC100699D20 /* main.m in Sources */,
 				5B0ADAAE1C3B1957008FA1DB /* mxml-index.c in Sources */,
@@ -810,6 +821,7 @@
 				5BA53CD81AF8B1380024BD81 /* BehaviorViewController.m in Sources */,
 				5B06DEA01C47995300EEEF37 /* ConditionsViewController.m in Sources */,
 				5B0ADABD1C3B632D008FA1DB /* base64.c in Sources */,
+				5B23ED7C1A761F5000812BA7 /* DataViewController.m in Sources */,
 				5B0ADAB21C3B1957008FA1DB /* mxml-set.c in Sources */,
 				5BB2BFD0197C9BC100699D20 /* MasterViewController.m in Sources */,
 			);

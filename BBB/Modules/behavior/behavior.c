@@ -327,19 +327,19 @@ int ReportAvailableScripts()
 //BT call-back result codes
 int success(lua_State *L)
 {
-	DEBUGPRINT("+++SUCCESS\n");
+//	DEBUGPRINT("+++SUCCESS\n");
 	lua_pushstring(L, "success");
 	return 1;
 }
 int running(lua_State *L)
 {
-	DEBUGPRINT("...RUNNING\n");
+//	DEBUGPRINT("...RUNNING\n");
 	lua_pushstring(L, "running");
 	return 1;
 }
 int fail(lua_State *L)
 {
-	DEBUGPRINT("***FAIL\n");
+//	DEBUGPRINT("***FAIL\n");
 	lua_pushstring(L, "fail");
 	lastLuaCallFail = lastLuaCall;
 	return 1;

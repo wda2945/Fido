@@ -233,6 +233,8 @@
     switch(message.msg.header.messageType){
         case COMMS_STATS:
         {
+            message.msg.commsStatsPayload.destination[3] = '\0';
+            
             NSString        *source = [NSString stringWithFormat:@"%s", subsystemNames[message.msg.header.source]];
             NSString        *link   = [NSString stringWithFormat:@"%s", message.msg.commsStatsPayload.destination];
             NSString        *key    = [NSString stringWithFormat:@"%@ >> %@ Comms", source, link];
@@ -282,6 +284,11 @@
             dict = [NSDictionary dictionaryWithObjectsAndKeys:
                     [NSString stringWithFormat:@"%@ |<- %@ receive errors", source, link], @"name",
                     [NSString stringWithFormat:@"%i",message.msg.commsStatsPayload.receiveErrors], @"value",
+                    nil];
+            [statList addObject:dict];
+            dict = [NSDictionary dictionaryWithObjectsAndKeys:
+                    [NSString stringWithFormat:@"%@ ->| %@ send queue length", source, link], @"name",
+                    [NSString stringWithFormat:@"%i",message.msg.commsStatsPayload.queueLength], @"value",
                     nil];
             [statList addObject:dict];
             [commStats setObject:statList forKey: key];

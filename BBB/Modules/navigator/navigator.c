@@ -68,7 +68,7 @@ int NavigatorInit()
 	int s = pthread_create(&thread, NULL, NavigatorThread, NULL);
 	if (s != 0)
 	{
-		ERRORPRINT("Nav Thread: %i\n", s);
+		ERRORPRINT("nav: Thread: %i\n", s);
 		return -1;
 	}
 
@@ -78,29 +78,35 @@ int NavigatorInit()
 time_t FixWaitStart = 0;
 ActionResult_enum NavigatorIsGoodPose(bool waitForFix)
 {
+	ActionResult_enum result;
+
 	if (navigationState == GOOD_POSE)
 	{
 		FixWaitStart = 0;
-		return ACTION_SUCCESS;
+		result = ACTION_SUCCESS;
 	}
-	else if (!waitForFix) return ACTION_FAIL;
+	else if (!waitForFix) {
+		result = ACTION_FAIL;
+	}
 	else
 	{
 		if (FixWaitStart == 0)
 		{
 			FixWaitStart = time(NULL);
-			return ACTION_RUNNING;
+			result = ACTION_RUNNING;
 		}
 		else
 		{
 			if (FixWaitStart + FixWaitTime < time(NULL))
 			{
 				FixWaitStart = 0;
-				return ACTION_FAIL;
+				result = ACTION_FAIL;
 			}
-			else return ACTION_RUNNING;
+			else result = ACTION_RUNNING;
 		}
 	}
+	DEBUGPRINT("nav: isGoodPose -> %s", actionResultNames[result]);
+	return result;
 }
 
 //func to receive raw nav messages
@@ -393,8 +399,8 @@ void *NavigatorThread(void *arg)
 
 		if (savedState != navigationState)
 		{
-			LogInfo("NAV: State: %s\n", navStates[navigationState]);
-			DEBUGPRINT("NAV: State: %s\n", navStates[navigationState]);
+			LogInfo("nav: State: %s\n", navStates[navigationState]);
+			DEBUGPRINT("nav: State: %s\n", navStates[navigationState]);
 		}
 
 		switch (navigationState)
@@ -450,7 +456,7 @@ void *NavigatorThread(void *arg)
 			latestReportTime = time(NULL);
 		}
 		if (latestAppReportTime + (time_t)appReportInterval < time(NULL)){
-			DEBUGPRINT("NAV: N=%f, E=%f, H=%f\n", poseMsg.posePayload.position.latitude, poseMsg.posePayload.position.longitude, lastPoseMsg.orientation.heading )
+			DEBUGPRINT("nav: Report: N=%f, E=%f, H=%f\n", poseMsg.posePayload.position.latitude, poseMsg.posePayload.position.longitude, lastPoseMsg.orientation.heading )
 			//send another to the App
 			psInitPublish(poseMsg, POSEREP);
 			RouteMessage(&poseMsg);

@@ -183,7 +183,7 @@ static void psBLETxTask(void *pvParameters) {
     bool holdMutex = false;
     char encodedMessage[MAX_ENCODED_MESSAGE];
 
-    LogRoutine("BLE Tx Up");
+    DebugPrint("BLE Tx Up");
 
     for (;;) {
 
@@ -207,7 +207,7 @@ static void psBLETxTask(void *pvParameters) {
             }
         } else {
 #ifdef BLE_DEBUG_LOG
-            LogRoutine("BLE Tx: %s", psLongMsgNames[msg.header.messageType]);
+            DebugPrint("BLE Tx: %s", psLongMsgNames[msg.header.messageType]);
 #endif
         }
 
@@ -255,7 +255,7 @@ static void psBLERxTask(void *pvParameters) {
     bool holdMutex;
     UART_DATA dat;
 
-    LogRoutine("BLE Rx Up");
+    DebugPrint("BLE Rx Up");
 
     for (;;) {
         int messageReceived = 0;
@@ -288,7 +288,7 @@ static void psBLERxTask(void *pvParameters) {
                         if (bleRxMsg.header.messageType != SYSLOG_MSG)
 {
 #ifdef BLE_DEBUG_LOG
-                            LogRoutine("BLE Rx: %s", psLongMsgNames[bleRxMsg.header.messageType]);
+                            DebugPrint("BLE Rx: %s", psLongMsgNames[bleRxMsg.header.messageType]);
 #endif
                         }
                         

@@ -32,11 +32,6 @@ void psForwardMessage(psMessage_t *msg, TickType_t _wait) {
         psQOS_enum QOS = psQOS[msgType];
         if (wait > waitTimes[QOS]) wait = waitTimes[QOS];
 
-//      DebugPrint("Forward: %s", psLongMsgNames[msgType]);
-    }
-    else
-    {
-//    DebugPrint("Forward: %i in %s", msgType, psTopicNames[topicId]);
     }
      
     switch (topicId) {

@@ -182,7 +182,7 @@ void Syslog_print(psMessage_t *msg)
             break;
     }
 
-    snprintf(logMessage, LOG_MESSAGE_SIZE, "%6li %s@%s: %s", xTaskGetTickCount(), severity, source,
+    snprintf(logMessage, LOG_MESSAGE_SIZE, "%s@%s: %s", severity, source,
             msg->logPayload.text);
     Syslog_write_string(logMessage);
 }
@@ -197,13 +197,28 @@ void Syslog_write(uint8_t theChar) {
 //write a null-terminated string
 
 void Syslog_write_string(const unsigned char *buffer) {
-
+    unsigned char timeCount[30];
+    unsigned char *next;
+    
     xSemaphoreTake(degugSerialMutex, portMAX_DELAY);
 
-    int size = strlen(buffer);
+    snprintf(timeCount, 30, "%8li ", xTaskGetTickCount());
+    
+    int size = strlen(timeCount);
+    next = timeCount;
+    
     while (size) {
-        Syslog_write(*buffer);
-        buffer++;
+        Syslog_write(*next);
+        next++;
+        size--;
+    }
+        
+    size = strlen(buffer);
+    next = (unsigned char*) buffer;
+    
+    while (size) {
+        Syslog_write(*next);
+        next++;
         size--;
     }
     Syslog_write((uint8_t)'\n');    
