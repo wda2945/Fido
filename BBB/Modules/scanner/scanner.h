@@ -11,7 +11,7 @@
 #include "behavior/behavior_enums.h"
 
 //scanner task
-pthread_t ScannerInit();
+int ScannerInit();
 
 void ScannerProcessMessage(psMessage_t *msg);
 
